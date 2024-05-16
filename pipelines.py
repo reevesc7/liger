@@ -88,4 +88,3 @@ def wait_for_free_csv(directory: str) -> None:
         loop_count += 1
         if loop_count > 100:
             print("ERROR: Output csv possibly stuck marked as not safe for writing.")
-            quit()
