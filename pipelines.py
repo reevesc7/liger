@@ -7,12 +7,13 @@ from .data_io import add_sentences, embed_dataframe
 from .dataset import Dataset
 from .training_testing import kfold_predict
 from tpot import TPOTClassifier
+from tpot.config import classifier_config_dict
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
 
 
-def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n_generations: int, pop_size: int, tpot_random_states: list[int], eval_random_states: list[int]) -> None:
+def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n_generations: int, pop_size: int, tpot_random_states: list[int], eval_random_states: list[int], no_trees: bool = False) -> None:
     
     # Import dataset
     TRANSFORMER_DIM = 768
@@ -29,7 +30,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
     # TPOT
     for tpot_random_state in tpot_random_states:
         print("\nRunning pipeline (n_gens = " + str(n_generations) + ", pop_size = " + str(pop_size) + ", random_state = " + str(tpot_random_state) + ")", flush=True)
-        tpot = tpot_fit(dataset, n_generations, pop_size, tpot_random_state)
+        tpot = tpot_fit(dataset, n_generations, pop_size, tpot_random_state, no_trees)
         tpot.export(output_directory + "n_gens_" + str(n_generations) + "_popsize_" + str(pop_size) + "_tpotrs_" + str(tpot_random_state) + ".py")
         training_score = tpot.score(dataset.X, dataset.y)
         for eval_random_state in eval_random_states:
@@ -67,8 +68,11 @@ def save_prep(output_directory: str, prompts: pd.Series) -> tuple[str, str]:
     return performance_file, ratings_file
 
 
-def tpot_fit(dataset: Dataset, n_generations: int, pop_size: int, tpot_random_state: int) -> TPOTClassifier:
-    tpot = TPOTClassifier(generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
+def tpot_fit(dataset: Dataset, n_generations: int, pop_size: int, tpot_random_state: int, no_trees: bool = False) -> TPOTClassifier:
+    custom_config = None
+    if no_trees:
+        custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
+    tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
     tpot.fit(dataset.X, dataset.y)
     return tpot
 
