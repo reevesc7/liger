@@ -46,6 +46,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
             performances.loc[performances.shape[0]] = pd.Series({'prompt_text': prompt_text, 
                                                                  'n_gens': n_generations, 
                                                                  'pop_size': pop_size, 
+                                                                 'trees_allowed': not no_trees, 
                                                                  'tpot_random_state': tpot_random_state, 
                                                                  'eval_random_state': eval_random_state, 
                                                                  'training_score': training_score, 
@@ -62,7 +63,7 @@ def save_prep(output_directory: str, prompts: pd.Series) -> tuple[str, str]:
     if not exists(output_directory):
         makedirs(output_directory)
     if not exists(performance_file):
-        pd.DataFrame(columns=['prompt_text', 'n_gens', 'pop_size', 'tpot_random_state', 'eval_random_state', 'training_score', 'n_splits', 'KFold_R2']).to_csv(performance_file, index=False)
+        pd.DataFrame(columns=['prompt_text', 'n_gens', 'pop_size', 'trees_allowed', 'tpot_random_state', 'eval_random_state', 'training_score', 'n_splits', 'KFold_R2']).to_csv(performance_file, index=False)
     if not exists(ratings_file):
         pd.DataFrame(index=[prompts]).to_csv(ratings_file)
     return performance_file, ratings_file
