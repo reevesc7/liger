@@ -14,7 +14,7 @@ from sklearn.metrics import r2_score
 
 
 def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n_generations: int, pop_size: int, tpot_random_states: list[int], eval_random_states: list[int], no_trees: bool = False) -> None:
-    
+
     # Import dataset
     TRANSFORMER_DIM = 768
     sentence_transformer = SentenceTransformer('all-mpnet-base-v2')
@@ -29,7 +29,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
 
     # TPOT
     for tpot_random_state in tpot_random_states:
-        print("\nRunning pipeline (n_gens = " + str(n_generations) + ", pop_size = " + str(pop_size) + ", random_state = " + str(tpot_random_state) + ")", flush=True)
+        print("\nRunning pipeline (n_gens = " + str(n_generations) + ", pop_size = " + str(pop_size) + ", trees_allowed = " + str(not no_trees) + ", random_state = " + str(tpot_random_state) + ")", flush=True)
         tpot = tpot_fit(dataset, n_generations, pop_size, tpot_random_state, no_trees)
         tpot.export(output_directory + "n_gens_" + str(n_generations) + "_popsize_" + str(pop_size) + "_tpotrs_" + str(tpot_random_state) + ".py")
         training_score = tpot.score(dataset.X, dataset.y)
