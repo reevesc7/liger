@@ -43,6 +43,8 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
             ratings.insert(ratings.shape[1], eval_name, kfold_predictions, True)
             ratings.to_csv(ratings_file, index=False)
             performances = pd.read_csv(performance_file)
+            if not prompt_text:
+                prompt_text = "none"
             performances.loc[performances.shape[0]] = pd.Series({'prompt_text': prompt_text, 
                                                                  'n_gens': n_generations, 
                                                                  'pop_size': pop_size, 
