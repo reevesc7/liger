@@ -3,12 +3,11 @@ from os.path import exists
 from time import sleep
 from sentence_transformers import SentenceTransformer
 import pandas as pd
-import numpy as np
 from .data_io import add_sentences, embed_dataframe
 from .dataset import Dataset
 from .training_testing import kfold_predict
 from tpot import TPOTClassifier, TPOTRegressor
-from tpot.config import classifier_config_dict
+from tpot.config import classifier_config_dict, regressor_config_dict
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
@@ -20,7 +19,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, r
     TRANSFORMER_DIM = 768
     sentence_transformer = SentenceTransformer('all-mpnet-base-v2')
     dataframe = pd.read_csv(training_data)
-    if (not regression) and any(isinstance(rating, np.float64) for rating in dataframe['rating']):
+    if (not regression) and any([isinstance(rating, float) for rating in dataframe['rating']]):
         print("WARNING: Float data detected, using regression.")
         regression = True
     dataframe_alter = add_sentences(dataframe, prompt_text)
@@ -78,11 +77,13 @@ def save_prep(output_directory: str, prompts: pd.Series) -> tuple[str, str]:
 
 def tpot_fit(dataset: Dataset, regression: bool, n_generations: int, pop_size: int, tpot_random_state: int, no_trees: bool = False):
     custom_config = None
-    if no_trees:
-        custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
     if regression:
+        if no_trees:
+            custom_config = {key: value for key, value in regressor_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
         tpot = TPOTRegressor(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
     else:
+        if no_trees:
+            custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
         tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
     tpot.fit(dataset.X, dataset.y)
     return tpot
@@ -103,3 +104,4 @@ def wait_for_free_csv(directory: str) -> None:
         loop_count += 1
         if loop_count > 100:
             print("WARNING: Output csv possibly stuck marked as not safe for writing.")
+            return
