@@ -3,22 +3,26 @@ from os.path import exists
 from time import sleep
 from sentence_transformers import SentenceTransformer
 import pandas as pd
+import numpy as np
 from .data_io import add_sentences, embed_dataframe
 from .dataset import Dataset
 from .training_testing import kfold_predict
-from tpot import TPOTClassifier
+from tpot import TPOTClassifier, TPOTRegressor
 from tpot.config import classifier_config_dict
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
 
 
-def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n_generations: int, pop_size: int, tpot_random_states: list[int], eval_random_states: list[int], no_trees: bool = False) -> None:
+def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, regression: bool, n_generations: int, pop_size: int, tpot_random_states: list[int], eval_random_states: list[int], no_trees: bool = False) -> None:
 
-    # Import dataset
+    # Import dataset, use regression if float ratings
     TRANSFORMER_DIM = 768
     sentence_transformer = SentenceTransformer('all-mpnet-base-v2')
     dataframe = pd.read_csv(training_data)
+    if (not regression) and any(isinstance(rating, np.float64) for rating in dataframe['rating']):
+        print("WARNING: Float data detected, using regression.")
+        regression = True
     dataframe_alter = add_sentences(dataframe, prompt_text)
     dataset = embed_dataframe(model=sentence_transformer, data=dataframe_alter, feature_keys=dataframe.columns[:-1], score_key='rating', model_dim=TRANSFORMER_DIM)
 
@@ -30,7 +34,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
     # TPOT
     for tpot_random_state in tpot_random_states:
         print("\nRunning pipeline (n_gens = " + str(n_generations) + ", pop_size = " + str(pop_size) + ", trees_allowed = " + str(not no_trees) + ", random_state = " + str(tpot_random_state) + ")", flush=True)
-        tpot = tpot_fit(dataset, n_generations, pop_size, tpot_random_state, no_trees)
+        tpot = tpot_fit(dataset, regression, n_generations, pop_size, tpot_random_state, no_trees)
         tpot.export(output_directory + "n_gens_" + str(n_generations) + "_popsize_" + str(pop_size) + "_tpotrs_" + str(tpot_random_state) + ".py")
         training_score = tpot.score(dataset.X, dataset.y)
         for eval_random_state in eval_random_states:
@@ -46,6 +50,7 @@ def tpot_pipeline(training_data: str, output_directory: str, prompt_text: str, n
             if not prompt_text:
                 prompt_text = "none"
             performances.loc[performances.shape[0]] = pd.Series({'prompt_text': prompt_text, 
+                                                                 'regression': regression, 
                                                                  'n_gens': n_generations, 
                                                                  'pop_size': pop_size, 
                                                                  'trees_allowed': not no_trees, 
@@ -65,17 +70,20 @@ def save_prep(output_directory: str, prompts: pd.Series) -> tuple[str, str]:
     if not exists(output_directory):
         makedirs(output_directory)
     if not exists(performance_file):
-        pd.DataFrame(columns=['prompt_text', 'n_gens', 'pop_size', 'trees_allowed', 'tpot_random_state', 'eval_random_state', 'training_score', 'n_splits', 'KFold_R2']).to_csv(performance_file, index=False)
+        pd.DataFrame(columns=['prompt_text', 'regression', 'n_gens', 'pop_size', 'trees_allowed', 'tpot_random_state', 'eval_random_state', 'training_score', 'n_splits', 'KFold_R2']).to_csv(performance_file, index=False)
     if not exists(ratings_file):
         pd.DataFrame(index=[prompts]).to_csv(ratings_file)
     return performance_file, ratings_file
 
 
-def tpot_fit(dataset: Dataset, n_generations: int, pop_size: int, tpot_random_state: int, no_trees: bool = False) -> TPOTClassifier:
+def tpot_fit(dataset: Dataset, regression: bool, n_generations: int, pop_size: int, tpot_random_state: int, no_trees: bool = False):
     custom_config = None
     if no_trees:
         custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
-    tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
+    if regression:
+        tpot = TPOTRegressor(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
+    else:
+        tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
     tpot.fit(dataset.X, dataset.y)
     return tpot
 
@@ -94,4 +102,4 @@ def wait_for_free_csv(directory: str) -> None:
         sleep(0.1)
         loop_count += 1
         if loop_count > 100:
-            print("ERROR: Output csv possibly stuck marked as not safe for writing.")
+            print("WARNING: Output csv possibly stuck marked as not safe for writing.")
