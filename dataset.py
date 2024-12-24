@@ -5,20 +5,28 @@ from .operations import vector_projection, vector_rejection
 
 
 class Dataset:
-    def __init__(self, n_entries: int, entry_length: int):
-        self.X = np.zeros((n_entries,entry_length))
-        self.y = np.zeros(n_entries)
+    def __init__(self, n_entries: int, X_len: int, y_len: int = 1):
+        self.X = np.zeros((n_entries, X_len))
+        self.y = np.zeros((n_entries, y_len))
 
 
     @classmethod
-    def from_csv(self, dfname: str) -> 'Dataset':
-        df = pd.read_csv(dfname)
-        X_columns = [column for column in df.columns if column.isnumeric()]
-        dataset = Dataset(df.shape[0], len(X_columns))
-        dataset.X = np.array([df[column] for column in X_columns]).transpose()
-        dataset.y = df['y']
+    def from_df(self, df: pd.DataFrame) -> 'Dataset':
+        X_len = len(df['X'][0].strip('[]').split(", "))
+        y_len = len(df['y'][0].strip('[]').split(", "))
+        dataset = Dataset(df.shape[0], X_len, y_len)
+        for i in range(len(df['y'])):
+            dataset.X[i] = [float(x) for x in df['X'][i].strip('[]').split(", ")]
+            dataset.y[i] = [float(y) for y in df['y'][i].strip('[]').split(", ")]
         return dataset
 
+
+    @classmethod
+    def from_csv(self, filename: str) -> 'Dataset':
+        df = pd.read_csv(filename)
+        dataset = Dataset.from_df(df)
+        return dataset
+    
 
     def __str__(self):
         return f"X: {self.X},\ny: {self.y}"

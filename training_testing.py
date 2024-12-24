@@ -20,7 +20,7 @@ def evaluate_model(model, data: Dataset, test_indices: np.ndarray) -> tuple[floa
 
 # Returns a model's predictions across all training instances of a KFold cross validation
 def kfold_predict(model, kfold: KFold, data: Dataset) -> list[float]:
-    predicted = np.zeros(len(data.X))
+    predicted = np.zeros(data.y.shape)
     for train_indices, test_indices in kfold.split(data.X):
         model.fit(data.X[train_indices], data.y[train_indices])
         results = model.predict(data.X[test_indices])
