@@ -90,12 +90,12 @@ def tpot_fit(dataset: Dataset, regression: bool, n_generations: int, pop_size: i
     custom_config = None
     if regression:
         if no_trees:
-            custom_config = {key: value for key, value in regressor_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
-        tpot = TPOTRegressor(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
+            custom_config = {key: value for key, value in regressor_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key and 'XG' not in key}
+        tpot = TPOTRegressor(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=2, random_state=tpot_random_state, max_time_mins=220)
     else:
         if no_trees:
-            custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key}
-        tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=1, random_state=tpot_random_state)
+            custom_config = {key: value for key, value in classifier_config_dict.items() if 'RandomForest' not in key and 'Tree' not in key and 'XG' not in key}
+        tpot = TPOTClassifier(config_dict=custom_config, generations=n_generations, population_size=pop_size, verbosity=2, random_state=tpot_random_state, max_time_mins=220)
     tpot.fit(dataset.X, dataset.y)
     return tpot
 
