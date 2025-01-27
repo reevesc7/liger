@@ -7,7 +7,10 @@ from .operations import vector_projection, vector_rejection
 class Dataset:
     def __init__(self, n_entries: int, X_len: int, y_len: int = 1):
         self.X = np.zeros((n_entries, X_len))
-        self.y = np.zeros((n_entries, y_len))
+        if y_len == 1:
+            self.y = np.zeros(n_entries)
+        else:
+            self.y = np.zeros((n_entries, y_len))
 
 
     @classmethod
