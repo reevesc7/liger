@@ -15,12 +15,15 @@ class Dataset:
 
     @classmethod
     def from_df(self, df: pd.DataFrame) -> 'Dataset':
-        X_len = len(df['X'][0].strip('[]').split(", "))
-        y_len = len(df['y'][0].strip('[]').split(", "))
+        X_len = len(str(df['X'][0]).strip('[]').split(", "))
+        y_len = len(str(df['y'][0]).strip('[]').split(", "))
         dataset = Dataset(df.shape[0], X_len, y_len)
         for i in range(len(df['y'])):
-            dataset.X[i] = [float(x) for x in df['X'][i].strip('[]').split(", ")]
-            dataset.y[i] = [float(y) for y in df['y'][i].strip('[]').split(", ")]
+            dataset.X[i] = [float(x) for x in str(df['X'][i]).strip('[]').split(", ")]
+            if y_len == 1:
+                dataset.y[i] = float(df['y'][i])
+            else:
+                dataset.y[i] = [float(y) for y in str(df['y'][i]).strip('[]').split(", ")]
         return dataset
 
 
