@@ -21,7 +21,7 @@ def embed_dataframe(model: SentenceTransformer, data: pd.DataFrame, feature_keys
     n_features = len(feature_keys)
     feature_vectors = np.zeros((n_features,n_entries,model_dim))
     for feature_index, feature_key in enumerate(feature_keys):
-        feature_vectors[feature_index] = model.encode(data[feature_key])
+        feature_vectors[feature_index] = model.encode(np.array(data[feature_key]))
     dataset = Dataset(n_entries, n_features*model_dim)
     dataset.X = feature_vectors.transpose((1,0,2)).reshape((n_entries,-1))
     dataset.y = np.array(data[score_key])

@@ -1,6 +1,7 @@
 from os import makedirs, remove
 from os.path import exists
 from time import sleep
+import numpy as np
 import pandas as pd
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
@@ -9,139 +10,182 @@ from tpot.config import classifier_config_dict, regressor_config_dict
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
+import pickle
 
 
-def tpot_pipeline(
-    training_data: str,
-    output_directory: str,
-    regression: bool,
-    n_generations: int,
-    pop_size: int,
-    tpot_random_states: list[int],
-    eval_random_states: list[int],
-    n_split_generations: int = None,
-    no_trees: bool = False,
-    no_xg: bool = False,
-    cutoff_mins: int = None,
-    n_splits: int = None,
-) -> None:
+OUTPUT= "/Outputs/tpot/"
+PICKLE = "/Pickles/"
+PERFORMANCE = "performance.csv"
+RATINGS = "ratings.csv"
 
-    # Import dataset, use regression if float ratings
-    dataframe = pd.read_csv(training_data)
-    
-    # TODO this won't work with multivalue prediction \/
-    if (not regression) and any([isinstance(y, float) for y in dataframe['y']]):
-        print("WARNING: Float data detected, using regression.")
-        regression = True
-    dataset = Dataset.from_df(dataframe)
-    if n_splits == None:
-        n_splits = dataset.X.shape[0]
 
-    # Save prep
-    training_data_name = training_data.rsplit('/')[-1].split('.')[0]
-    output_directory = output_directory.strip('/') + '/' + training_data_name + '/'
-    performance_file, ratings_file = save_prep(output_directory, dataframe['y'])
+class TpotPipeline:
 
-    # TPOT
-    for tpot_random_state in tpot_random_states:
-        print("\nRunning pipeline (n_gens = " + str(n_generations) + ", pop_size = " + str(pop_size) + ", trees_allowed = " + str(not no_trees) + ", random_state = " + str(tpot_random_state) + ")", flush=True)
-        tpot = tpot_init(dataset, regression, n_generations, pop_size, tpot_random_state, no_trees, no_xg, cutoff_mins)
-        tpot.fit(dataset.X, dataset.y)
-        # tpot = tpot_fit(dataset, regression, n_generations, pop_size, tpot_random_state, no_trees)
-        tpot.export(output_directory + "n_gens_" + str(n_generations) + "_popsize_" + str(pop_size) + "_tpotrs_" + str(tpot_random_state) + ".py")
-        training_score = tpot.score(dataset.X, dataset.y)
-        for eval_random_state in eval_random_states:
-            kfold_predictions, kfold_r2 = tpot_test(tpot.fitted_pipeline_, dataset, eval_random_state, n_splits)
-            wait_for_free_csv(output_directory)
-            with open(output_directory + "unsafe.txt", 'w') as _us:
+    def __init__(
+        self,
+        data_file: str,
+        regression: bool,
+        target_gens: int,
+        pop_size: int,
+        tpot_random_state: int,
+        eval_random_states: list[int],
+        no_trees: bool = False,
+        no_xg: bool = False,
+        cutoff_mins: int | None = None,
+        n_splits: int | None = None,
+    ):
+        self.dataset = Dataset.from_csv(data_file)
+        self.data_name = data_file.rsplit('/')[-1].split('.')[0]
+        self.target_gens = target_gens
+        self.complete_gens = 0
+        self.pop_size = pop_size
+        self.tpot_random_state = tpot_random_state
+        self.eval_random_states = eval_random_states
+        self.no_trees = no_trees
+        self.no_xg = no_xg
+        self.cutoff_mins = cutoff_mins
+
+        if not regression and self.dataset.y.dtype == np.float64:
+            print("WARNING: Float data detected, using regression instead of classification.", flush=True)
+            regression = True
+        self.regression = regression
+        if n_splits:
+            self.n_splits = n_splits
+        else:
+            self.n_splits = self.dataset.X.shape[0]
+        self.id = "gens_" + str(target_gens) + "_popsize_" + \
+            str(pop_size) + "_tpotrs_" + str(tpot_random_state) + \
+                "_reg" if self.regression else "_clas" + \
+                    "_notrees" if no_trees else "" + "_noxg" if no_xg else ""
+        self.tpot = self.tpot_init()
+
+        self.output_dir = OUTPUT + self.data_name + "/"
+        self.pickle_dir = PICKLE + self.data_name + "/"
+
+
+    @classmethod
+    def from_bytes(cls, serialization: bytes) -> 'TpotPipeline':
+        return pickle.loads(serialization)
+
+
+    def to_bytes(self) -> bytes:
+        return pickle.dumps(self)
+
+
+    def run_1_gen(self) -> None:
+
+        # Save prep
+        self.save_prep()
+        print("\nRunning pipeline:", self.id, flush=True)
+        if self.complete_gens < self.target_gens:
+            self.tpot.fit(self.dataset.X, self.dataset.y)
+            self.complete_gens += 1
+        if self.complete_gens >= self.target_gens:
+            self.tpot.export(self.output_dir + self.id + ".py")
+            self.evaluate()
+            return
+        self.freeze()
+        return
+
+
+    def save_prep(self) -> None:
+        if not exists(self.pickle_dir):
+            makedirs(self.pickle_dir)
+        if not exists(self.output_dir):
+            makedirs(self.output_dir)
+        if not exists(self.output_dir + PERFORMANCE):
+            pd.DataFrame(columns=np.array([
+                "regression",
+                "n_gens",
+                "pop_size",
+                "trees_allowed",
+                "tpot_random_state",
+                "eval_random_state",
+                "training_score",
+                "n_splits",
+                "KFold_R2"
+            ])).to_csv(self.output_dir + PERFORMANCE, index=False)
+        if not exists(self.output_dir + RATINGS):
+            pd.DataFrame(index=self.dataset.y).to_csv(self.output_dir + RATINGS)
+
+
+    def tpot_init(self):
+        if self.regression:
+            custom_config = regressor_config_dict
+        else:
+            custom_config = classifier_config_dict
+        if self.no_trees:
+            custom_config = {key: value for key, value in custom_config.items() if 'RandomForest' not in key and 'Tree' not in key}
+        if self.no_xg:
+            custom_config = {key: value for key, value in custom_config.items() if 'XG' not in key}
+        if self.regression:
+            tpot = TPOTRegressor(
+                config_dict=custom_config,
+                generations=1,
+                population_size=self.pop_size,
+                verbosity=2,
+                random_state=self.tpot_random_state,
+                max_time_mins=self.cutoff_mins,
+            )
+        else:
+            tpot = TPOTClassifier(
+                config_dict=custom_config,
+                generations=1,
+                population_size=self.pop_size,
+                verbosity=2,
+                random_state=self.tpot_random_state,
+                max_time_mins=self.cutoff_mins,
+            )
+        return tpot
+
+
+    def evaluate(self) -> None:
+        training_score = self.tpot.score(self.dataset.X, self.dataset.y)
+        for eval_random_state in self.eval_random_states:
+            kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
+            self.wait_for_free_csv(self.output_dir)
+            with open(self.output_dir + "unsafe.txt", 'w') as _:
                 pass
-            ratings = pd.read_csv(ratings_file)
-            eval_name = "n_gens_" + str(n_generations) + "_pop_size_" + str(pop_size) + "_tpotrs_" + str(tpot_random_state) + "_evalrs_" + str(eval_random_state)
-            ratings.insert(ratings.shape[1], eval_name, list(kfold_predictions), True)
-            ratings.to_csv(ratings_file, index=False)
-            performances = pd.read_csv(performance_file)
+            ratings = pd.read_csv(self.output_dir + RATINGS)
+            ratings.insert(ratings.shape[1], self.id, kfold_predictions, True)
+            ratings.to_csv(self.output_dir + RATINGS, index=False)
+            performances = pd.read_csv(self.output_dir + PERFORMANCE)
             performances.loc[performances.shape[0]] = pd.Series(
                 {
-                    'regression': regression, 
-                    'n_gens': n_generations, 
-                    'pop_size': pop_size, 
-                    'trees_allowed': not no_trees, 
-                    'tpot_random_state': tpot_random_state, 
-                    'eval_random_state': eval_random_state, 
-                    'training_score': training_score, 
-                    'n_splits': n_splits, 
+                    'regression': self.regression,
+                    'n_gens': self.target_gens,
+                    'pop_size': self.pop_size,
+                    'trees_allowed': not self.no_trees,
+                    'tpot_random_state': self.tpot_random_state,
+                    'eval_random_state': eval_random_state,
+                    'training_score': training_score,
+                    'n_splits': self.n_splits,
                     'KFold_R2': kfold_r2
                 }
             )
-            performances.to_csv(performance_file, index=False)
-            remove(output_directory + "unsafe.txt")
+            performances.to_csv(self.output_dir + PERFORMANCE, index=False)
+            remove(self.output_dir + "unsafe.txt")
 
 
-def save_prep(output_directory: str, prompts: pd.Series) -> tuple[str, str]:
-    performance_file = output_directory + "performance.csv"
-    ratings_file = output_directory + "ratings.csv"
-    if not exists(output_directory):
-        makedirs(output_directory)
-    if not exists(performance_file):
-        pd.DataFrame(columns=[
-            'regression',
-            'n_gens',
-            'pop_size',
-            'trees_allowed',
-            'tpot_random_state',
-            'eval_random_state',
-            'training_score',
-            'n_splits',
-            'KFold_R2'
-        ]).to_csv(performance_file, index=False)
-    if not exists(ratings_file):
-        pd.DataFrame(index=[prompts]).to_csv(ratings_file)
-    return performance_file, ratings_file
+    def freeze(self) -> None:
+        with open(self.pickle_dir + self.id + ".pkl", "wb") as f:
+            f.write(self.to_bytes())
 
 
-def tpot_init(regression: bool, n_generations: int, pop_size: int, tpot_random_state, no_trees: bool, no_xg: bool, cutoff_mins: int):
-    if regression:
-        custom_config = regressor_config_dict
-    else:
-        custom_config = classifier_config_dict
-    if no_trees:
-        custom_config = {key: value for key, value in custom_config.items() if 'RandomForest' not in key and 'Tree' not in key}
-    if no_xg:
-        custom_config = {key: value for key, value in custom_config.items() if 'XG' not in key}
-    if regression:
-        tpot = TPOTRegressor(
-            config_dict=custom_config,
-            generations=n_generations,
-            population_size=pop_size,
-            verbosity=2,
-            random_state=tpot_random_state,
-            max_time_mins=cutoff_mins,
-        )
-    else:
-        tpot = TPOTClassifier(
-            config_dict=custom_config,
-            generations=n_generations,
-            population_size=pop_size,
-            verbosity=2,
-            random_state=tpot_random_state,
-            max_time_mins=cutoff_mins,
-        )
-    return tpot
+    def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:
+        set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
+        kfold = KFold(n_splits=self.n_splits, shuffle=True, random_state=eval_random_state)
+        kfold_predictions = kfold_predict(self.tpot.fitted_pipeline_, kfold, self.dataset)
+        kfold_r2 = float(r2_score(kfold_predictions, self.dataset.y))
+        return kfold_predictions, kfold_r2
 
 
-def tpot_test(model, dataset: Dataset, eval_random_state: int, n_splits: int) -> tuple[list[float], float]:
-    set_param_recursive(model.steps, 'random_state', eval_random_state)
-    kfold = KFold(n_splits=n_splits, shuffle=True, random_state=eval_random_state)
-    kfold_predictions = kfold_predict(model, kfold, dataset)
-    kfold_r2 = r2_score(kfold_predictions, dataset.y)
-    return kfold_predictions, kfold_r2
+    def wait_for_free_csv(self, directory: str) -> None:
+        loop_count = 0
+        while exists(directory + "unsafe.txt"):
+            sleep(0.1)
+            loop_count += 1
+            if loop_count > 100:
+                print("WARNING: Output csv possibly stuck marked as not safe for writing.")
+                return
 
-
-def wait_for_free_csv(directory: str) -> None:
-    loop_count = 0
-    while exists(directory + "unsafe.txt"):
-        sleep(0.1)
-        loop_count += 1
-        if loop_count > 100:
-            print("WARNING: Output csv possibly stuck marked as not safe for writing.")
-            return

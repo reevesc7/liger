@@ -3,7 +3,7 @@ if platform == 'win32':
     from os import environ
     environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from . import pipelines as pl
-from argparse import ArgumentParser
+from argparse import ArgumentParser, Namespace
 
 def main():
     args = get_args()
@@ -13,7 +13,7 @@ def main():
     regression = args.regression
     n_generations = args.ngens
     pop_size = args.popsize
-    tpot_random_states = [i+args.stpotrs for i in range(args.ntpotrs)]
+    tpot_random_state = args.tpotrs
     eval_random_states = [i+args.sevalrs for i in range(args.nevalrs)]
     n_split_generations = args.nsplitgens
     no_trees = args.notrees
@@ -27,7 +27,7 @@ def main():
         regression,
         n_generations,
         pop_size,
-        tpot_random_states,
+        tpot_random_state,
         eval_random_states,
         n_split_generations,
         no_trees,
@@ -37,15 +37,14 @@ def main():
     )
 
 
-def get_args() -> ArgumentParser:
+def get_args() -> Namespace:
     parser = ArgumentParser(description="Script that runs tpot fitting and evaluation")
     parser.add_argument("--data", type=str, required=True, help="training data file path")      #"Data/human_size_rating_1_1.csv"
     parser.add_argument("--output", type=str, required=False, default="Outputs/tpot/", help="output directory")
     parser.add_argument("--regression", action="store_true", dest="regression", help="run regression (not classification)")
     parser.add_argument("--ngens", type=int, required=False, default=5, help="number of tpot fitting generations")
     parser.add_argument("--popsize", type=int, required=False, default=50, help="tpot fitting population size")
-    parser.add_argument("--stpotrs", type=int, required=False, default=0, help="tpot random state start")
-    parser.add_argument("--ntpotrs", type=int, required=False, default=1, help="number of tpot random states to test")
+    parser.add_argument("--tpotrs", type=int, required=False, default=0, help="tpot random state")
     parser.add_argument("--sevalrs", type=int, required=False, default=0, help="eval random state start")
     parser.add_argument("--nevalrs", type=int, required=False, default=1, help="number of eval random states to test")
     parser.add_argument("--nsplitgens", type=int, required=False, default=None, help="number of generations to run before pickling tpot object")
@@ -58,3 +57,4 @@ def get_args() -> ArgumentParser:
 
 if __name__ == "__main__":
     main()
+
