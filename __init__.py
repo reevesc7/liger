@@ -6,9 +6,6 @@ from .training_testing import train_model, evaluate_model, kfold_predict
 
 __all__ = [
     "Dataset",
-    "change_sentences",
-    "add_sentences",
-    "embed_dataframe",
     "random_endpts_dataset",
     "random_scores_dataset",
     "plot2D",

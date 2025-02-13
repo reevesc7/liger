@@ -44,10 +44,15 @@ class Dataset:
 
 
     def flatten(self) -> pd.DataFrame:
-        df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in (['y'] + [i for i in range(self.X.shape[1])])})
+        # df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in (['y'] + [i for i in range(self.X.shape[1])])})
+        df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ['X', 'y']})
+        df['X'] = np.apply_along_axis(lambda row: np.array2string(row, max_line_width=10000000, separator=", ", threshold=10000000), axis=1, arr=self.X)
+        print(df['X'])
+        print(df['X'].shape)
+        print(df['X'][0])
         df['y'] = self.y
-        for i, dimension in enumerate(self.X.transpose()):
-            df[i] = dimension
+        # for i, dimension in enumerate(self.X.transpose()):
+        #     df[i] = dimension
         return df
 
 

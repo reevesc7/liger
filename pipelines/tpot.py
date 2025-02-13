@@ -1,5 +1,5 @@
 from os import makedirs, remove
-from os.path import exists
+from os.path import isdir, isfile
 from time import sleep
 import numpy as np
 import pandas as pd
@@ -35,7 +35,7 @@ class TpotPipeline:
         n_splits: int | None = None,
     ):
         self.dataset = Dataset.from_csv(data_file)
-        self.data_name = data_file.rsplit('/')[-1].split('.')[0]
+        self.data_name = TpotPipeline.get_data_name(data_file)
         self.target_gens = target_gens
         self.complete_gens = 0
         self.pop_size = pop_size
@@ -53,10 +53,10 @@ class TpotPipeline:
             self.n_splits = n_splits
         else:
             self.n_splits = self.dataset.X.shape[0]
-        self.id = "gens_" + str(target_gens) + "_popsize_" + \
-            str(pop_size) + "_tpotrs_" + str(tpot_random_state) + \
-                "_reg" if self.regression else "_clas" + \
-                    "_notrees" if no_trees else "" + "_noxg" if no_xg else ""
+
+        # NOTE: Whether or not regression was set to true by detection of floats,
+        #       regression in the ID will be what the arguments specified (reg/clas).
+        self.id = TpotPipeline.get_id(target_gens, pop_size, tpot_random_state, regression, no_trees, no_xg)
         self.tpot = self.tpot_init()
 
         self.output_dir = OUTPUT + self.data_name + "/"
@@ -64,12 +64,48 @@ class TpotPipeline:
 
 
     @classmethod
+    def get_data_name(cls, data_file: str) -> str:
+        return data_file.rsplit("/")[-1].split(".")[0]
+
+
+    @classmethod
+    def get_id(cls, target_gens: int, pop_size: int, tpot_random_state: int, regression: bool, no_trees: bool, no_xg: bool) -> str:
+        return "gens_" + str(target_gens) + "_popsize_" + \
+            str(pop_size) + "_tpotrs_" + str(tpot_random_state) + \
+                "_reg" if regression else "_clas" + \
+                    "_notrees" if no_trees else "" + "_noxg" if no_xg else ""
+
+
+    @classmethod
+    def find_pickle(cls, data_name: str, id: str) -> str | None:
+        pickle_name = PICKLE + data_name + "/" + id + ".pkl"
+        if isfile(pickle_name):
+            return pickle_name
+        return None
+
+
+    @classmethod
+    def from_pickle(cls, pickle_file: str) -> 'TpotPipeline':
+        with open(pickle_file, 'rb') as f:
+            return TpotPipeline.from_bytes(f.read())
+
+
+    @classmethod
     def from_bytes(cls, serialization: bytes) -> 'TpotPipeline':
         return pickle.loads(serialization)
 
 
+    def to_pickle(self) -> None:
+        with open(self.pickle_dir + self.id + ".pkl", "wb") as f:
+            f.write(self.to_bytes())
+
+
     def to_bytes(self) -> bytes:
         return pickle.dumps(self)
+
+
+    def set_warm_start(self, warm_start: bool) -> None:
+        self.tpot.warm_start = warm_start
 
 
     def run_1_gen(self) -> None:
@@ -84,16 +120,16 @@ class TpotPipeline:
             self.tpot.export(self.output_dir + self.id + ".py")
             self.evaluate()
             return
-        self.freeze()
+        self.to_pickle()
         return
 
 
     def save_prep(self) -> None:
-        if not exists(self.pickle_dir):
+        if not isdir(self.pickle_dir):
             makedirs(self.pickle_dir)
-        if not exists(self.output_dir):
+        if not isdir(self.output_dir):
             makedirs(self.output_dir)
-        if not exists(self.output_dir + PERFORMANCE):
+        if not isfile(self.output_dir + PERFORMANCE):
             pd.DataFrame(columns=np.array([
                 "regression",
                 "n_gens",
@@ -105,7 +141,7 @@ class TpotPipeline:
                 "n_splits",
                 "KFold_R2"
             ])).to_csv(self.output_dir + PERFORMANCE, index=False)
-        if not exists(self.output_dir + RATINGS):
+        if not isfile(self.output_dir + RATINGS):
             pd.DataFrame(index=self.dataset.y).to_csv(self.output_dir + RATINGS)
 
 
@@ -143,7 +179,7 @@ class TpotPipeline:
         training_score = self.tpot.score(self.dataset.X, self.dataset.y)
         for eval_random_state in self.eval_random_states:
             kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
-            self.wait_for_free_csv(self.output_dir)
+            self.wait_for_free_csv()
             with open(self.output_dir + "unsafe.txt", 'w') as _:
                 pass
             ratings = pd.read_csv(self.output_dir + RATINGS)
@@ -167,11 +203,6 @@ class TpotPipeline:
             remove(self.output_dir + "unsafe.txt")
 
 
-    def freeze(self) -> None:
-        with open(self.pickle_dir + self.id + ".pkl", "wb") as f:
-            f.write(self.to_bytes())
-
-
     def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:
         set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
         kfold = KFold(n_splits=self.n_splits, shuffle=True, random_state=eval_random_state)
@@ -180,9 +211,9 @@ class TpotPipeline:
         return kfold_predictions, kfold_r2
 
 
-    def wait_for_free_csv(self, directory: str) -> None:
+    def wait_for_free_csv(self) -> None:
         loop_count = 0
-        while exists(directory + "unsafe.txt"):
+        while isfile(self.output_dir + "unsafe.txt"):
             sleep(0.1)
             loop_count += 1
             if loop_count > 100:

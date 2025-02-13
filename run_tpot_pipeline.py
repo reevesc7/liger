@@ -1,53 +1,46 @@
-from sys import platform
-if platform == 'win32':
-    from os import environ
-    environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-from . import pipelines as pl
+# from sys import platform
 from argparse import ArgumentParser, Namespace
+from pipelines.tpot import TpotPipeline
+# if platform == 'win32':
+#     from os import environ
+#     environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+
+
+PICKLE = "/Pickles/"
 
 def main():
     args = get_args()
 
-    training_data = args.data
-    output_directory = args.output
-    regression = args.regression
-    n_generations = args.ngens
-    pop_size = args.popsize
-    tpot_random_state = args.tpotrs
-    eval_random_states = [i+args.sevalrs for i in range(args.nevalrs)]
-    n_split_generations = args.nsplitgens
-    no_trees = args.notrees
-    no_xg = args.noxg
-    cutoff_mins = args.cutoffmins
-    n_splits = args.nsplits
-
-    pl.tpot_pipeline(
-        training_data,
-        output_directory,
-        regression,
-        n_generations,
-        pop_size,
-        tpot_random_state,
-        eval_random_states,
-        n_split_generations,
-        no_trees,
-        no_xg,
-        cutoff_mins,
-        n_splits,
-    )
+    data_name = TpotPipeline.get_data_name(args.data)
+    id = TpotPipeline.get_id(args.ngens, args.popsize, args.tpotrs, args.regression, args.notrees, args.noxg)
+    pickle_file = TpotPipeline.find_pickle(data_name, id)
+    if pickle_file:
+        pipeline = TpotPipeline.from_pickle(pickle_file)
+    else:
+        pipeline = TpotPipeline(
+            args.data,
+            args.regression,
+            args.ngens,
+            args.pop_size,
+            args.tpotrs,
+            [i+args.sevalrs for i in range(args.nevalrs)],
+            args.notrees,
+            args.noxg,
+            args.cutoffmins,
+            args.nsplits,
+        )
+    pipeline.run_1_gen()
 
 
 def get_args() -> Namespace:
     parser = ArgumentParser(description="Script that runs tpot fitting and evaluation")
     parser.add_argument("--data", type=str, required=True, help="training data file path")      #"Data/human_size_rating_1_1.csv"
-    parser.add_argument("--output", type=str, required=False, default="Outputs/tpot/", help="output directory")
     parser.add_argument("--regression", action="store_true", dest="regression", help="run regression (not classification)")
     parser.add_argument("--ngens", type=int, required=False, default=5, help="number of tpot fitting generations")
     parser.add_argument("--popsize", type=int, required=False, default=50, help="tpot fitting population size")
     parser.add_argument("--tpotrs", type=int, required=False, default=0, help="tpot random state")
     parser.add_argument("--sevalrs", type=int, required=False, default=0, help="eval random state start")
     parser.add_argument("--nevalrs", type=int, required=False, default=1, help="number of eval random states to test")
-    parser.add_argument("--nsplitgens", type=int, required=False, default=None, help="number of generations to run before pickling tpot object")
     parser.add_argument("--notrees", action="store_true", dest="notrees", help="whether RandomForest and Tree models should be excluded")
     parser.add_argument("--noxg", action="store_true", dest="noxg", help="whether XGBoost models should be excluded")
     parser.add_argument("--cutoffmins", type=int, required=False, default=None, help="minutes at which tpot should terminate fitting early")

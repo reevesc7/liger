@@ -1,6 +1,6 @@
-from .tpot import tpot_pipeline
+from .tpot import TpotPipeline
 
 
 __all__ = [
-    "tpot_pipeline",
+    "TpotPipeline",
 ]
