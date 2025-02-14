@@ -114,9 +114,6 @@ class TpotPipeline:
 
     def to_bytes(self) -> bytes:
         self.tpot._pbar = None
-        print("Warm", self.tpot.warm_start)
-        for key in self.tpot.evaluated_individuals_.keys():
-            print(key)
         return dill.dumps(self)
         # return pickle.dumps(self)
 
@@ -129,7 +126,8 @@ class TpotPipeline:
 
         # Save prep
         self.save_prep()
-        print("\nRunning pipeline:", self.id, flush=True)
+        print("\nRUNNING PIPELINE:", self.id, flush=True)
+        print("GENERATION:", self.complete_gens + 1, flush=True)
         # print(self.dataset.X)
         # print(self.dataset.y)
         # print("X array analysis")
@@ -153,8 +151,11 @@ class TpotPipeline:
         if self.complete_gens >= self.target_gens:
             self.tpot.export(self.output_dir + self.id + ".py")
             self.evaluate()
+            self.to_pickle()
+            print("\nRUN COMPLETE")
             return
         self.to_pickle()
+        print("\nRUN INCOMPLETE")
         return
 
 

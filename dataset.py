@@ -18,21 +18,11 @@ class Dataset:
         X_len = len(str(df['X'][0]).strip('[]').split(", "))
         y_len = len(str(df['y'][0]).strip('[]').split(", "))
         dataset = Dataset(df.shape[0], X_len, y_len)
-        print(dataset.X.dtype)
-        print(dataset.X.shape)
         dataset.X = np.array(df['X'].apply(_format_df_list).tolist())
         if y_len > 1:
             dataset.y = np.array(df['y'].apply(_format_df_list).tolist())
         else:
             dataset.y = np.array(df['y'])
-        # for i in range(len(df['y'])):
-        #     dataset.X[i] = np.array([float(x) for x in str(df['X'][i]).strip('[]').split(", ")])
-        #     if y_len > 1:
-        #         dataset.y[i] = np.array([float(y) for y in str(df['y'][i]).strip('[]').split(", ")])
-        # if y_len == 1:
-        #     dataset.y = np.array(df['y'])
-        print(dataset.X.dtype)
-        print(dataset.X.shape)
         return dataset
 
 
@@ -48,15 +38,9 @@ class Dataset:
 
 
     def flatten(self) -> pd.DataFrame:
-        # df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in (['y'] + [i for i in range(self.X.shape[1])])})
         df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ['X', 'y']})
         df['X'] = np.apply_along_axis(lambda row: np.array2string(row, max_line_width=10000000, separator=", ", threshold=10000000), axis=1, arr=self.X)
-        print(df['X'])
-        print(df['X'].shape)
-        print(df['X'][0])
         df['y'] = self.y
-        # for i, dimension in enumerate(self.X.transpose()):
-        #     df[i] = dimension
         return df
 
 

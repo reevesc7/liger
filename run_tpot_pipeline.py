@@ -11,6 +11,9 @@ PICKLE = "/Pickles/"
 def main():
     args = get_args()
 
+    print("RUN INCOMPLETE", flush=True)
+    return
+
     data_name = TpotPipeline.get_data_name(args.data)
     id = TpotPipeline.get_id(args.ngens, args.popsize, args.tpotrs, args.regression, args.notrees, args.noxg)
     pickle_file = TpotPipeline.find_pickle(data_name, id)
