@@ -18,9 +18,11 @@ class Dataset:
         X_len = len(str(df['X'][0]).strip('[]').split(", "))
         y_len = len(str(df['y'][0]).strip('[]').split(", "))
         dataset = Dataset(df.shape[0], X_len, y_len)
-        dataset.X = np.array(df['X'].apply(_format_df_list))
+        print(dataset.X.dtype)
+        print(dataset.X.shape)
+        dataset.X = np.array(df['X'].apply(_format_df_list).tolist())
         if y_len > 1:
-            dataset.y = np.array(df['y'].apply(_format_df_list))
+            dataset.y = np.array(df['y'].apply(_format_df_list).tolist())
         else:
             dataset.y = np.array(df['y'])
         # for i in range(len(df['y'])):
@@ -29,6 +31,8 @@ class Dataset:
         #         dataset.y[i] = np.array([float(y) for y in str(df['y'][i]).strip('[]').split(", ")])
         # if y_len == 1:
         #     dataset.y = np.array(df['y'])
+        print(dataset.X.dtype)
+        print(dataset.X.shape)
         return dataset
 
 

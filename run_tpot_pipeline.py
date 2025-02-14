@@ -16,12 +16,13 @@ def main():
     pickle_file = TpotPipeline.find_pickle(data_name, id)
     if pickle_file:
         pipeline = TpotPipeline.from_pickle(pickle_file)
+        # pipeline.set_warm_start(True)
     else:
         pipeline = TpotPipeline(
             args.data,
             args.regression,
             args.ngens,
-            args.pop_size,
+            args.popsize,
             args.tpotrs,
             [i+args.sevalrs for i in range(args.nevalrs)],
             args.notrees,

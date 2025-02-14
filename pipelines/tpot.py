@@ -11,10 +11,12 @@ from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
 import pickle
+import dill
+from deap import base, creator, gp
 
 
-OUTPUT= "/Outputs/tpot/"
-PICKLE = "/Pickles/"
+OUTPUT= "Outputs/tpot/"
+PICKLE = "Pickles/"
 PERFORMANCE = "performance.csv"
 RATINGS = "ratings.csv"
 
@@ -79,6 +81,8 @@ class TpotPipeline:
     @classmethod
     def find_pickle(cls, data_name: str, id: str) -> str | None:
         pickle_name = PICKLE + data_name + "/" + id + ".pkl"
+        if not isdir(PICKLE):
+            return None
         if isfile(pickle_name):
             return pickle_name
         return None
@@ -92,7 +96,15 @@ class TpotPipeline:
 
     @classmethod
     def from_bytes(cls, serialization: bytes) -> 'TpotPipeline':
-        return pickle.loads(serialization)
+        creator.create("FitnessMulti", base.Fitness, weights=(-1.0, 1.0))
+        creator.create(
+            "Individual",
+            gp.PrimitiveTree,
+            fitness=creator.FitnessMulti,
+            statistics=dict,
+        )
+        return dill.loads(serialization)
+        # return pickle.loads(serialization)
 
 
     def to_pickle(self) -> None:
@@ -101,7 +113,12 @@ class TpotPipeline:
 
 
     def to_bytes(self) -> bytes:
-        return pickle.dumps(self)
+        self.tpot._pbar = None
+        print("Warm", self.tpot.warm_start)
+        for key in self.tpot.evaluated_individuals_.keys():
+            print(key)
+        return dill.dumps(self)
+        # return pickle.dumps(self)
 
 
     def set_warm_start(self, warm_start: bool) -> None:
@@ -113,6 +130,23 @@ class TpotPipeline:
         # Save prep
         self.save_prep()
         print("\nRunning pipeline:", self.id, flush=True)
+        # print(self.dataset.X)
+        # print(self.dataset.y)
+        # print("X array analysis")
+        # print(type(self.dataset.X))
+        # print(self.dataset.X.dtype)
+        # print("subarray analysis")
+        # print(type(self.dataset.X[0]))
+        # print(self.dataset.X[0].dtype)
+        # print("subsubarray analysis")
+        # print(type(self.dataset.X[0][0]))
+        # print(self.dataset.X[0][0].dtype)
+        # for prompt in self.dataset.X:
+        #     try:
+        #         print(np.any(np.isnan(prompt)))
+        #     except:
+        #         print(prompt)
+        # print(np.any(np.isnan(self.dataset.X)))
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
@@ -162,6 +196,7 @@ class TpotPipeline:
                 verbosity=2,
                 random_state=self.tpot_random_state,
                 max_time_mins=self.cutoff_mins,
+                warm_start=True,
             )
         else:
             tpot = TPOTClassifier(
@@ -171,6 +206,7 @@ class TpotPipeline:
                 verbosity=2,
                 random_state=self.tpot_random_state,
                 max_time_mins=self.cutoff_mins,
+                warm_start=True,
             )
         return tpot
 
