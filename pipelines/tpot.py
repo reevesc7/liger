@@ -15,13 +15,13 @@ import dill
 from deap import base, creator, gp
 
 
-OUTPUT= "Outputs/tpot/"
+OUTPUT= "Outputs/TPOT/"
 PICKLE = "Pickles/"
 PERFORMANCE = "performance.csv"
 RATINGS = "ratings.csv"
 
 
-class TpotPipeline:
+class TPOTPipeline:
 
     def __init__(
         self,
@@ -37,7 +37,7 @@ class TpotPipeline:
         n_splits: int | None = None,
     ):
         self.dataset = Dataset.from_csv(data_file)
-        self.data_name = TpotPipeline.get_data_name(data_file)
+        self.data_name = TPOTPipeline.get_data_name(data_file)
         self.target_gens = target_gens
         self.complete_gens = 0
         self.pop_size = pop_size
@@ -58,7 +58,7 @@ class TpotPipeline:
 
         # NOTE: Whether or not regression was set to true by detection of floats,
         #       regression in the ID will be what the arguments specified (reg/clas).
-        self.id = TpotPipeline.get_id(target_gens, pop_size, tpot_random_state, regression, no_trees, no_xg)
+        self.id = TPOTPipeline.get_id(target_gens, pop_size, tpot_random_state, regression, no_trees, no_xg)
         self.tpot = self.tpot_init()
 
         self.output_dir = OUTPUT + self.data_name + "/"
@@ -89,13 +89,13 @@ class TpotPipeline:
 
 
     @classmethod
-    def from_pickle(cls, pickle_file: str) -> 'TpotPipeline':
+    def from_pickle(cls, pickle_file: str) -> 'TPOTPipeline':
         with open(pickle_file, 'rb') as f:
-            return TpotPipeline.from_bytes(f.read())
+            return TPOTPipeline.from_bytes(f.read())
 
 
     @classmethod
-    def from_bytes(cls, serialization: bytes) -> 'TpotPipeline':
+    def from_bytes(cls, serialization: bytes) -> 'TPOTPipeline':
         creator.create("FitnessMulti", base.Fitness, weights=(-1.0, 1.0))
         creator.create(
             "Individual",
@@ -128,23 +128,6 @@ class TpotPipeline:
         self.save_prep()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("GENERATION:", self.complete_gens + 1, flush=True)
-        # print(self.dataset.X)
-        # print(self.dataset.y)
-        # print("X array analysis")
-        # print(type(self.dataset.X))
-        # print(self.dataset.X.dtype)
-        # print("subarray analysis")
-        # print(type(self.dataset.X[0]))
-        # print(self.dataset.X[0].dtype)
-        # print("subsubarray analysis")
-        # print(type(self.dataset.X[0][0]))
-        # print(self.dataset.X[0][0].dtype)
-        # for prompt in self.dataset.X:
-        #     try:
-        #         print(np.any(np.isnan(prompt)))
-        #     except:
-        #         print(prompt)
-        # print(np.any(np.isnan(self.dataset.X)))
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
