@@ -18,7 +18,7 @@ setup(
         "pandas==2.2.3",
         "scikit_learn==1.6.1",
         "sentence_transformers==3.4.1",
-        "git+https://github.com/reevesc7/tpot.git#egg=tpot",
+        "tpot @ git+https://github.com/reevesc7/tpot.git#egg=tpot",
     ],
     classifiers=[
         "Programming Language :: Python :: 3.12",
