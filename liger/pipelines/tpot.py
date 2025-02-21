@@ -119,7 +119,11 @@ class TPOTPipeline:
 
     def to_bytes(self) -> bytes:
         self.tpot._pbar = None
-        return dill.dumps(self)
+        try:
+            return dill.dumps(self)
+        except Exception as e:
+            print(e)
+            sys.exit(1)
 
 
     def run_1_gen(self) -> None:
@@ -129,19 +133,16 @@ class TPOTPipeline:
         self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("GENERATION:", self.complete_gens + 1, flush=True)
-        try:
-            if self.complete_gens < self.target_gens:
-                self.tpot.fit(self.dataset.X, self.dataset.y)
-                self.complete_gens += 1
-            if self.complete_gens >= self.target_gens:
-                self.tpot.export(self.output_dir + self.id + ".py")
-                self.evaluate()
-                self.to_pickle()
-                self.not_in_progress()
-                print("\nRUN COMPLETE")
-                return
-        except:
-            sys.exit(1)
+        if self.complete_gens < self.target_gens:
+            self.tpot.fit(self.dataset.X, self.dataset.y)
+            self.complete_gens += 1
+        if self.complete_gens >= self.target_gens:
+            self.tpot.export(self.output_dir + self.id + ".py")
+            self.evaluate()
+            self.to_pickle()
+            self.not_in_progress()
+            print("\nRUN COMPLETE")
+            return
         self.to_pickle()
         self.not_in_progress()
         print("\nRUN INCOMPLETE")
