@@ -4,6 +4,9 @@ from setuptools import setup, find_packages
 setup(
     name="liger",
     version="0.0.1",
+    entry_points={ "console_scripts": [
+        "liger-pipeline=liger.run_tpot_pipeline:main",
+    ]},
     description="Helper functions for the Likert General Regressor project",
     author="Chris Reeves",
     author_email="reeves.chris.allan@gmail.com",
