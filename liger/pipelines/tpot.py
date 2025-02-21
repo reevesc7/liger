@@ -1,3 +1,4 @@
+import sys
 from os import makedirs, remove
 from os.path import isdir, isfile
 from time import sleep
@@ -128,16 +129,19 @@ class TPOTPipeline:
         self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("GENERATION:", self.complete_gens + 1, flush=True)
-        if self.complete_gens < self.target_gens:
-            self.tpot.fit(self.dataset.X, self.dataset.y)
-            self.complete_gens += 1
-        if self.complete_gens >= self.target_gens:
-            self.tpot.export(self.output_dir + self.id + ".py")
-            self.evaluate()
-            self.to_pickle()
-            self.not_in_progress()
-            print("\nRUN COMPLETE")
-            return
+        try:
+            if self.complete_gens < self.target_gens:
+                self.tpot.fit(self.dataset.X, self.dataset.y)
+                self.complete_gens += 1
+            if self.complete_gens >= self.target_gens:
+                self.tpot.export(self.output_dir + self.id + ".py")
+                self.evaluate()
+                self.to_pickle()
+                self.not_in_progress()
+                print("\nRUN COMPLETE")
+                return
+        except:
+            sys.exit(1)
         self.to_pickle()
         self.not_in_progress()
         print("\nRUN INCOMPLETE")
