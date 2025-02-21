@@ -1,6 +1,7 @@
 from os import makedirs, remove
 from os.path import isdir, isfile
 from time import sleep
+from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
@@ -10,13 +11,13 @@ from tpot.config import classifier_config_dict, regressor_config_dict
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
-import pickle
 import dill
 from deap import base, creator, gp
 
 
 OUTPUT= "Outputs/TPOT/"
 PICKLE = "Pickles/"
+IN_PROGRESS = "InProgress/"
 PERFORMANCE = "performance.csv"
 RATINGS = "ratings.csv"
 
@@ -35,6 +36,7 @@ class TPOTPipeline:
         no_xg: bool = False,
         cutoff_mins: int | None = None,
         n_splits: int | None = None,
+        slurm_id: int | None = None,
     ):
         self.dataset = Dataset.from_csv(data_file)
         self.data_name = TPOTPipeline.get_data_name(data_file)
@@ -46,6 +48,7 @@ class TPOTPipeline:
         self.no_trees = no_trees
         self.no_xg = no_xg
         self.cutoff_mins = cutoff_mins
+        self.slurm_id = slurm_id
 
         if not regression and self.dataset.y.dtype == np.float64:
             print("WARNING: Float data detected, using regression instead of classification.", flush=True)
@@ -58,11 +61,13 @@ class TPOTPipeline:
 
         # NOTE: Whether or not regression was set to true by detection of floats,
         #       regression in the ID will be what the arguments specified (reg/clas).
+        #       This is necessary for run_tpot_pipeline.py to find the right pickle file.
         self.id = TPOTPipeline.get_id(target_gens, pop_size, tpot_random_state, regression, no_trees, no_xg)
         self.tpot = self.tpot_init()
 
         self.output_dir = OUTPUT + self.data_name + "/"
         self.pickle_dir = PICKLE + self.data_name + "/"
+        self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
 
     @classmethod
@@ -104,7 +109,6 @@ class TPOTPipeline:
             statistics=dict,
         )
         return dill.loads(serialization)
-        # return pickle.loads(serialization)
 
 
     def to_pickle(self) -> None:
@@ -115,36 +119,34 @@ class TPOTPipeline:
     def to_bytes(self) -> bytes:
         self.tpot._pbar = None
         return dill.dumps(self)
-        # return pickle.dumps(self)
-
-
-    def set_warm_start(self, warm_start: bool) -> None:
-        self.tpot.warm_start = warm_start
 
 
     def run_1_gen(self) -> None:
 
         # Save prep
         self.save_prep()
+        self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("GENERATION:", self.complete_gens + 1, flush=True)
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
+            self.to_pickle()
+            print("\nRUN INCOMPLETE")
         if self.complete_gens >= self.target_gens:
             self.tpot.export(self.output_dir + self.id + ".py")
             self.evaluate()
             self.to_pickle()
             print("\nRUN COMPLETE")
-            return
-        self.to_pickle()
-        print("\nRUN INCOMPLETE")
+        self.not_in_progress()
         return
 
 
     def save_prep(self) -> None:
         if not isdir(self.pickle_dir):
             makedirs(self.pickle_dir)
+        if not isdir(self.inprogress_dir):
+            makedirs(self.inprogress_dir)
         if not isdir(self.output_dir):
             makedirs(self.output_dir)
         if not isfile(self.output_dir + PERFORMANCE):
@@ -161,6 +163,19 @@ class TPOTPipeline:
             ])).to_csv(self.output_dir + PERFORMANCE, index=False)
         if not isfile(self.output_dir + RATINGS):
             pd.DataFrame(index=self.dataset.y).to_csv(self.output_dir + RATINGS)
+
+
+    def in_progress(self):
+        with open(self.inprogress_dir + self.id + ".txt", "w") as f:
+            f.writelines([
+                "Start: UTC " + str(datetime.now(timezone.utc)),
+                "\nGeneration: " + str(self.complete_gens + 1),
+                "\nSLURM JOB ID: " + str(self.slurm_id),
+            ])
+
+
+    def not_in_progress(self) -> None:
+        remove(self.inprogress_dir + self.id + ".txt")
 
 
     def tpot_init(self):
