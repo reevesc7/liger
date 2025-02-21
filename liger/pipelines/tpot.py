@@ -113,8 +113,9 @@ class TPOTPipeline:
 
 
     def to_pickle(self) -> None:
+        bytestring = self.to_bytes()
         with open(self.pickle_dir + self.id + ".pkl", "wb") as f:
-            f.write(self.to_bytes())
+            f.write(bytestring)
 
 
     def to_bytes(self) -> bytes:
@@ -122,7 +123,7 @@ class TPOTPipeline:
         try:
             return dill.dumps(self)
         except Exception as e:
-            print(e)
+            print("\n", e)
             sys.exit(1)
 
 
