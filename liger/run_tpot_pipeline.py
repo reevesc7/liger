@@ -5,7 +5,7 @@ from liger.pipelines.tpot import TPOTPipeline
 def main():
     args = get_args()
 
-    data_name = TPOTPipeline.get_data_name(args.data)
+    data_name = TPOTPipeline.get_filename(args.data)
     id = TPOTPipeline.get_id(args.ngens, args.popsize, args.tpotrs, args.regression, args.notrees, args.noxg)
     pickle_file = TPOTPipeline.find_pickle(data_name, id)
     if pickle_file:
