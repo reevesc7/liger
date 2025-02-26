@@ -319,7 +319,7 @@ class TPOTPipeline:
             return
         self.to_pickle()
         self.not_in_progress()
-        print("\nRUN INCOMPLETE")
+        print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
         return
 
 

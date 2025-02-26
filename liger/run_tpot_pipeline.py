@@ -6,12 +6,17 @@ def main():
     args = get_args()
 
     data_name = TPOTPipeline.get_filename(args.data)
-    id = TPOTPipeline.get_id(args.ngens, args.popsize, args.tpotrs, args.regression, args.notrees, args.noxg)
-    pickle_file = TPOTPipeline.find_pickle(data_name, id)
-    if pickle_file:
+    if args.id.lower in {"", "none"}:
+        id = None
+    else:
+        id = args.id
+    pickle_file = None
+    if id is not None:
+        pickle_file = TPOTPipeline.find_pickle(data_name, args.id)
+    if pickle_file is not None:
         pipeline = TPOTPipeline.from_pickle(pickle_file)
     else:
-        if args.sevalrs is None or args.nevalrs is None:
+        if args.nevalrs is None:
             eval_random_states = None
         else:
             eval_random_states = [i+args.sevalrs for i in range(args.nevalrs)]
@@ -25,7 +30,7 @@ def main():
             max_time_mins=args.maxtime,
             n_splits=args.nsplits,
             slurm_id=args.slurmid,
-            id=args.id,
+            id=id,
         )
     pipeline.run_1_gen()
 
@@ -69,7 +74,7 @@ def get_args() -> Namespace:
         "--sevalrs",
         type=int,
         required=False,
-        default=None,
+        default=0,
         help="eval random state start"
     )
     parser.add_argument(
