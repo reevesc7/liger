@@ -404,7 +404,7 @@ class TPOTPipeline:
             "tpot_attributes": tpot_attributes,
         }
         with open(self.output_dir + str(self.id) + "output.json", "w") as f:
-            json.dump(pipeline_dict, f, default=TPOTPipeline.dict_everything)
+            json.dump(pipeline_dict, f, indent=4, default=TPOTPipeline.dict_everything)
 
 
     def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:

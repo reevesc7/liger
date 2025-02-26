@@ -6,7 +6,7 @@ def main():
     args = get_args()
 
     data_name = TPOTPipeline.get_filename(args.data)
-    if args.id.lower in {"", "none"}:
+    if str(args.id).lower() in {"", "none"}:
         id = None
     else:
         id = args.id
