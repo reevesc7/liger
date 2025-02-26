@@ -257,8 +257,14 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def dict_everything(objec) -> str | None:
-        if hasattr(objec, "__dict__"):
+    def dict_everything(objec: Any) -> str | None:
+        if isinstance(objec, np.ndarray):
+            objec = objec.tolist()
+            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+        elif isinstance(objec, range):
+            objec = [i for i in objec]
+            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+        elif hasattr(objec, "__dict__"):
             return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
         else:
             return None
