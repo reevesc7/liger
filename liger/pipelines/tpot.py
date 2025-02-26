@@ -21,8 +21,6 @@ from deap import base, creator, gp
 OUTPUT= "Outputs/TPOT/"
 PICKLE = "Pickles/"
 IN_PROGRESS = "InProgress/"
-PERFORMANCE = "performance.csv"
-RATINGS = "ratings.csv"
 TPOT_ATTRS = [
     "fitted_pipeline_",
     "pareto_front_fitted_pipelines_",
@@ -306,6 +304,7 @@ class TPOTPipeline:
         self.save_prep()
         self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
+        print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
         print("GENERATION:", self.complete_gens + 1, flush=True)
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
@@ -330,20 +329,6 @@ class TPOTPipeline:
             makedirs(self.inprogress_dir)
         if not isdir(self.output_dir):
             makedirs(self.output_dir)
-        if not isfile(self.output_dir + PERFORMANCE):
-            pd.DataFrame(columns=np.array([
-                "regression",
-                "n_gens",
-                "pop_size",
-                "trees_allowed",
-                "tpot_random_state",
-                "eval_random_state",
-                "training_score",
-                "n_splits",
-                "KFold_R2"
-            ])).to_csv(self.output_dir + PERFORMANCE, index=False)
-        if not isfile(self.output_dir + RATINGS):
-            pd.DataFrame(index=self.dataset.y).to_csv(self.output_dir + RATINGS)
 
 
     def in_progress(self):
@@ -359,48 +344,22 @@ class TPOTPipeline:
         remove(self.inprogress_dir + self.id + ".txt")
 
 
-    # def evaluate(self) -> None:
-    #     training_score = self.tpot.score(self.dataset.X, self.dataset.y)
-    #     for eval_random_state in self.eval_random_states:
-    #         kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
-    #         self.wait_for_free_csv()
-    #         with open(self.output_dir + "unsafe.txt", 'w') as _:
-    #             pass
-    #         ratings = pd.read_csv(self.output_dir + RATINGS)
-    #         ratings.insert(ratings.shape[1], self.id, kfold_predictions, True)
-    #         ratings.to_csv(self.output_dir + RATINGS, index=False)
-    #         performances = pd.read_csv(self.output_dir + PERFORMANCE)
-    #         performances.loc[performances.shape[0]] = pd.Series(
-    #             {
-    #                 'regression': self.regression,
-    #                 'n_gens': self.target_gens,
-    #                 'pop_size': self.pop_size,
-    #                 'trees_allowed': not self.no_trees,
-    #                 'tpot_random_state': self.tpot_random_state,
-    #                 'eval_random_state': eval_random_state,
-    #                 'training_score': training_score,
-    #                 'n_splits': self.n_splits,
-    #                 'KFold_R2': kfold_r2
-    #             }
-    #         )
-    #         performances.to_csv(self.output_dir + PERFORMANCE, index=False)
-    #         remove(self.output_dir + "unsafe.txt")
-
-
     def evaluate(self) -> None:
         training_score = self.tpot.score(self.dataset.X, self.dataset.y)
-        ratings = {}
         scores = {}
+        ratings = {}
         for eval_random_state in self.eval_random_states:
             kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
-            ratings[eval_random_state] = kfold_predictions
             scores[eval_random_state] = kfold_r2
+            ratings[eval_random_state] = kfold_predictions
         pipeline_parameters = {key: value for key, value in self.__dict__.items() if key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
+        pipeline_attributes = {"scores": scores, "ratings": ratings}
         tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
         pipeline_dict = {
             "pipeline_parameters": pipeline_parameters,
             "tpot_parameters": tpot_parameters,
+            "pipeline_attributes": pipeline_attributes,
             "tpot_attributes": tpot_attributes,
         }
         with open(self.output_dir + str(self.id) + ".json", "w") as f:
