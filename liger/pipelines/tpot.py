@@ -154,7 +154,7 @@ class TPOTPipeline:
         tpot_random_state = TPOTPipeline.use_first(
             tpot_random_state,
             tpot_parameters.get("random_state"),
-            randint(0, 9999999999),
+            randint(0, 2**32-1),
         )
         self.eval_random_states = TPOTPipeline.use_first(
             eval_random_states,
