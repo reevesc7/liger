@@ -403,7 +403,7 @@ class TPOTPipeline:
             "tpot_parameters": tpot_parameters,
             "tpot_attributes": tpot_attributes,
         }
-        with open(self.output_dir + str(self.id) + "output.json", "w") as f:
+        with open(self.output_dir + str(self.id) + ".json", "w") as f:
             json.dump(pipeline_dict, f, indent=4, default=TPOTPipeline.dict_everything)
 
 
