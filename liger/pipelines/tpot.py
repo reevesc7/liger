@@ -345,16 +345,17 @@ class TPOTPipeline:
 
 
     def evaluate(self) -> None:
-        training_score = self.tpot.score(self.dataset.X, self.dataset.y)
+        # training_score = self.tpot.score(self.dataset.X, self.dataset.y)
         scores = {}
         ratings = {}
         for eval_random_state in self.eval_random_states:
             kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
             scores[eval_random_state] = kfold_r2
             ratings[eval_random_state] = kfold_predictions
+        print("RATINGS\n", ratings)
         pipeline_parameters = {key: value for key, value in self.__dict__.items() if key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
-        pipeline_attributes = {"scores": scores, "ratings": ratings}
+        pipeline_attributes = {"kfold_scores": scores, "kfold_ratings": ratings}
         tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
         pipeline_dict = {
             "pipeline_parameters": pipeline_parameters,
