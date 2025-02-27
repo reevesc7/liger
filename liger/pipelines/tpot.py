@@ -6,7 +6,6 @@ import json
 from random import randint
 from datetime import datetime, timezone
 import numpy as np
-import pandas as pd
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
 from tpot import TPOTClassifier, TPOTRegressor
@@ -176,6 +175,7 @@ class TPOTPipeline:
             pipeline_parameters.get("n_splits"),
             self.dataset.X.shape[0],
         )
+        early_stop = tpot_parameters.get("early_stop")
 
         if self.regression:
             self.tpot = TPOTRegressor(
@@ -185,6 +185,7 @@ class TPOTPipeline:
                 verbosity=2,
                 random_state=tpot_random_state,
                 max_time_mins=max_time_mins,
+                early_stop=early_stop,
                 warm_start=True,
             )
         else:
@@ -195,6 +196,7 @@ class TPOTPipeline:
                 verbosity=2,
                 random_state=tpot_random_state,
                 max_time_mins=max_time_mins,
+                early_stop=early_stop,
                 warm_start=True,
             )
 
