@@ -47,8 +47,8 @@ REG_CLASS_OVERLAP = {
     "sklearn.feature_selection.SelectFromModel",
 }
 PIPELINE_PARAM_KEYS = {
-    "config_name",
-    "data_name",
+    "config_file",
+    "data_file",
     "regression",
     "target_gens",
     "eval_random_states",
@@ -104,9 +104,10 @@ class TPOTPipeline:
         slurm_id: int | None = None,
         id: str | None = None,
     ) -> None:
-        self.config_name = TPOTPipeline.get_filename(config_file)
-        self.dataset = Dataset.from_csv(data_file)
+        self.config_file = config_file
+        self.data_file = data_file
         self.data_name = TPOTPipeline.get_filename(data_file)
+        self.dataset = Dataset.from_csv(data_file)
         self.complete_gens = 0
         self.slurm_id = slurm_id
 
@@ -138,7 +139,7 @@ class TPOTPipeline:
             config_dict = regressor_config_dict
             self.regression = True
         else:
-            raise TypeError(f"\"config_dict\" field of {self.config_name} is not None or of type dict")
+            raise TypeError(f"\"config_dict\" field of {self.config_file} is not None or of type dict")
 
         # Set parameters
         self.target_gens = TPOTPipeline.use_first(
@@ -283,9 +284,9 @@ class TPOTPipeline:
             else:
                 raise KeyError(f"{key} is not a valid sklearn model")
         if clas_key and require_regression:
-            raise TypeError(f"float values found in {self.data_name}, but {self.config_name} contains classifiers")
+            raise TypeError(f"float values found in {self.data_name}, but {self.config_file} contains classifiers")
         if reg_key and clas_key:
-            raise ValueError(f"{self.config_name} contains regressors and classifiers")
+            raise ValueError(f"{self.config_file} contains regressors and classifiers")
         return not clas_key
 
 
