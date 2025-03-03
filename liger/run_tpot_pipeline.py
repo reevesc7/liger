@@ -5,24 +5,32 @@ from liger.pipelines.tpot import TPOTPipeline
 def main():
     args = get_args()
 
-    data_name = TPOTPipeline.get_data_name(args.data)
-    id = TPOTPipeline.get_id(args.ngens, args.popsize, args.tpotrs, args.regression, args.notrees, args.noxg)
-    pickle_file = TPOTPipeline.find_pickle(data_name, id)
-    if pickle_file:
+    data_name = TPOTPipeline.get_filename(args.data)
+    if str(args.id).lower() in {"", "none"}:
+        id = None
+    else:
+        id = args.id
+    pickle_file = None
+    if id is not None:
+        pickle_file = TPOTPipeline.find_pickle(data_name, args.id)
+    if pickle_file is not None:
         pipeline = TPOTPipeline.from_pickle(pickle_file)
     else:
+        if args.nevalrs is None:
+            eval_random_states = None
+        else:
+            eval_random_states = [i+args.sevalrs for i in range(args.nevalrs)]
         pipeline = TPOTPipeline(
-            args.data,
-            args.regression,
-            args.ngens,
-            args.popsize,
-            args.tpotrs,
-            [i+args.sevalrs for i in range(args.nevalrs)],
-            args.notrees,
-            args.noxg,
-            args.cutoffmins,
-            args.nsplits,
-            args.slurmid,
+            config_file=args.config,
+            data_file=args.data,
+            target_gens=args.ngens,
+            population_size=args.popsize,
+            tpot_random_state=args.tpotrs,
+            eval_random_states=eval_random_states,
+            max_time_mins=args.maxtime,
+            n_splits=args.nsplits,
+            slurm_id=args.slurmid,
+            id=id,
         )
     pipeline.run_1_gen()
 
@@ -30,36 +38,36 @@ def main():
 def get_args() -> Namespace:
     parser = ArgumentParser(description="Script that runs tpot fitting and evaluation")
     parser.add_argument(
+        "--config",
+        type=str,
+        required=True,
+        help="config file path"
+    )       #e.g., "Configs/nolong_reg_1.json"
+    parser.add_argument(
         "--data",
         type=str,
         required=True,
         help="training data file path"
     )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
-        "--regression",
-        action="store_true",
-        dest="regression",
-        help="run regression (not classification)"
-    )
-    parser.add_argument(
         "--ngens",
         type=int,
         required=False,
-        default=5,
+        default=None,
         help="number of tpot fitting generations"
     )
     parser.add_argument(
         "--popsize",
         type=int,
         required=False,
-        default=50,
+        default=None,
         help="tpot fitting population size"
     )
     parser.add_argument(
         "--tpotrs",
         type=int,
         required=False,
-        default=0,
+        default=None,
         help="tpot random state"
     )
     parser.add_argument(
@@ -73,23 +81,11 @@ def get_args() -> Namespace:
         "--nevalrs",
         type=int,
         required=False,
-        default=1,
+        default=None,
         help="number of eval random states to test"
     )
     parser.add_argument(
-        "--notrees",
-        action="store_true",
-        dest="notrees",
-        help="whether RandomForest and Tree models should be excluded"
-    )
-    parser.add_argument(
-        "--noxg",
-        action="store_true",
-        dest="noxg",
-        help="whether XGBoost models should be excluded"
-    )
-    parser.add_argument(
-        "--cutoffmins",
+        "--maxtime",
         type=int,
         required=False,
         default=None,
@@ -108,6 +104,13 @@ def get_args() -> Namespace:
         required=False,
         default=None,
         help="$SLURM_JOB_ID, if applicable"
+    )
+    parser.add_argument(
+        "--id",
+        type=str,
+        required=False,
+        default=None,
+        help="ID of the job - used for all output files"
     )
     return parser.parse_args()
 
