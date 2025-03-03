@@ -363,7 +363,7 @@ class TPOTPipeline:
             ratings[eval_random_state] = kfold_predictions.tolist()
         pipeline_parameters = {key: value for key, value in self.__dict__.items() if key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
-        pipeline_attributes = {"kfold_scores": scores, "kfold_ratings": ratings}
+        pipeline_attributes = {"complete_gens": self.complete_gens, "kfold_scores": scores, "kfold_ratings": ratings}
         tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
         pipeline_dict = {
             "pipeline_parameters": pipeline_parameters,
