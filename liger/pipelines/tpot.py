@@ -308,6 +308,9 @@ class TPOTPipeline:
 
 
     def run_1_gen(self) -> None:
+        # Capture output dynamically
+        capture = LiveOutputCapture()
+        sys.stdout = capture
 
         # Save prep
         self.save_prep()
@@ -318,7 +321,7 @@ class TPOTPipeline:
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
-        if self.complete_gens >= self.target_gens:
+        if self.complete_gens >= self.target_gens or "Will end the optimization process." in capture.get_output():
             self.tpot.export(self.output_dir + self.id + ".py")
             self.evaluate()
             self.to_pickle()
@@ -381,4 +384,20 @@ class TPOTPipeline:
         kfold_predictions = kfold_predict(self.tpot.fitted_pipeline_, kfold, self.dataset)
         kfold_r2 = float(r2_score(kfold_predictions, self.dataset.y))
         return kfold_predictions, kfold_r2
+
+
+class LiveOutputCapture:
+    def __init__(self):
+        self.captured_text = []
+        self.original_stdout = sys.stdout
+
+    def write(self, text):
+        self.captured_text.append(text)  # Store the output
+        self.original_stdout.write(text)  # Still print it to the console
+
+    def flush(self):
+        self.original_stdout.flush()  # Ensure flushing still works
+
+    def get_output(self):
+        return "".join(self.captured_text)
 
