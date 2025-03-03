@@ -17,7 +17,8 @@ import dill
 from deap import base, creator, gp
 
 
-OUTPUT= "Outputs/TPOT/"
+OUTPUT = "Outputs/"
+EXPORT = "Exports/"
 PICKLE = "Pickles/"
 IN_PROGRESS = "InProgress/"
 TPOT_ATTRS = [
@@ -202,6 +203,7 @@ class TPOTPipeline:
 
 
         self.output_dir = OUTPUT + self.data_name + "/"
+        self.export_dir = EXPORT + self.data_name + "/"
         self.pickle_dir = PICKLE + self.data_name + "/"
         self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
@@ -322,7 +324,7 @@ class TPOTPipeline:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
         if self.complete_gens >= self.target_gens or "Will end the optimization process." in capture.get_output():
-            self.tpot.export(self.output_dir + self.id + ".py")
+            self.tpot.export(self.export_dir + self.id + ".py")
             self.evaluate()
             self.to_pickle()
             self.not_in_progress()
@@ -335,12 +337,14 @@ class TPOTPipeline:
 
 
     def save_prep(self) -> None:
+        if not isdir(self.output_dir):
+            makedirs(self.output_dir)
+        if not isdir(self.export_dir):
+            makedirs(self.export_dir)
         if not isdir(self.pickle_dir):
             makedirs(self.pickle_dir)
         if not isdir(self.inprogress_dir):
             makedirs(self.inprogress_dir)
-        if not isdir(self.output_dir):
-            makedirs(self.output_dir)
 
 
     def in_progress(self):
