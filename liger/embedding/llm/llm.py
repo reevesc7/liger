@@ -13,7 +13,7 @@ OPENAI_KEYFILE = "openai.key"
 class LLMEmbedder(BaseEmbedder):
     def __init__(self, model_str: str):
         if not isfile(Path(OPENAI_KEYFILE)):
-            raise FileNotFoundError(f"{OPENAI_KEYFILE} is not on $PATH")
+            raise FileNotFoundError(f"No \"{OPENAI_KEYFILE}\" in the working directory")
         self.client = OpenAI(api_key=Path(OPENAI_KEYFILE).read_text().strip())
         self.model = model_str
 
