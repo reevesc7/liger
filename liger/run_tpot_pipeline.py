@@ -23,12 +23,7 @@ def main():
         pipeline = TPOTPipeline(
             config_file=args.config,
             data_file=args.data,
-            target_gens=args.ngens,
-            population_size=args.popsize,
             tpot_random_state=args.tpotrs,
-            eval_random_states=eval_random_states,
-            max_time_mins=args.maxtime,
-            n_splits=args.nsplits,
             slurm_id=args.slurmid,
             id=id,
         )
@@ -50,53 +45,11 @@ def get_args() -> Namespace:
         help="training data file path"
     )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
-        "--ngens",
-        type=int,
-        required=False,
-        default=None,
-        help="number of tpot fitting generations"
-    )
-    parser.add_argument(
-        "--popsize",
-        type=int,
-        required=False,
-        default=None,
-        help="tpot fitting population size"
-    )
-    parser.add_argument(
         "--tpotrs",
         type=int,
         required=False,
         default=None,
         help="tpot random state"
-    )
-    parser.add_argument(
-        "--sevalrs",
-        type=int,
-        required=False,
-        default=0,
-        help="eval random state start"
-    )
-    parser.add_argument(
-        "--nevalrs",
-        type=int,
-        required=False,
-        default=None,
-        help="number of eval random states to test"
-    )
-    parser.add_argument(
-        "--maxtime",
-        type=int,
-        required=False,
-        default=None,
-        help="minutes at which tpot should terminate fitting early"
-    )
-    parser.add_argument(
-        "--nsplits",
-        type=int,
-        required=False,
-        default=None,
-        help="number of splits for K-fold validation (keep blank for leave one out)"
     )
     parser.add_argument(
         "--slurmid",
