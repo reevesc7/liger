@@ -11,10 +11,8 @@ from ..training_testing import kfold_predict
 from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.model_selection import KFold
-from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
 import dill
-from deap import base, creator, gp
 
 
 OUTPUT = "Outputs/"
@@ -333,7 +331,7 @@ class TPOTPipeline:
 
 
     def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:
-        set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
+        #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
         kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
         kfold_predictions = kfold_predict(self.tpot.fitted_pipeline_, kfold, self.dataset)
         kfold_r2 = float(r2_score(kfold_predictions, self.dataset.y))
