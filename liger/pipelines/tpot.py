@@ -123,13 +123,17 @@ class TPOTPipeline:
         tpot_random_state: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
+        complete_gens: int | None = None,
     ) -> None:
         self.config_file = config_file
         self.data_file = data_file
         self.data_name = TPOTPipeline.get_filename(data_file)
         self.dataset = Dataset.from_csv(data_file)
-        self.complete_gens = 0
         self.slurm_id = slurm_id
+        if complete_gens is not None:
+            self.complete_gens = complete_gens
+        else:
+            self.complete_gens = 0
 
         # Load config file
         with open(config_file) as f:
@@ -151,24 +155,19 @@ class TPOTPipeline:
             tpot_parameters.get("random_state"),
             randint(0, 2**32-1),
         )
+        self.target_gens = pipeline_parameters["target_gens"]
+        self.eval_random_states = pipeline_parameters["eval_random_states"]
         self.id = TPOTPipeline.use_first(
             id,
             pipeline_parameters.get("id"),
             start_time,
         )
 
-        # Set and vet the TPOT config dictionary; determine if regression will be used
-        #config_dict = tpot_parameters.get("config_dict")
-        #if isinstance(config_dict, dict):
-        #    self.regression = self.check_config_dict(config_dict, require_regression)
-        #elif config_dict is None:
-        #    config_dict = regressor_config_dict
-        #    self.regression = True
-        #else:
-        #    raise TypeError(f"\"config_dict\" field of {self.config_file} is not None or of type dict")
+        # Create search space
         self.config_search_space = tpot_parameters["search_space"]
         search_space = create_search_space(self.config_search_space, random_state)
 
+        # Set output paths
         self.output_dir = OUTPUT + self.data_name + "/"
         self.export_dir = EXPORT + self.data_name + "/"
         self.checkpoint_dir = CHECKPOINT + self.data_name + "/" + self.id + "/"
@@ -178,7 +177,7 @@ class TPOTPipeline:
             search_space=search_space,
             periodic_checkpoint_folder=self.checkpoint_dir,
             random_state=random_state,
-            **{ key: value for key, value in tpot_parameters if key not in [
+            **{key: value for key, value in tpot_parameters if key not in [
                 "search_space",
                 "survival_selector",
                 "parent_selector",
@@ -193,21 +192,10 @@ class TPOTPipeline:
 
 
     @classmethod
-    def from_pickle(cls, pickle_file: str) -> 'TPOTPipeline':
-        with open(pickle_file, "rb") as f:
-            return TPOTPipeline.from_bytes(f.read())
-
-
-    @classmethod
-    def from_bytes(cls, serialization: bytes) -> 'TPOTPipeline':
-        creator.create("FitnessMulti", base.Fitness, weights=(-1.0, 1.0))
-        creator.create(
-            "Individual",
-            gp.PrimitiveTree,
-            fitness=creator.FitnessMulti,
-            statistics=dict,
-        )
-        return dill.loads(serialization)
+    def from_checkpoint(cls, checkpoint_file: str) -> 'TPOTPipeline':
+        with open(checkpoint_file, "r") as f:
+            kwargs = json.load(f)
+            return TPOTPipeline(**kwargs)
 
 
     @staticmethod
@@ -225,69 +213,44 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def get_id(target_gens: int, pop_size: int, tpot_random_state: int, regression: bool, no_trees: bool, no_xg: bool) -> str:
-        return "gens_" + str(target_gens) + "_popsize_" + \
-            str(pop_size) + "_tpotrs_" + str(tpot_random_state) + \
-                "_reg" if regression else "_clas" + \
-                    "_notrees" if no_trees else "" + "_noxg" if no_xg else ""
-
-
-    @staticmethod
-    def find_pickle(data_name: str, id: str) -> str | None:
-        pickle_name = CHECKPOINT + data_name + "/" + id + "/population.pkl"
-        if not isdir(CHECKPOINT):
+    def find_checkpoint(data_name: str, id: str) -> str | None:
+        checkpoint_name = CHECKPOINT + data_name + "/" + id + "/tpot_pipeline.json"
+        if not isdir(CHECKPOINT + data_name + "/" + id):
             return None
-        if isfile(pickle_name):
-            return pickle_name
+        if isfile(checkpoint_name):
+            return checkpoint_name
         return None
 
 
-    #@staticmethod
-    #def dict_everything(objec: Any) -> str | None:
-    #    if isinstance(objec, np.ndarray):
-    #        objec = objec.tolist()
-    #        return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-    #    elif isinstance(objec, range):
-    #        objec = [i for i in objec]
-    #        return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-    #    elif hasattr(objec, "__dict__"):
-    #        return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
-    #    else:
-    #        return None
+    @staticmethod
+    def dict_everything(objec: Any) -> str | None:
+        if isinstance(objec, np.ndarray):
+            objec = objec.tolist()
+            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+        elif isinstance(objec, range):
+            objec = [i for i in objec]
+            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+        elif hasattr(objec, "__dict__"):
+            return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
+        else:
+            return None
 
 
-    def check_config_dict(self, config_dict: dict, require_regression: bool) -> bool:
-        reg_key = False
-        clas_key = False
-        for key in config_dict.keys():
-            if key in REG_CLASS_OVERLAP:
-                continue
-            if key in regressor_config_dict:
-                reg_key = True
-            elif key in classifier_config_dict:
-                clas_key = True
-            else:
-                raise KeyError(f"{key} is not a valid sklearn model")
-        if clas_key and require_regression:
-            raise TypeError(f"float values found in {self.data_name}, but {self.config_file} contains classifiers")
-        if reg_key and clas_key:
-            raise ValueError(f"{self.config_file} contains regressors and classifiers")
-        return not clas_key
+    def create_checkpoint(self) -> None:
+        pipeline_data = self.get_pipeline_data()
+        with open(self.checkpoint_dir + "tpot_pipeline.json", "w") as f:
+            json.dump(pipeline_data, f)
 
 
-    def to_pickle(self) -> None:
-        bytestring = self.to_bytes()
-        with open(self.pickle_dir + self.id + ".pkl", "wb") as f:
-            f.write(bytestring)
-
-
-    def to_bytes(self) -> bytes:
-        self.tpot._pbar = None
-        try:
-            return dill.dumps(self)
-        except Exception as e:
-            print("\n", e)
-            sys.exit(1)
+    def get_pipeline_data(self) -> dict:
+        return {key: value for key, value in self.__dict__ if key in [
+            "config_file",
+            "data_file",
+            "tpot_random_state",
+            "slurm_id",
+            "id",
+            "complete_gens",
+        ]}
 
 
     def run_1_gen(self) -> None:
@@ -305,13 +268,13 @@ class TPOTPipeline:
             self.tpot.fit(self.dataset.X, self.dataset.y)
             self.complete_gens += 1
         if self.complete_gens >= self.target_gens or "Will end the optimization process." in capture.get_output():
-            self.tpot.export(self.export_dir + self.id + ".py")
+            self.export_fitted_pipeline()
             self.evaluate()
-            self.to_pickle()
+            self.create_checkpoint()
             self.not_in_progress()
             print("\nRUN COMPLETE")
             return
-        self.to_pickle()
+        self.create_checkpoint()
         self.not_in_progress()
         print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
         return
@@ -322,8 +285,8 @@ class TPOTPipeline:
             makedirs(self.output_dir)
         if not isdir(self.export_dir):
             makedirs(self.export_dir)
-        if not isdir(self.pickle_dir):
-            makedirs(self.pickle_dir)
+        if not isdir(self.checkpoint_dir):
+            makedirs(self.checkpoint_dir)
         if not isdir(self.inprogress_dir):
             makedirs(self.inprogress_dir)
 
@@ -339,6 +302,11 @@ class TPOTPipeline:
 
     def not_in_progress(self) -> None:
         remove(self.inprogress_dir + self.id + ".txt")
+
+
+    def export_fitted_pipeline(self) -> None:
+        with open(self.export_dir + self.id + ".pkl", "wb") as f:
+            dill.dump(f, self.tpot.fitted_pipeline_)
 
 
     def evaluate(self) -> None:
