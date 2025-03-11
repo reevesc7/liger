@@ -8,9 +8,8 @@ from datetime import datetime, timezone
 import numpy as np
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
+from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
-from tpot.config import get_search_space
-from tpot.search_spaces import SearchSpace, pipelines, nodes
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
@@ -50,65 +49,60 @@ REG_CLASS_OVERLAP = {
 PIPELINE_PARAM_KEYS = {
     "config_file",
     "data_file",
-    "regression",
     "target_gens",
     "eval_random_states",
-    "n_splits",
     "slurm_id",
     "id",
-    "search_space_param",
 }
 TPOT_PARAM_KEYS = {
     "scorers",
     "scorers_weights",
     "classification",
     "cv",
-    #"other_objective_functions",
-    #"other_objective_functions_weights",
-    #"objective_function_names",
+    "other_objective_functions",
+    "other_objective_functions_weights",
+    "objective_function_names",
     "bigger_is_better",
     "export_graphpipeline",
     "memory",
-#    categorical_features = None,
-#    preprocessing = False,
+    "categorical_features",
+    "preprocessing",
     "population_size",
-#    initial_population_size = None,
-#    population_scaling = .5,
-#    generations_until_end_population = 1,
+    "initial_population_size",
+    "population_scaling",
+    "generations_until_end_population",
     "generations",
     "max_time_mins",
     "max_eval_time_mins",
-#    validation_strategy = "none",
-#    validation_fraction = .2,
-#    disable_label_encoder = False,
+    "validation_strategy",
+    "validation_fraction",
+    "disable_label_encoder",
     "early_stop",
-#    scorers_early_stop_tol = 0.001,
-#    other_objectives_early_stop_tol =None,
-#    threshold_evaluation_pruning = None,
-#    threshold_evaluation_scaling = .5,
-#    selection_evaluation_pruning = None,
-#    selection_evaluation_scaling = .5,
-#    min_history_threshold = 20,
-#    survival_percentage = 1,
-#    crossover_probability=.2,
-#    mutate_probability=.7,
-#    mutate_then_crossover_probability=.05,
-#    crossover_then_mutate_probability=.05,
-#    survival_selector = survival_select_NSGA2,
-#    parent_selector = tournament_selection_dominated,
-#    budget_range = None,
-#    budget_scaling = .5,
-#    generations_until_end_budget = 1,
-#    stepwise_steps = 5,
+    "scorers_early_stop_tol",
+    "other_objectives_early_stop_tol",
+    "threshold_evaluation_pruning",
+    "threshold_evaluation_scaling",
+    "selection_evaluation_pruning",
+    "selection_evaluation_scaling",
+    "min_history_threshold",
+    "survival_percentage",
+    "crossover_probability",
+    "mutate_probability",
+    "mutate_then_crossover_probability",
+    "crossover_then_mutate_probability",
+    "budget_range",
+    "budget_scaling",
+    "generations_until_end_budget",
+    "stepwise_steps",
     "n_jobs",
-#    memory_limit = None,
-#    client = None,
-#    processes = True,
+    "memory_limit",
+    "client",
+    "processes",
     "warm_start",
     "periodic_checkpoint_folder",
-#    callback = None,
-#    verbose = 0,
-#    scatter = True,
+    "callback",
+    "verbose",
+    "scatter",
     "random_state",
 }
 TPOT_ATTR_KEYS = {
@@ -173,7 +167,7 @@ class TPOTPipeline:
         #else:
         #    raise TypeError(f"\"config_dict\" field of {self.config_file} is not None or of type dict")
         self.config_search_space = tpot_parameters["search_space"]
-        search_space = SearchSpace()
+        search_space = create_search_space(self.config_search_space, random_state)
 
         self.output_dir = OUTPUT + self.data_name + "/"
         self.export_dir = EXPORT + self.data_name + "/"
@@ -186,6 +180,8 @@ class TPOTPipeline:
             random_state=random_state,
             **{ key: value for key, value in tpot_parameters if key not in [
                 "search_space",
+                "survival_selector",
+                "parent_selector",
                 "periodic_checkpoint_folder",
                 "random_state",
             ]},
@@ -370,7 +366,7 @@ class TPOTPipeline:
 
     def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:
         set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
-        kfold = KFold(n_splits=self.n_splits, shuffle=True, random_state=eval_random_state)
+        kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
         kfold_predictions = kfold_predict(self.tpot.fitted_pipeline_, kfold, self.dataset)
         kfold_r2 = float(r2_score(kfold_predictions, self.dataset.y))
         return kfold_predictions, kfold_r2
