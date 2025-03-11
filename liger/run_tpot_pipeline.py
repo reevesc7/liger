@@ -10,16 +10,12 @@ def main():
         id = None
     else:
         id = args.id
-    pickle_file = None
+    checkpoint_file = None
     if id is not None:
-        pickle_file = TPOTPipeline.find_pickle(data_name, args.id)
-    if pickle_file is not None:
-        pipeline = TPOTPipeline.from_pickle(pickle_file)
+        checkpoint_file = TPOTPipeline.find_checkpoint(data_name, args.id)
+    if checkpoint_file is not None:
+        pipeline = TPOTPipeline.from_checkpoint(checkpoint_file)
     else:
-        if args.nevalrs is None:
-            eval_random_states = None
-        else:
-            eval_random_states = [i+args.sevalrs for i in range(args.nevalrs)]
         pipeline = TPOTPipeline(
             config_file=args.config,
             data_file=args.data,
