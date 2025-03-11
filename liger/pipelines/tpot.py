@@ -175,7 +175,7 @@ class TPOTPipeline:
             search_space=search_space,
             periodic_checkpoint_folder=self.checkpoint_dir,
             random_state=random_state,
-            **{key: value for key, value in tpot_parameters if key not in [
+            **{key: value for key, value in tpot_parameters.items() if key not in [
                 "search_space",
                 "survival_selector",
                 "parent_selector",
@@ -241,7 +241,7 @@ class TPOTPipeline:
 
 
     def get_pipeline_data(self) -> dict:
-        return {key: value for key, value in self.__dict__ if key in [
+        return {key: value for key, value in self.__dict__.items() if key in [
             "config_file",
             "data_file",
             "tpot_random_state",
