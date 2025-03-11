@@ -8,8 +8,9 @@ from datetime import datetime, timezone
 import numpy as np
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
-from tpot import TPOTClassifier, TPOTRegressor
-from tpot.config import classifier_config_dict, regressor_config_dict
+from tpot import TPOTEstimator
+from tpot.config import get_search_space
+from tpot.search_spaces import SearchSpace, pipelines, nodes
 from sklearn.model_selection import KFold
 from tpot.export_utils import set_param_recursive
 from sklearn.metrics import r2_score
@@ -19,7 +20,7 @@ from deap import base, creator, gp
 
 OUTPUT = "Outputs/"
 EXPORT = "Exports/"
-PICKLE = "Pickles/"
+CHECKPOINT = "Checkpoints/"
 IN_PROGRESS = "InProgress/"
 TPOT_ATTRS = [
     "fitted_pipeline_",
@@ -55,30 +56,60 @@ PIPELINE_PARAM_KEYS = {
     "n_splits",
     "slurm_id",
     "id",
+    "search_space_param",
 }
 TPOT_PARAM_KEYS = {
-    "population_size",
-    "offspring_size",
-    "generations",
-    "mutation_rate",
-    "crossover_rate",
-    "scoring",
+    "scorers",
+    "scorers_weights",
+    "classification",
     "cv",
-    "subsample",
-    "n_jobs",
+    #"other_objective_functions",
+    #"other_objective_functions_weights",
+    #"objective_function_names",
+    "bigger_is_better",
+    "export_graphpipeline",
+    "memory",
+#    categorical_features = None,
+#    preprocessing = False,
+    "population_size",
+#    initial_population_size = None,
+#    population_scaling = .5,
+#    generations_until_end_population = 1,
+    "generations",
     "max_time_mins",
     "max_eval_time_mins",
-    "periodic_checkpoint_folder",
+#    validation_strategy = "none",
+#    validation_fraction = .2,
+#    disable_label_encoder = False,
     "early_stop",
-    "config_dict",
-    "template",
+#    scorers_early_stop_tol = 0.001,
+#    other_objectives_early_stop_tol =None,
+#    threshold_evaluation_pruning = None,
+#    threshold_evaluation_scaling = .5,
+#    selection_evaluation_pruning = None,
+#    selection_evaluation_scaling = .5,
+#    min_history_threshold = 20,
+#    survival_percentage = 1,
+#    crossover_probability=.2,
+#    mutate_probability=.7,
+#    mutate_then_crossover_probability=.05,
+#    crossover_then_mutate_probability=.05,
+#    survival_selector = survival_select_NSGA2,
+#    parent_selector = tournament_selection_dominated,
+#    budget_range = None,
+#    budget_scaling = .5,
+#    generations_until_end_budget = 1,
+#    stepwise_steps = 5,
+    "n_jobs",
+#    memory_limit = None,
+#    client = None,
+#    processes = True,
     "warm_start",
-    "memory",
-    "use_dask",
-    "verbosity",
-    "disable_update_check",
+    "periodic_checkpoint_folder",
+#    callback = None,
+#    verbose = 0,
+#    scatter = True,
     "random_state",
-    "log_file",
 }
 TPOT_ATTR_KEYS = {
     "tree_structure",
@@ -95,12 +126,7 @@ class TPOTPipeline:
         self,
         config_file: str,
         data_file: str,
-        target_gens: int | None = None,
-        population_size: int | None = None,
         tpot_random_state: int | None = None,
-        eval_random_states: list[int] | None = None,
-        max_time_mins: int | None = None,
-        n_splits: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
     ) -> None:
@@ -125,88 +151,47 @@ class TPOTPipeline:
         dt = datetime.now(timezone.utc)
         start_time = dt.strftime("%Y-%m-%d_%H-%M-%S.%f")
 
-        # Require regression if there's float data
-        if self.dataset.y.dtype == np.float64:
-            require_regression = True
-        else:
-            require_regression = False
-
-        # Set and vet the TPOT config dictionary; determine if regression will be used
-        config_dict = tpot_parameters.get("config_dict")
-        if isinstance(config_dict, dict):
-            self.regression = self.check_config_dict(config_dict, require_regression)
-        elif config_dict is None:
-            config_dict = regressor_config_dict
-            self.regression = True
-        else:
-            raise TypeError(f"\"config_dict\" field of {self.config_file} is not None or of type dict")
-
-        # Set parameters
-        self.target_gens = TPOTPipeline.use_first(
-            target_gens,
-            pipeline_parameters.get("target_gens"),
-            10,
-        )
-        population_size = int(TPOTPipeline.use_first(
-            population_size,
-            tpot_parameters.get("population_size"),
-            100,
-        ))
-        tpot_random_state = TPOTPipeline.use_first(
+        # Set random_state and ID
+        random_state = TPOTPipeline.use_first(
             tpot_random_state,
             tpot_parameters.get("random_state"),
             randint(0, 2**32-1),
-        )
-        self.eval_random_states = TPOTPipeline.use_first(
-            eval_random_states,
-            pipeline_parameters.get("eval_random_states"),
-            [0],
         )
         self.id = TPOTPipeline.use_first(
             id,
             pipeline_parameters.get("id"),
             start_time,
         )
-        max_time_mins = TPOTPipeline.use_first(
-            max_time_mins,
-            tpot_parameters.get("max_time_mins"),
-        )
-        self.n_splits = TPOTPipeline.use_first(
-            n_splits,
-            pipeline_parameters.get("n_splits"),
-            self.dataset.X.shape[0],
-        )
-        early_stop = tpot_parameters.get("early_stop")
 
-        if self.regression:
-            self.tpot = TPOTRegressor(
-                config_dict=config_dict,
-                generations=1,
-                population_size=population_size,
-                verbosity=2,
-                random_state=tpot_random_state,
-                max_time_mins=max_time_mins,
-                early_stop=early_stop,
-                warm_start=True,
-            )
-        else:
-            self.tpot = TPOTClassifier(
-                config_dict=config_dict,
-                generations=1,
-                population_size=population_size,
-                verbosity=2,
-                random_state=tpot_random_state,
-                max_time_mins=max_time_mins,
-                early_stop=early_stop,
-                warm_start=True,
-            )
-
+        # Set and vet the TPOT config dictionary; determine if regression will be used
+        #config_dict = tpot_parameters.get("config_dict")
+        #if isinstance(config_dict, dict):
+        #    self.regression = self.check_config_dict(config_dict, require_regression)
+        #elif config_dict is None:
+        #    config_dict = regressor_config_dict
+        #    self.regression = True
+        #else:
+        #    raise TypeError(f"\"config_dict\" field of {self.config_file} is not None or of type dict")
+        self.config_search_space = tpot_parameters["search_space"]
+        search_space = SearchSpace()
 
         self.output_dir = OUTPUT + self.data_name + "/"
         self.export_dir = EXPORT + self.data_name + "/"
-        self.pickle_dir = PICKLE + self.data_name + "/"
+        self.checkpoint_dir = CHECKPOINT + self.data_name + "/" + self.id + "/"
         self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
+        self.tpot = TPOTEstimator(
+            search_space=search_space,
+            periodic_checkpoint_folder=self.checkpoint_dir,
+            random_state=random_state,
+            **{ key: value for key, value in tpot_parameters if key not in [
+                "search_space",
+                "periodic_checkpoint_folder",
+                "random_state",
+            ]},
+        )
+
+        # Print run information
         print("ID =", self.id, flush=True)
         print("TPOT random state =", tpot_random_state, flush=True)
 
@@ -253,26 +238,26 @@ class TPOTPipeline:
 
     @staticmethod
     def find_pickle(data_name: str, id: str) -> str | None:
-        pickle_name = PICKLE + data_name + "/" + id + ".pkl"
-        if not isdir(PICKLE):
+        pickle_name = CHECKPOINT + data_name + "/" + id + "/population.pkl"
+        if not isdir(CHECKPOINT):
             return None
         if isfile(pickle_name):
             return pickle_name
         return None
 
 
-    @staticmethod
-    def dict_everything(objec: Any) -> str | None:
-        if isinstance(objec, np.ndarray):
-            objec = objec.tolist()
-            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-        elif isinstance(objec, range):
-            objec = [i for i in objec]
-            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-        elif hasattr(objec, "__dict__"):
-            return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
-        else:
-            return None
+    #@staticmethod
+    #def dict_everything(objec: Any) -> str | None:
+    #    if isinstance(objec, np.ndarray):
+    #        objec = objec.tolist()
+    #        return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+    #    elif isinstance(objec, range):
+    #        objec = [i for i in objec]
+    #        return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
+    #    elif hasattr(objec, "__dict__"):
+    #        return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
+    #    else:
+    #        return None
 
 
     def check_config_dict(self, config_dict: dict, require_regression: bool) -> bool:
@@ -370,6 +355,7 @@ class TPOTPipeline:
             ratings[eval_random_state] = kfold_predictions.tolist()
         pipeline_parameters = {key: value for key, value in self.__dict__.items() if key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
+        tpot_parameters["search_space"] = self.config_search_space
         pipeline_attributes = {"complete_gens": self.complete_gens, "kfold_scores": scores, "kfold_ratings": ratings}
         tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
         pipeline_dict = {
