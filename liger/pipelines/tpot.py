@@ -147,7 +147,7 @@ class TPOTPipeline:
         dt = datetime.now(timezone.utc)
         start_time = dt.strftime("%Y-%m-%d_%H-%M-%S.%f")
 
-        # Set random_state and ID
+        # Set special needs parameters
         random_state = TPOTPipeline.use_first(
             tpot_random_state,
             tpot_parameters.get("random_state"),
@@ -183,10 +183,8 @@ class TPOTPipeline:
                 "random_state",
             ]},
         )
-
-        # Print run information
-        print("ID =", self.id, flush=True)
-        print("TPOT random state =", tpot_random_state, flush=True)
+        print("GENS", self.tpot.generations)
+        print("POPSIZE", self.tpot.population_size)
 
 
     @classmethod
@@ -304,7 +302,7 @@ class TPOTPipeline:
 
     def export_fitted_pipeline(self) -> None:
         with open(self.export_dir + self.id + ".pkl", "wb") as f:
-            dill.dump(f, self.tpot.fitted_pipeline_)
+            dill.dump(self.tpot.fitted_pipeline_, f)
 
 
     def evaluate(self) -> None:
