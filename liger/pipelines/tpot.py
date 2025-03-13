@@ -171,6 +171,14 @@ class TPOTPipeline:
         self.checkpoint_dir = CHECKPOINT + self.data_name + "/" + self.id + "/"
         self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
+        print({key: value for key, value in tpot_parameters.items() if key not in [
+                "search_space",
+                "survival_selector",
+                "parent_selector",
+                "periodic_checkpoint_folder",
+                "random_state",
+            ]}, flush=True)
+
         self.tpot = TPOTEstimator(
             search_space=search_space,
             periodic_checkpoint_folder=self.checkpoint_dir,
