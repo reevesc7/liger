@@ -183,8 +183,8 @@ class TPOTPipeline:
                 "random_state",
             ]},
         )
-        print("GENS", self.tpot.generations)
-        print("POPSIZE", self.tpot.population_size)
+        print("GENS", self.tpot.generations, flush=True)
+        print("POPSIZE", self.tpot.population_size, flush=True)
 
 
     @classmethod
