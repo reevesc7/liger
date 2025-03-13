@@ -104,11 +104,9 @@ TPOT_PARAM_KEYS = {
     "random_state",
 }
 TPOT_ATTR_KEYS = {
-    "tree_structure",
-    "evaluated_individuals_",
+    "evaluated_individuals",
     "fitted_pipeline_"
-    "log_file_",
-    "pareto_front_fitted_pipelines_",
+    "pareto_front",
 }
 
 
