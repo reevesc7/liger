@@ -1,4 +1,3 @@
-from textwrap import indent
 from typing import Any
 import sys
 from os import makedirs, remove
@@ -170,14 +169,6 @@ class TPOTPipeline:
         self.checkpoint_dir = CHECKPOINT + self.data_name + "/" + self.id + "/"
         self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
-        print({key: value for key, value in tpot_parameters.items() if key not in [
-                "search_space",
-                "survival_selector",
-                "parent_selector",
-                "periodic_checkpoint_folder",
-                "random_state",
-            ]}, flush=True)
-
         self.tpot = TPOTEstimator(
             search_space=search_space,
             periodic_checkpoint_folder=self.checkpoint_dir,
@@ -190,8 +181,6 @@ class TPOTPipeline:
                 "random_state",
             ]},
         )
-        print("GENS", self.tpot.generations, flush=True)
-        print("POPSIZE", self.tpot.population_size, flush=True)
 
 
     @classmethod
@@ -267,7 +256,6 @@ class TPOTPipeline:
         self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        #print("GENERATION:", self.complete_gens + 1, flush=True)
         output = capture.get_output()
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
