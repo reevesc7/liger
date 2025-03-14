@@ -115,6 +115,7 @@ class TPOTPipeline:
         slurm_id: int | None = None,
         id: str | None = None,
         complete_gens: int | None = None,
+        gen_scores: list[float] | None = None,
     ) -> None:
         self.config_file = config_file
         self.data_file = data_file
@@ -125,6 +126,10 @@ class TPOTPipeline:
             self.complete_gens = complete_gens
         else:
             self.complete_gens = 0
+        if gen_scores is not None:
+            self.gen_scores = gen_scores
+        else:
+            self.gen_scores = []
 
         # Load config file
         with open(config_file) as f:
@@ -247,6 +252,7 @@ class TPOTPipeline:
             "slurm_id",
             "id",
             "complete_gens",
+            "gen_scores",
         ]}
 
 
@@ -260,11 +266,19 @@ class TPOTPipeline:
         self.in_progress()
         print("\nRUNNING PIPELINE:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        print("GENERATION:", self.complete_gens + 1, flush=True)
+        #print("GENERATION:", self.complete_gens + 1, flush=True)
+        output = capture.get_output()
         if self.complete_gens < self.target_gens:
             self.tpot.fit(self.dataset.X, self.dataset.y)
+        output = capture.get_output()
+        output_lines = output.split("\n")
+        if "score: " in output:
+            self.gen_scores.append(float([l for l in output_lines if "score: " in l][0].split(": ")[-1]))
+        if "Generation:  " in output:
+            self.complete_gens = int([l for l in output_lines if "Generation:  " in l][0].split(":  ")[-1])
+        else:
             self.complete_gens += 1
-        if self.complete_gens >= self.target_gens or "Will end the optimization process." in capture.get_output():
+        if self.complete_gens >= self.target_gens or self.detect_early_stop():
             self.export_fitted_pipeline()
             self.evaluate()
             self.create_checkpoint()
@@ -299,6 +313,16 @@ class TPOTPipeline:
 
     def not_in_progress(self) -> None:
         remove(self.inprogress_dir + self.id + ".txt")
+
+
+    def detect_early_stop(self) -> bool:
+        if not isinstance(self.tpot.early_stop, int):
+            return False
+        if len(self.gen_scores) < self.tpot.early_stop:
+            return False
+        if len(set(self.gen_scores[-self.tpot.early_stop:])) > 1:
+            return False
+        return True
 
 
     def export_fitted_pipeline(self) -> None:
