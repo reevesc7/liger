@@ -19,11 +19,6 @@ OUTPUT = "Outputs/"
 EXPORT = "Exports/"
 CHECKPOINT = "Checkpoints/"
 IN_PROGRESS = "InProgress/"
-TPOT_ATTRS = [
-    "fitted_pipeline_",
-    "pareto_front_fitted_pipelines_",
-    "evaluated_individuals_",
-]
 REG_CLASS_OVERLAP = {
     "sklearn.preprocessing.Binarizer",
     "sklearn.decomposition.FastICA",

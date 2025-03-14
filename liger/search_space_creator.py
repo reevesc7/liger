@@ -4,19 +4,26 @@ import numpy as np
 
 
 def create_search_space(param_search_space: Any, random_state: int | None = None) -> tpot.search_spaces.SearchSpace:
-    keys = param_search_space.keys()
-    if len(keys) > 1:
-        raise ValueError(f"More that one search space ({len(keys)}) is defined by the \"search_space\"")
-    else:
-        key = list(keys)[0]
-    search_space = items_to_search_space(key, param_search_space[key], random_state)
+    search_space = items_to_search_space(
+        param_search_space.pop("node_type"),
+        param_search_space,
+        random_state,
+    )
+    #keys = param_search_space.keys()
+    #if len(keys) > 1:
+    #    raise ValueError(f"More that one search space ({len(keys)}) is defined by the \"search_space\"")
+    #else:
+    #    key = list(keys)[0]
+    #search_space = items_to_search_space(key, param_search_space[key], random_state)
     return search_space
 
 
 def create_search_spaces(param_search_spaces: Any, random_state: int | None = None) -> list[tpot.search_spaces.SearchSpace]:
     search_spaces = []
-    for node_type, node_parameters in param_search_spaces.items():
-        search_spaces.append(items_to_search_space(node_type, node_parameters, random_state))
+    for param_search_space in param_search_spaces:
+        search_spaces.append(create_search_space(param_search_space, random_state))
+    #for node_type, node_parameters in param_search_spaces.items():
+    #    search_spaces.append(items_to_search_space(node_type, node_parameters, random_state))
     return search_spaces
 
 
@@ -111,8 +118,8 @@ def construct_graph_search_pipeline(params: dict, random_state: int | None = Non
     )
 
 
-def construct_estimator_node(params: str, random_state: int | None = None) -> tpot.search_spaces.nodes.EstimatorNode:
-    search_space = tpot.config.get_search_space(params, random_state=random_state)
+def construct_estimator_node(params: dict, random_state: int | None = None) -> tpot.search_spaces.nodes.EstimatorNode:
+    search_space = tpot.config.get_search_space(params["class_name"], random_state=random_state)
     if not isinstance(search_space, tpot.search_spaces.nodes.EstimatorNode):
         raise ValueError(f"{params} does not match a TPOT EstimatorNode type")
     return search_space
