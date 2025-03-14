@@ -254,7 +254,7 @@ class TPOTPipeline:
         # Save prep
         self.save_prep()
         self.in_progress()
-        print("\nRUNNING PIPELINE:", self.id, flush=True)
+        print("\nPIPELINE ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
         output = capture.get_output()
         if self.complete_gens < self.target_gens:
