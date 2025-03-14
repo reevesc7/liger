@@ -118,9 +118,9 @@ def construct_graph_search_pipeline(params: dict, random_state: int | None = Non
     )
 
 
-def construct_estimator_node(params: dict, random_state: int | None = None) -> tpot.search_spaces.nodes.EstimatorNode:
+def construct_estimator_node(params: dict, random_state: int | None = None) -> tpot.search_spaces.nodes.EstimatorNode | tpot.search_spaces.pipelines.ChoicePipeline:
     search_space = tpot.config.get_search_space(params["class_name"], random_state=random_state)
-    if not isinstance(search_space, tpot.search_spaces.nodes.EstimatorNode):
+    if not isinstance(search_space, (tpot.search_spaces.nodes.EstimatorNode, tpot.search_spaces.pipelines.ChoicePipeline)):
         raise ValueError(f"{params} does not match a TPOT EstimatorNode type")
     return search_space
 
