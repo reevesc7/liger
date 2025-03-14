@@ -225,7 +225,7 @@ class TPOTPipeline:
         elif hasattr(objec, "__dict__"):
             return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
         else:
-            return None
+            return ""
 
 
     def create_checkpoint(self) -> None:
