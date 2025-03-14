@@ -5,4 +5,4 @@ openai>=1.61.1,<2.0.0
 pandas>=2.2.3,<3.0.0
 scikit_learn>=1.6.1,<2.0.0
 sentence_transformers>=3.4.1,<4.0.0
-git+https://github.com/reevesc7/tpot.git#egg=tpot
+tpot>=1.0.0,<2.0.0

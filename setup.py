@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="liger",
-    version="0.0.1",
+    version="0.0.2",
     entry_points={ "console_scripts": [
         "liger-pipeline=liger.run_tpot_pipeline:main",
     ]},
@@ -21,7 +21,7 @@ setup(
         "pandas>=2.2.3,<3.0.0",
         "scikit_learn>=1.6.1,<2.0.0",
         "sentence_transformers>=3.4.1,<4.0.0",
-        "tpot @ git+https://github.com/reevesc7/tpot.git#egg=tpot",
+        "tpot>=1.0.0,<2.0.0",
     ],
     classifiers=[
         "Programming Language :: Python :: 3.12",
