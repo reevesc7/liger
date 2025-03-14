@@ -1,3 +1,4 @@
+from textwrap import indent
 from typing import Any
 import sys
 from os import makedirs, remove
@@ -241,7 +242,7 @@ class TPOTPipeline:
     def create_checkpoint(self) -> None:
         pipeline_data = self.get_pipeline_data()
         with open(self.checkpoint_dir + "tpot_pipeline.json", "w") as f:
-            json.dump(pipeline_data, f)
+            json.dump(pipeline_data, f, indent=4)
 
 
     def get_pipeline_data(self) -> dict:
