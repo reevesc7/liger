@@ -272,6 +272,8 @@ class TPOTPipeline:
             self.evaluate()
             self.create_checkpoint()
             self.not_in_progress()
+            print("\nFITTED PIPELINE:")
+            print(self.tpot.fitted_pipeline_)
             print("\nRUN COMPLETE")
             return
         self.create_checkpoint()
