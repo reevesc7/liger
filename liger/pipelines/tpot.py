@@ -116,10 +116,6 @@ class TPOTPipeline:
         id: str | None = None,
         complete_gens: int | None = None,
     ) -> None:
-
-        print("TPRS", tpot_random_state)
-        print("CPGENS", complete_gens)
-
         self.config_file = config_file
         self.data_file = data_file
         self.data_name = TPOTPipeline.get_filename(data_file)
@@ -145,7 +141,7 @@ class TPOTPipeline:
         start_time = dt.strftime("%Y-%m-%d_%H-%M-%S.%f")
 
         # Set special needs parameters
-        random_state = TPOTPipeline.use_first(
+        self.tpot_random_state = TPOTPipeline.use_first(
             tpot_random_state,
             tpot_parameters.get("random_state"),
             randint(0, 2**32-1),
@@ -160,7 +156,7 @@ class TPOTPipeline:
 
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
-        search_space = create_search_space(self.config_search_space, random_state)
+        search_space = create_search_space(self.config_search_space, self.tpot_random_state)
 
         # Set output paths
         self.output_dir = OUTPUT + self.data_name + "/"
@@ -179,7 +175,7 @@ class TPOTPipeline:
         self.tpot = TPOTEstimator(
             search_space=search_space,
             periodic_checkpoint_folder=self.checkpoint_dir,
-            random_state=random_state,
+            random_state=self.tpot_random_state,
             **{key: value for key, value in tpot_parameters.items() if key not in [
                 "search_space",
                 "survival_selector",
@@ -196,7 +192,6 @@ class TPOTPipeline:
     def from_checkpoint(cls, checkpoint_file: str) -> 'TPOTPipeline':
         with open(checkpoint_file, "r") as f:
             kwargs = json.load(f)
-            print(kwargs)
             return TPOTPipeline(**kwargs)
 
 
