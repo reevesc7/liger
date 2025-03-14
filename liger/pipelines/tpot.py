@@ -116,6 +116,10 @@ class TPOTPipeline:
         id: str | None = None,
         complete_gens: int | None = None,
     ) -> None:
+
+        print("TPRS", tpot_random_state)
+        print("CPGENS", complete_gens)
+
         self.config_file = config_file
         self.data_file = data_file
         self.data_name = TPOTPipeline.get_filename(data_file)
@@ -192,6 +196,7 @@ class TPOTPipeline:
     def from_checkpoint(cls, checkpoint_file: str) -> 'TPOTPipeline':
         with open(checkpoint_file, "r") as f:
             kwargs = json.load(f)
+            print(kwargs)
             return TPOTPipeline(**kwargs)
 
 
