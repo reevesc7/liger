@@ -331,7 +331,11 @@ class TPOTPipeline:
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
         tpot_parameters["search_space"] = self.config_search_space
         pipeline_attributes = {"complete_gens": self.complete_gens, "kfold_scores": scores, "kfold_ratings": ratings}
-        tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
+        tpot_attributes = {
+            "fitted_pipeline_": str(self.tpot.fitted_pipeline_),
+            "evaluated_individuals": str(self.tpot.evaluated_individuals),
+            "pareto_front": str(self.tpot.pareto_front),
+        }
         pipeline_dict = {
             "pipeline_parameters": pipeline_parameters,
             "tpot_parameters": tpot_parameters,
