@@ -275,7 +275,7 @@ class TPOTPipeline:
         if "score: " in output:
             self.gen_scores.append(float([l for l in output_lines if "score: " in l][0].split(": ")[-1]))
         if "Generation:  " in output:
-            self.complete_gens = int([l for l in output_lines if "Generation:  " in l][0].split(":  ")[-1])
+            self.complete_gens = int([l for l in output_lines if "Generation:  " in l][0].split(":  ")[-1].strip(".0"))
         else:
             self.complete_gens += 1
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
