@@ -162,7 +162,6 @@ class TPOTPipeline:
 
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
-        print(self.config_search_space)
         search_space = create_search_space(self.config_search_space, self.tpot_random_state)
 
         # Set output paths
@@ -343,7 +342,6 @@ class TPOTPipeline:
         pipeline_parameters = {key: value for key, value in self.__dict__.items() if key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_PARAM_KEYS}
         tpot_parameters["search_space"] = self.config_search_space
-        print("OUTPUT", tpot_parameters)
         pipeline_attributes = {"complete_gens": self.complete_gens, "kfold_scores": scores, "kfold_ratings": ratings}
         tpot_attributes = {key: value for key, value in self.tpot.__dict__.items() if key in TPOT_ATTR_KEYS}
         pipeline_dict = {

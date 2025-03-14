@@ -5,8 +5,8 @@ import numpy as np
 
 def create_search_space(param_search_space: Any, random_state: int | None = None) -> tpot.search_spaces.SearchSpace:
     search_space = items_to_search_space(
-        param_search_space.pop("node_type"),
-        param_search_space,
+        param_search_space["node_type"],
+        {key: value for key, value in param_search_space.items() if key != "node_type"},
         random_state,
     )
     #keys = param_search_space.keys()
