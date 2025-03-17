@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="liger",
-    version="0.0.2",
+    version="0.2.0",
     entry_points={ "console_scripts": [
         "liger-pipeline=liger.run_tpot_pipeline:main",
     ]},
