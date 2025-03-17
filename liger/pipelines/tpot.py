@@ -161,7 +161,7 @@ class TPOTPipeline:
 
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
-        search_space = create_search_space(self.config_search_space, self.tpot_random_state)
+        search_space = create_search_space(self.config_search_space, self.dataset.X.shape[1], self.tpot_random_state)
 
         # Set output paths
         self.output_dir = OUTPUT + self.data_name + "/"
