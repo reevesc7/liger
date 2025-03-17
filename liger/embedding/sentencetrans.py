@@ -1,8 +1,8 @@
 import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from ..embedding import BaseEmbedder
-from ...dataset import Dataset
+from .base import BaseEmbedder
+from ..dataset import Dataset
 
 
 class STEmbedder(BaseEmbedder):

@@ -3,14 +3,14 @@ from os.path import isfile
 from openai import OpenAI
 import numpy as np
 import pandas as pd
-from ..embedding import BaseEmbedder
-from ... import Dataset
+from .base import BaseEmbedder
+from .. import Dataset
 
 
 OPENAI_KEYFILE = "openai.key"
 
 
-class LLMEmbedder(BaseEmbedder):
+class OpenAIEmbedder(BaseEmbedder):
     def __init__(self, model_str: str):
         if not isfile(Path(OPENAI_KEYFILE)):
             raise FileNotFoundError(f"No \"{OPENAI_KEYFILE}\" in the working directory")
