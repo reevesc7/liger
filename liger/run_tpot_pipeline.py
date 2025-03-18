@@ -37,7 +37,8 @@ def get_args() -> Namespace:
     parser.add_argument(
         "--data",
         type=str,
-        required=True,
+        required=False,
+        default=None,
         help="training data file path"
     )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
