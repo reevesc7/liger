@@ -7,17 +7,22 @@ def main():
     args = get_args()
 
     checkpoint_file = None
+    id = parse_arg_or_none(args.id),
     if id is not None:
-        checkpoint_file = TPOTPipeline.find_checkpoint(args.id)
+        id = str(id)
+        checkpoint_file = TPOTPipeline.find_checkpoint(id)
     if checkpoint_file is not None:
         pipeline = TPOTPipeline.from_checkpoint(checkpoint_file)
     else:
+        config_file = parse_arg_or_none(args.config)
+        if config_file is None:
+            raise ValueError("Config file must be specified for new runs!")
         pipeline = TPOTPipeline(
-            config_file=args.config,
+            config_file=config_file,
             data_file=parse_arg_or_none(args.data),
             tpot_random_state=parse_arg_or_none(args.tpotrs),
-            slurm_id=parse_arg_or_none(args.slurmid),
-            id=parse_arg_or_none(args.id),
+            slurm_id=args.slurmid,
+            id=id,
         )
     pipeline.run_1_gen()
 
@@ -33,7 +38,7 @@ def get_args() -> Namespace:
     parser.add_argument(
         "--config",
         type=str,
-        required=True,
+        required=False,
         help="config file path"
     )       #e.g., "Configs/nolong_reg_1.json"
     parser.add_argument(
