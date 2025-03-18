@@ -245,7 +245,7 @@ class TPOTPipeline:
             objec = [i for i in objec]
             return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
         elif isinstance(objec, Callable):
-            return objec.__name__
+            return ".".join([objec.__module__, objec.__name__])
         elif hasattr(objec, "__dict__"):
             return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
         else:
