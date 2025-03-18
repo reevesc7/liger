@@ -59,7 +59,7 @@ def items_to_search_space(node_type: str, node_parameters: Any, n_features: int,
             search_space = tpot.search_spaces.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
             #search_space = construct_genetic_feature_selector_node(node_parameters, n_features)
         case _:
-            raise ValueError(f"{node_type} does not match a TPOT pipeline type (WrapperPipeline not included)")
+            raise ValueError(f"{node_type} does not match a TPOT pipeline or node type (WrapperPipeline not included)")
     return search_space
 
 
