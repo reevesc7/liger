@@ -52,6 +52,8 @@ def items_to_search_space(node_type: str, node_parameters: Any, n_features: int,
             #search_space = construct_graph_search_pipeline(node_parameters, n_features, random_state)
         case "EstimatorNode":
             search_space = tpot.config.get_search_space(node_parameters["class_name"], random_state=random_state)
+            if not isinstance(search_space, (tpot.search_spaces.nodes.EstimatorNode, tpot.search_spaces.pipelines.ChoicePipeline)):
+                raise ValueError(f"{node_parameters['class_name']} could not be converted into an EstimatorNode or ChoicePipeline")
             #search_space = construct_estimator_node(node_parameters, random_state)
         case "GeneticFeatureSelectorNode":
             search_space = tpot.search_spaces.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
