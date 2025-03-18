@@ -116,7 +116,7 @@ class TPOTPipeline:
         slurm_id: int | None = None,
         id: str | None = None,
         complete_gens: int | None = None,
-        gen_scores: list[float] | None = None,
+        gen_scores: list[list[float]] | None = None,
     ) -> None:
         self.config_file = config_file
         self.data_file = data_file
@@ -284,7 +284,7 @@ class TPOTPipeline:
         output = capture.get_output()
         output_lines = output.split("\n")
         if "score: " in output:
-            self.gen_scores.append(float([l for l in output_lines if "score: " in l][0].split(": ")[-1]))
+            self.gen_scores.append([float(l.split(": ")[-1]) for l in output_lines if "score: " in l])
         if "Generation:  " in output:
             self.complete_gens = int([l for l in output_lines if "Generation:  " in l][0].split(":  ")[-1].strip(".0"))
         else:
