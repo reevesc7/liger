@@ -111,7 +111,7 @@ class TPOTPipeline:
     def __init__(
         self,
         config_file: str,
-        data_file: str,
+        data_file: str | None = None,
         tpot_random_state: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
@@ -119,9 +119,6 @@ class TPOTPipeline:
         gen_scores: list[list[float]] | None = None,
     ) -> None:
         self.config_file = config_file
-        self.data_file = data_file
-        self.data_name = TPOTPipeline.get_filename(data_file)
-        self.dataset = Dataset.from_csv(data_file)
         self.slurm_id = slurm_id
         if complete_gens is not None:
             self.complete_gens = complete_gens
@@ -147,6 +144,12 @@ class TPOTPipeline:
         start_time = dt.strftime("%Y-%m-%d_%H-%M-%S.%f")
 
         # Set special needs parameters
+        self.data_file = TPOTPipeline.use_first(
+            data_file,
+            pipeline_parameters.get("data_file"),
+        )
+        if self.data_file is None:
+            raise ValueError("No data file was specified")
         self.tpot_random_state = TPOTPipeline.use_first(
             tpot_random_state,
             tpot_parameters.get("random_state"),
@@ -159,6 +162,10 @@ class TPOTPipeline:
             pipeline_parameters.get("id"),
             start_time,
         )
+
+        # Set dataset
+        self.data_name = TPOTPipeline.get_filename(self.data_file)
+        self.dataset = Dataset.from_csv(self.data_file)
 
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
