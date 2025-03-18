@@ -5,14 +5,13 @@ from liger.pipelines.tpot import TPOTPipeline
 def main():
     args = get_args()
 
-    data_name = TPOTPipeline.get_filename(args.data)
     if str(args.id).lower() in {"", "none"}:
         id = None
     else:
         id = args.id
     checkpoint_file = None
     if id is not None:
-        checkpoint_file = TPOTPipeline.find_checkpoint(data_name, args.id)
+        checkpoint_file = TPOTPipeline.find_checkpoint(args.id)
     if checkpoint_file is not None:
         pipeline = TPOTPipeline.from_checkpoint(checkpoint_file)
     else:

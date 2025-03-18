@@ -1,7 +1,6 @@
 from typing import Any, Union, Callable
 import sys
-from os import makedirs, remove
-from os.path import isdir, isfile
+from os import path, makedirs, remove, walk
 import json
 from random import randint
 from datetime import datetime, timezone
@@ -219,12 +218,10 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def find_checkpoint(data_name: str, id: str) -> str | None:
-        checkpoint_name = CHECKPOINT + data_name + "/" + id + "/tpot_pipeline.json"
-        if not isdir(CHECKPOINT + data_name + "/" + id):
-            return None
-        if isfile(checkpoint_name):
-            return checkpoint_name
+    def find_checkpoint(id: str) -> str | None:
+        for dirpath, dirnames, _ in walk(CHECKPOINT):
+            if id in dirnames and path.isfile(path.join(dirpath, id, "tpot_pipeline.json")):
+                return path.join(dirpath, id, "tpot_pipeline.json")
         return None
 
 
@@ -314,13 +311,13 @@ class TPOTPipeline:
 
 
     def save_prep(self) -> None:
-        if not isdir(self.output_dir):
+        if not path.isdir(self.output_dir):
             makedirs(self.output_dir)
-        if not isdir(self.export_dir):
+        if not path.isdir(self.export_dir):
             makedirs(self.export_dir)
-        if not isdir(self.checkpoint_dir):
+        if not path.isdir(self.checkpoint_dir):
             makedirs(self.checkpoint_dir)
-        if not isdir(self.inprogress_dir):
+        if not path.isdir(self.inprogress_dir):
             makedirs(self.inprogress_dir)
 
 
