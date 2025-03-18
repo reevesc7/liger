@@ -1,3 +1,4 @@
+from typing import Any
 from argparse import ArgumentParser, Namespace
 from liger.pipelines.tpot import TPOTPipeline
 
@@ -5,10 +6,6 @@ from liger.pipelines.tpot import TPOTPipeline
 def main():
     args = get_args()
 
-    if str(args.id).lower() in {"", "none"}:
-        id = None
-    else:
-        id = args.id
     checkpoint_file = None
     if id is not None:
         checkpoint_file = TPOTPipeline.find_checkpoint(args.id)
@@ -17,12 +14,18 @@ def main():
     else:
         pipeline = TPOTPipeline(
             config_file=args.config,
-            data_file=args.data,
-            tpot_random_state=args.tpotrs,
-            slurm_id=args.slurmid,
-            id=id,
+            data_file=parse_arg_or_none(args.data),
+            tpot_random_state=parse_arg_or_none(args.tpotrs),
+            slurm_id=parse_arg_or_none(args.slurmid),
+            id=parse_arg_or_none(args.id),
         )
     pipeline.run_1_gen()
+
+
+def parse_arg_or_none(arg: Any | None) -> Any | None:
+    if arg is None or str(arg).lower() in ["", "none"]:
+        return None
+    return arg
 
 
 def get_args() -> Namespace:
