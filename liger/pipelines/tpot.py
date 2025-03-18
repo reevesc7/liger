@@ -1,10 +1,11 @@
-from typing import Any
+from typing import Any, Union, Callable
 import sys
 from os import makedirs, remove
 from os.path import isdir, isfile
 import json
 from random import randint
 from datetime import datetime, timezone
+from importlib import import_module
 import numpy as np
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
@@ -163,18 +164,24 @@ class TPOTPipeline:
         self.config_search_space = tpot_parameters["search_space"]
         search_space = create_search_space(self.config_search_space, self.dataset.X.shape[1], self.tpot_random_state)
 
+        # Set scorer functions
+        scorers = TPOTPipeline.init_scorers(tpot_parameters["scorers"])
+
         # Set output paths
         self.output_dir = OUTPUT + self.data_name + "/"
         self.export_dir = EXPORT + self.data_name + "/"
         self.checkpoint_dir = CHECKPOINT + self.data_name + "/" + self.id + "/"
         self.inprogress_dir = IN_PROGRESS + self.data_name + "/"
 
+        # Initialize estimator
         self.tpot = TPOTEstimator(
             search_space=search_space,
+            scorers=scorers,
             periodic_checkpoint_folder=self.checkpoint_dir,
             random_state=self.tpot_random_state,
             **{key: value for key, value in tpot_parameters.items() if key not in [
                 "search_space",
+                "scorers",
                 "survival_selector",
                 "parent_selector",
                 "periodic_checkpoint_folder",
@@ -212,6 +219,18 @@ class TPOTPipeline:
         if isfile(checkpoint_name):
             return checkpoint_name
         return None
+
+
+    @staticmethod
+    def init_scorers(param_scorers: list[str]) -> list[Union[str, Callable]]:
+        scorers: list[Union[str, Callable]] = []
+        for param_scorer in param_scorers:
+            if "." not in param_scorer:
+                scorers.append(param_scorer)
+                continue
+            split_scorer = param_scorer.rsplit(".", 1)
+            scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
+        return scorers
 
 
     @staticmethod
