@@ -45,10 +45,9 @@ def get_args() -> Namespace:
     )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
         "--tpotrs",
-        type=int,
         required=False,
         default=None,
-        help="tpot random state"
+        help="tpot random state (int)"
     )
     parser.add_argument(
         "--slurmid",
