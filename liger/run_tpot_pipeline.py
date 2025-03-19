@@ -8,7 +8,7 @@ def main():
 
     checkpoint_file = None
     id = parse_arg_or_none(args.id),
-    print(args.id, type(args.id), id, type(id), flush=True)
+    print("afterfunc:", args.id, type(args.id), id, type(id), flush=True)
     if id is not None:
         id = str(id)
         checkpoint_file = TPOTPipeline.find_checkpoint(id)
@@ -29,8 +29,9 @@ def main():
 
 
 def parse_arg_or_none(arg: Any | None) -> Any | None:
-    if arg is None or str(arg).lower() in ["", "none", "(none,)"]:
+    if arg is None or str(arg).lower() in ["", "none"]:
         return None
+    print("infunc:", arg, type(arg), flush=True)
     return arg
 
 
