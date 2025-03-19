@@ -234,9 +234,6 @@ class TPOTPipeline:
                 continue
             split_scorer = param_scorer.rsplit(".", 1)
             scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
-        # DEBUG
-        for s in scorers:
-            print(s, type(s), flush=True)
         return scorers
 
 
