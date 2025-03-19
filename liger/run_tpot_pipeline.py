@@ -28,7 +28,7 @@ def main():
 
 
 def parse_arg_or_none(arg: Any | None) -> Any | None:
-    if arg is None or str(arg).lower() in ["", "none"]:
+    if arg is None or str(arg).lower() in ["", "none", "(none,)"]:
         return None
     return arg
 
