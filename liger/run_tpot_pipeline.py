@@ -7,30 +7,35 @@ def main():
     args = get_args()
 
     checkpoint_file = None
-    id = parse_arg_or_none(args.id)
+    id = parse_str_or_none(args.id)
     if id is not None:
-        id = str(id)
         checkpoint_file = TPOTPipeline.find_checkpoint(id)
     if checkpoint_file is not None:
         pipeline = TPOTPipeline.from_checkpoint(checkpoint_file)
     else:
-        config_file = parse_arg_or_none(args.config)
+        config_file = parse_str_or_none(args.config)
         if config_file is None:
             raise ValueError("Config file must be specified for new runs!")
         pipeline = TPOTPipeline(
             config_file=config_file,
-            data_file=parse_arg_or_none(args.data),
-            tpot_random_state=parse_arg_or_none(args.tpotrs),
+            data_file=parse_str_or_none(args.data),
+            tpot_random_state=parse_int_or_none(args.tpotrs),
             slurm_id=args.slurmid,
             id=id,
         )
     pipeline.run_1_gen()
 
 
-def parse_arg_or_none(arg: Any | None) -> Any | None:
+def parse_str_or_none(arg: Any | None) -> str | None:
     if arg is None or str(arg).lower() in ["", "none"]:
         return None
-    return arg
+    return str(arg)
+
+
+def parse_int_or_none(arg: Any | None) -> int | None:
+    if arg is None or str(arg).lower() in ["", "none"]:
+        return None
+    return int(arg)
 
 
 def get_args() -> Namespace:
