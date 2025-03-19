@@ -182,6 +182,7 @@ class TPOTPipeline:
             cv = max_cv
         else:
             cv = int(tpot_parameters["cv"])
+        print("CV", cv, flush=True)
 
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
@@ -213,6 +214,7 @@ class TPOTPipeline:
                 "random_state",
             ]},
         )
+        print("TPOTCV", self.tpot.cv, flush=True)
 
 
     @classmethod
