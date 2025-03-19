@@ -174,7 +174,7 @@ class TPOTPipeline:
             else:
                 max_cv = int(np.sort(counts)[-2])
         else:
-            max_cv = self.dataset.y.size
+            max_cv = self.dataset.y.shape[0]
         if tpot_parameters.get("cv") is None:
             cv = max_cv
         elif tpot_parameters["cv"] > max_cv:
