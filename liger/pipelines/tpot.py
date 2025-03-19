@@ -353,9 +353,9 @@ class TPOTPipeline:
     def detect_early_stop(self) -> bool:
         if not isinstance(self.tpot.early_stop, int):
             return False
-        if len(self.gen_scores) < self.tpot.early_stop:
+        if len(self.gen_scores) < self.tpot.early_stop + 1:
             return False
-        if len(set(str(s) for s in self.gen_scores[-self.tpot.early_stop:])) > 1:
+        if len(set(str(s) for s in self.gen_scores[-(self.tpot.early_stop + 1):])) > 1:
             return False
         return True
 
