@@ -8,6 +8,7 @@ def main():
 
     checkpoint_file = None
     id = parse_arg_or_none(args.id),
+    print(args.id, type(args.id), id, type(id), flush=True)
     if id is not None:
         id = str(id)
         checkpoint_file = TPOTPipeline.find_checkpoint(id)
