@@ -166,6 +166,23 @@ class TPOTPipeline:
         self.data_name = TPOTPipeline.get_filename(self.data_file)
         self.dataset = Dataset.from_csv(self.data_file)
 
+        # Set CV
+        if tpot_parameters["classification"]:
+            _, counts = np.unique(self.dataset.y, return_counts=True)
+            if counts.size == 1:
+                max_cv = int(counts[0])
+            else:
+                max_cv = int(np.sort(counts)[-2])
+        else:
+            max_cv = self.dataset.y.size
+        if tpot_parameters.get("cv") is None:
+            cv = max_cv
+        elif tpot_parameters["cv"] > max_cv:
+            print("WARNING: Config-specified \"cv\" is greater than the dataset allows. Using max allowed by dataset", flush=True)
+            cv = max_cv
+        else:
+            cv = int(tpot_parameters["cv"])
+
         # Create search space
         self.config_search_space = tpot_parameters["search_space"]
         search_space = create_search_space(self.config_search_space, self.dataset.X.shape[1], self.tpot_random_state)
@@ -183,11 +200,13 @@ class TPOTPipeline:
         self.tpot = TPOTEstimator(
             search_space=search_space,
             scorers=scorers,
+            cv=cv,
             periodic_checkpoint_folder=self.checkpoint_dir,
             random_state=self.tpot_random_state,
             **{key: value for key, value in tpot_parameters.items() if key not in [
                 "search_space",
                 "scorers",
+                "cv",
                 "survival_selector",
                 "parent_selector",
                 "periodic_checkpoint_folder",
