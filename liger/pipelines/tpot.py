@@ -175,10 +175,11 @@ class TPOTPipeline:
                 max_cv = int(np.sort(counts)[-2])
         else:
             max_cv = self.dataset.y.shape[0]
-        if tpot_parameters.get("cv") is None:
+        cv = tpot_parameters.get("cv")
+        if cv is None:
             cv = max_cv
-        elif tpot_parameters["cv"] > max_cv:
-            print("WARNING: Config-specified \"cv\" is greater than the dataset allows. Using max allowed by dataset", flush=True)
+        elif cv > max_cv:
+            print(f"WARNING: Config \"cv\"={cv} is greater than the dataset allows. Using max allowed by dataset ({max_cv})", flush=True)
             cv = max_cv
         else:
             cv = int(tpot_parameters["cv"])
