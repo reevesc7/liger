@@ -16,7 +16,7 @@ setup(
     install_requires=[
         "dill>=0.3.9,<0.4.0",
         "matplotlib>=3.10.0,<4.0.0",
-        "numpy>=2.2.2,<3.0.0",
+        "numpy>=1.26.4,<3.0.0",
         "openai>=1.61.1,<2.0.0",
         "pandas>=2.2.3,<3.0.0",
         "scikit_learn>=1.6.1,<2.0.0",
