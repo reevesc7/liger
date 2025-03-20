@@ -19,7 +19,7 @@ setup(
         "numpy>=1.26.4,<3.0.0",
         "openai>=1.61.1,<2.0.0",
         "pandas>=2.2.3,<3.0.0",
-        "scikit_learn>=1.6.1,<2.0.0",
+        "scikit_learn>=1.4.2,<2.0.0",
         "sentence_transformers>=3.4.1,<4.0.0",
         "tpot>=1.0.0,<2.0.0",
     ],
