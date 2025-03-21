@@ -30,7 +30,7 @@ conda activate liger
 In a terminal window, run the following command:
 
 ```
-pip install git+https://github.com/reevesc7/liger.git@main#egg=liger
+pip install git+https://github.com/reevesc7/liger.git@main
 ```
 
 ## Editable Installations
