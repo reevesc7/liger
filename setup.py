@@ -11,7 +11,7 @@ setup(
     author="Chris Reeves",
     author_email="reeves.chris.allan@gmail.com",
     url="https://github.com/reevesc7/liger",
-    license="MIT",
+    license="GPL-3.0-or-later",
     packages=find_packages(),
     install_requires=[
         "dill>=0.3.9,<0.4.0",
