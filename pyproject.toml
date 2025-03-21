@@ -1,0 +1,32 @@
+[project]
+name = "liger"
+version = "0.2.1"
+description = "Helper functions for the Likert General Regressor project"
+authors = [
+    {name = "Chris Reeves",email = "reeves.chris.allan@gmail.com"}
+]
+license = {text = "GPL-3.0-or-later"}
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "dill (>=0.3.9,<0.4.0)",
+    "matplotlib (>=3.10.0,<4.0.0)",
+    "numpy (>=1.26.4,<3.0.0)",
+    "openai (>=1.61.1,<2.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "scikit-learn (>=1.4.2,<2.0.0)",
+    "sentence-transformers (>=3.4.1,<4.0.0)",
+    "tpot (>=1.0.0,<2.0.0)"
+]
+
+
+[project.scripts]
+liger-pipeline = "liger.run_tpot_pipeline:main"
+
+[project.urls]
+Repository = "https://github.com/reevesc7/liger.git"
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
