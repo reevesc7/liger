@@ -17,79 +17,106 @@
 
 from typing import Any
 from argparse import ArgumentParser, Namespace
+import json
 from liger.pipelines.tpot import TPOTPipeline
 
 
 def main():
     args = get_args()
 
-    checkpoint_file = None
-    id = parse_str_or_none(args.id)
-    if id is not None:
-        checkpoint_file = TPOTPipeline.find_checkpoint(id)
-    if checkpoint_file is not None:
-        pipeline = TPOTPipeline.from_checkpoint(checkpoint_file)
+    checkpoint = None
+    if args.id is not None:
+        checkpoint = TPOTPipeline.find_checkpoint(args.id)
+    if checkpoint is not None:
+        pipeline = TPOTPipeline.from_checkpoint(checkpoint, args.slurmid)
     else:
-        config_file = parse_str_or_none(args.config)
-        if config_file is None:
+        if args.config is None:
             raise ValueError("Config file must be specified for new runs!")
         pipeline = TPOTPipeline(
-            config_file=config_file,
-            data_file=parse_str_or_none(args.data),
-            tpot_random_state=parse_int_or_none(args.tpotrs),
+            config_file=args.config,
+            data_file=args.data,
+            tpot_random_state=args.tpotrs,
+            pipeline_parameters=args.pipeparam,
+            tpot_parameters=args.tpotparam,
             slurm_id=args.slurmid,
-            id=id,
+            id=args.id,
         )
     pipeline.run_1_gen()
 
 
-def parse_str_or_none(arg: Any | None) -> str | None:
+def str_or_none(arg: Any | None) -> str | None:
     if arg is None or str(arg).lower() in ["", "none"]:
         return None
     return str(arg)
 
 
-def parse_int_or_none(arg: Any | None) -> int | None:
+def int_or_none(arg: Any | None) -> int | None:
     if arg is None or str(arg).lower() in ["", "none"]:
         return None
     return int(arg)
 
 
+def dict_or_none(arg: Any | None) -> dict | None:
+    if arg is None or str(arg).lower() in ["", "none"]:
+        return None
+    return json.loads(arg)
+
+
 def get_args() -> Namespace:
     parser = ArgumentParser(description="Script that runs tpot fitting and evaluation")
     parser.add_argument(
+        "-c",
         "--config",
-        type=str,
+        type=str_or_none,
         required=False,
-        help="config file path"
+        help="config file path",
     )       #e.g., "Configs/nolong_reg_1.json"
     parser.add_argument(
+        "-d",
         "--data",
-        type=str,
+        type=str_or_none,
         required=False,
         default=None,
-        help="training data file path"
+        help="training data file path",
     )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
+        "-r",
         "--tpotrs",
-        type=str,
+        type=int_or_none,
         required=False,
         default=None,
-        help="tpot random state (int)"
+        help="tpot random state (int)",
     )
     parser.add_argument(
         "--slurmid",
         type=int,
         required=False,
         default=None,
-        help="$SLURM_JOB_ID, if applicable"
+        help="$SLURM_JOB_ID, if applicable",
     )
     parser.add_argument(
+        "-i",
         "--id",
-        type=str,
+        type=str_or_none,
         required=False,
         default=None,
-        help="ID of the job - used for all output files"
+        help="ID of the job - used for all output files",
+    )
+    parser.add_argument(
+        "-p",
+        "--pipeparam",
+        type=dict_or_none,
+        required=False,
+        default='{}',
+        help="JSON formatted dict of any parameters to pass to pipeline",
+    )
+    parser.add_argument(
+        "-t",
+        "--tpotparam",
+        type=dict_or_none,
+        required=False,
+        default='{}',
+        help="JSON formatted dict of any parameters to pass to TPOTEstimator",
     )
     return parser.parse_args()
 
