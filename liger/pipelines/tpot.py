@@ -358,7 +358,7 @@ class TPOTPipeline:
         }
         #pipeline_attributes = {key: self.__dict__[key] for key in PIPELINE_ATTR_KEYS}
         tpot_attributes = {
-            key: str(value)
+            key: str(value).split("\n")
             for key, value in self.tpot.__dict__.items()
             if key in TPOT_ATTR_KEYS
         }
