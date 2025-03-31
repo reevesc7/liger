@@ -314,7 +314,7 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def dict_everything(objec: Any) -> str | None:
+    def dict_everything(objec: Any) -> str:
         if isinstance(objec, np.ndarray):
             objec = objec.tolist()
             return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
@@ -323,7 +323,7 @@ class TPOTPipeline:
             return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
         elif isinstance(objec, _Scorer):
             return ".".join([objec._score_func.__module__, objec._score_func.__name__])
-        elif isinstance(objec, Callable):
+        elif isinstance(objec, Callable) and hasattr(objec, "__module__"):
             return ".".join([objec.__module__, objec.__name__])
         elif hasattr(objec, "__dict__"):
             return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
