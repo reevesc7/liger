@@ -389,8 +389,16 @@ class TPOTPipeline:
         output_lines = output.split("\n")
         if "Generation:  " not in output and "score: " not in output:
             raise Exception("Fitting ended improperly... quitting")
-        self.gen_scores.append([float(l.split(": ")[-1]) for l in output_lines if "score: " in l])
-        self.complete_gens = int([l for l in output_lines if "Generation:  " in l][0].split(":  ")[-1].strip(".0"))
+        self.gen_scores.append([
+            float(l.split(": ")[-1])
+            for l in output_lines
+            if "score: " in l
+        ])
+        self.complete_gens = int([
+            l
+            for l in output_lines
+            if "Generation:  " in l
+        ][0].split(":  ")[-1].strip(".0"))
         if path.isfile(path.join(self.output_dir, TEMP_POPULATION_PKL)):
             remove(path.join(self.output_dir, TEMP_POPULATION_PKL))
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
