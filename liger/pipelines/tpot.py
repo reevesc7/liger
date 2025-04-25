@@ -18,6 +18,7 @@
 from typing import Any, Union, Callable
 import sys
 from os import path, makedirs, remove, walk
+from copy import deepcopy
 import shutil
 import json
 from random import randint
@@ -445,17 +446,23 @@ class TPOTPipeline:
     def evaluate(self) -> None:
         # training_score = self.tpot.score(self.dataset.X, self.dataset.y)
         for eval_random_state in self.eval_random_states:
-            kfold_predictions, kfold_r2 = self.tpot_test(eval_random_state)
-            self.kfold_scores[eval_random_state] = kfold_r2
-            self.kfold_predictions[eval_random_state] = kfold_predictions.tolist()
+            kfold_predictions, kfold_scores = self.tpot_test(eval_random_state)
+            self.kfold_scores[eval_random_state] = kfold_scores
+            self.kfold_predictions[eval_random_state] = kfold_predictions
 
 
-    def tpot_test(self, eval_random_state: int) -> tuple[np.ndarray, float]:
+    def tpot_test(self, eval_random_state: int) -> tuple[list[dict[int, Any]], list[Any]]:
         #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
-        kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
-        kfold_predictions = kfold_predict(self.tpot.fitted_pipeline_, kfold, self.dataset)
-        kfold_r2 = float(r2_score(kfold_predictions, self.dataset.y))
-        return kfold_predictions, kfold_r2
+        #kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
+        kfold = deepcopy(self.tpot.cv_gen)
+        kfold.random_state = eval_random_state
+        kfold_predictions, kfold_scores = kfold_predict(
+            self.tpot.fitted_pipeline_,
+            kfold,
+            self.tpot._scorers,
+            self.dataset,
+        )
+        return kfold_predictions, kfold_scores
 
 
 class LiveOutputCapture:
