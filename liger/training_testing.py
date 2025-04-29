@@ -74,7 +74,6 @@ def kfold_predict(
             scorers[index]._score_func(data.y[test_indices], list(predicted[-1].values()))
             for index in scorer_indices
         ]
-    print(type(list(predicted[0].values())[0]), flush=True)
     scores = np.average(fold_scores, axis=0)
     scores[objective_indices] = [scorers[index](model) for index in objective_indices]
     return predicted, scores.tolist()
