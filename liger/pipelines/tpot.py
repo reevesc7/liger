@@ -297,6 +297,12 @@ class TPOTPipeline:
         pipeline_parameters = config.get("pipeline_parameters", {})
         tpot_parameters = config.get("tpot_parameters", {})
         pipeline_attributes = config.get("pipeline_attributes", {})
+        if not isinstance(pipeline_parameters, dict):
+            raise TypeError(f"pipeline_parameters should be type dict, not {type(pipeline_parameters)}")
+        if not isinstance(tpot_parameters, dict):
+            raise TypeError(f"tpot_parameters should be type dict, not {type(tpot_parameters)}")
+        if not isinstance(pipeline_attributes, dict):
+            raise TypeError(f"pipeline_attributes should be type dict, not {type(pipeline_attributes)}")
         return (pipeline_parameters, tpot_parameters, pipeline_attributes)
 
 
