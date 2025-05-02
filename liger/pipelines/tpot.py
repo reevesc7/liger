@@ -63,7 +63,6 @@ PIPELINE_PARAM_KEYS = {
     "data_file",
     "target_gens",
     "eval_random_states",
-    "slurm_id",
     "id",
 }
 TPOT_PARAM_KEYS = {
@@ -120,6 +119,7 @@ TPOT_PARAM_KEYS = {
 PIPELINE_ATTR_KEYS = {
     "complete_gens",
     "gen_scores",
+    "slurm_ids",
     "kfold_scores",
     "kfold_predictions",
 }
@@ -144,7 +144,6 @@ class TPOTPipeline:
         pipeline_attributes: dict | None = None,
     ) -> None:
         self.config_file = config_file
-        self.slurm_id = slurm_id
 
         _pipeline_params, _tpot_params, _pipeline_attrs = TPOTPipeline.load_config(self.config_file)
 
@@ -183,6 +182,8 @@ class TPOTPipeline:
         )
         self.complete_gens = _pipeline_attrs.get("complete_gens", 0)
         self.gen_scores = _pipeline_attrs.get("gen_scores", [])
+        self.slurm_ids = _pipeline_attrs.get("slurm_ids", [])
+        self.slurm_ids.append(slurm_id)
         self.kfold_scores = _pipeline_attrs.get("kfold_scores", {})
         self.kfold_predictions = _pipeline_attrs.get("kfold_predictions", {})
 
@@ -258,11 +259,10 @@ class TPOTPipeline:
         kwargs = {
             "pipeline_parameters": pipeline_params,
             "tpot_parameters": tpot_params,
+            "pipeline_attributes": pipeline_attrs,
             "slurm_id": slurm_id,
         }
         pipeline = TPOTPipeline(**kwargs)
-        pipeline.complete_gens = pipeline_attrs.get("complete_gens", 0)
-        pipeline.gen_scores = pipeline_attrs.get("gen_scores", [])
         return pipeline
 
 
@@ -426,7 +426,7 @@ class TPOTPipeline:
             f.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
                 "\nGeneration: " + str(self.complete_gens + 1),
-                "\nSLURM JOB ID: " + str(self.slurm_id),
+                "\nSLURM JOB ID: " + str(self.slurm_ids[-1]),
             ])
 
 
