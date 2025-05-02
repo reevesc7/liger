@@ -29,8 +29,6 @@ from ..dataset import Dataset
 from ..training_testing import kfold_predict
 from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
-from sklearn.model_selection import KFold
-from sklearn.metrics import r2_score
 from sklearn.metrics._scorer import _Scorer
 import dill
 
