@@ -55,3 +55,23 @@ def mass_dict_get(dicts: Sequence[dict[str, Any]], key: str, default: Any = _sen
         return [dictionary.get(key) for dictionary in dicts]
     return [dictionary.get(key, default) for dictionary in dicts]
 
+
+def is_run_finished(output: dict[str, Any]) -> bool:
+    kfold_scores = output["pipeline_attributes"]["kfold_scores"]
+    if isinstance(kfold_scores, dict):
+        return kfold_scores != {}
+    raise TypeError("\"kfold_scores\" in output is not of type dict")
+
+
+def list_unfinished_runs(
+    paths: Path | str | Sequence[Path | str],
+    read_all_json_files: bool = False,
+    filenames_to_read: str | set[str] = "pipeline_data.json",
+) -> list[str]:
+    return sorted([
+        output["pipeline_parameters"]["id"]
+        for output in mass_json_load(paths, read_all_json_files, filenames_to_read)
+        if not is_run_finished(output)
+    ])
+
+
