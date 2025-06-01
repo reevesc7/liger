@@ -23,19 +23,16 @@ def mass_json_load(
     paths: Path | str | Sequence[Path | str],
     read_all_json_files: bool = False,
     filenames_to_read: str | set[str] = "pipeline_data.json",
-) -> list[Any]:
+) -> Any:
     if isinstance(paths, Path):
         paths_f = [paths]
     elif isinstance(paths, str):
         paths_f = [Path(paths)]
     elif isinstance(paths, Sequence):
         paths_f = [Path(path) for path in paths]
-    else:
-        raise TypeError("`paths` must be str, Path, or sequence of str or Path")
     if isinstance(filenames_to_read, str):
         filenames_to_read = {filenames_to_read,}
     filepaths = _dirpaths_and_filepaths_to_filepaths(paths_f)
-    outputs: list[Any] = []
     for filepath in filepaths:
         if (
             not (read_all_json_files or filepath.name in filenames_to_read)
@@ -43,8 +40,7 @@ def mass_json_load(
         ):
             continue
         with open(filepath, "r") as file:
-            outputs.append(json.load(file))
-    return outputs
+            yield json.load(file)
 
 
 _sentinel = object()
