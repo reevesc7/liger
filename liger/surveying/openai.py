@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from typing import overload
 from pathlib import Path
 from os.path import isfile
 from openai import OpenAI
@@ -26,14 +27,31 @@ OPENAI_KEYFILE = "openai.key"
 
 
 class OpenAISurveryor(BaseSurveyor):
-    def __init__(self, model_str: str) -> None:
-        if not isfile(Path(OPENAI_KEYFILE)):
-            raise FileNotFoundError(
-                f"No \"{OPENAI_KEYFILE}\" in the working directory"
-            )
-        self.client = OpenAI(api_key=Path(OPENAI_KEYFILE).read_text().strip())
+    def __init__(self, model_str: str, keyfile: str | Path = OPENAI_KEYFILE) -> None:
+        keyfile = Path(keyfile)
+        if not isfile(keyfile):
+            raise FileNotFoundError(f"\"{keyfile}\" is not a file.")
+        self.client = OpenAI(api_key=keyfile.read_text().strip())
         self.model = model_str
 
+    def generate_response(self, prompt: str) -> str:
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        response = completion.choices[0].message.content
+        if response is None:
+            raise ValueError("No response was returned")
+        return response
+
+    @overload
+    def generate_responses(self, prompt: str) -> str: ...
+    @overload
+    def generate_responses(self, prompt: str, reps: int) -> list[str]: ...
+    def generate_responses(self, prompt: str, reps: int | None = None) -> str | list[str]:
+        if reps is None:
+            return self.generate_response(prompt)
+        return [self.generate_response(prompt) for _ in range(reps)]
 
     def survey(
         self,
@@ -41,8 +59,8 @@ class OpenAISurveryor(BaseSurveyor):
         reps: int = 1,
         allow_dupes: bool = False
     ) -> pd.DataFrame:
-        OpenAISurveryor.check_prompts(prompts, allow_dupes)
-        responses = []
+        self.check_prompts(prompts, allow_dupes)
+        responses: list[list[str]] = []
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps))
         return pd.DataFrame({"prompt": prompts, "response": responses})
