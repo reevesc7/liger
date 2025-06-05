@@ -78,20 +78,24 @@ class OpenAISurveryor(BaseSurveyor):
     @overload
     def generate_responses(self, prompt: str) -> str: ...
     @overload
+    def generate_responses(self, prompt: str, reps: None) -> str: ...
+    @overload
     def generate_responses(self, prompt: str, reps: int) -> list[str]: ...
     def generate_responses(self, prompt: str, reps: int | None = None) -> str | list[str]:
-        if reps is None:
+        if reps is None or reps == 1:
             return self.generate_response(prompt)
         return [self.generate_response(prompt) for _ in range(reps)]
 
     def survey(
         self,
-        prompts: list[str],
-        reps: int = 1,
+        prompts: str | list[str],
+        reps: int | None = None,
         allow_dupes: bool = False
     ) -> pd.DataFrame:
+        if isinstance(prompts, str):
+            prompts = [prompts]
         self.check_prompts(prompts, allow_dupes)
-        responses: list[list[str]] = []
+        responses = []
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps))
         return pd.DataFrame({"prompt": prompts, "response": responses})
