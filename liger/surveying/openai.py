@@ -77,7 +77,7 @@ class OpenAISurveryor(BaseSurveyor):
             for token_id in token_ids:
                 self.logit_bias[str(token_id)] = 100
 
-    def logprobs(
+    def probs(
         self,
         prompt: str,
         response_seed: str,
@@ -111,7 +111,7 @@ class OpenAISurveryor(BaseSurveyor):
             probs = [prob / total_prob for prob in probs]
         return [(logprob.token, prob) for logprob, prob in zip(response, probs)]
 
-    def logprobs_survey(
+    def probs_survey(
         self,
         prompts: list[str],
         response_seeds: str | list[str],
