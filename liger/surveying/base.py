@@ -24,7 +24,6 @@ class BaseSurveyor:
         if not allow_dupes and len(set(prompts)) < len(prompts):
             raise ValueError("Duplicate prompts detected. Set `allow_dupes = True` to ignore")
 
-
     def survey(self, prompts: list[str], reps: int = 1) -> pd.DataFrame:
         raise NotImplementedError()
 

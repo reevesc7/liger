@@ -35,5 +35,10 @@ class BaseEmbedder:
         self.model = model_str
 
 
-    def embed_dataframe(self, data: pd.DataFrame, feature_keys: pd.Index, score_key: str) -> Dataset:
+    def embed_dataframe(
+        self,
+        data: pd.DataFrame,
+        feature_keys: pd.Index,
+        score_key: pd.Index
+    ) -> Dataset:
         raise NotImplementedError()

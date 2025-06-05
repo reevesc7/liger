@@ -34,9 +34,19 @@ class OpenAIEmbedder(BaseEmbedder):
         self.client = OpenAI(api_key=Path(OPENAI_KEYFILE).read_text().strip())
         self.model = model_str
 
+    def embed(self, input: str | None) -> list[float]:
+        if input == None:
+            input = ""
+        input = input.replace("\n", " ")
+        return self.client.embeddings.create(input=input, model=self.model).data[0].embedding
 
     # Generates a dataset from the specified rows of a DataFrame.
-    def embed_dataframe(self, data: pd.DataFrame, feature_keys: pd.Index, score_key: str) -> Dataset:
+    def embed_dataframe(
+        self,
+        data: pd.DataFrame,
+        feature_keys: pd.Index,
+        score_key: pd.Index
+    ) -> Dataset:
         n_entries = data.shape[0]
         n_features = len(feature_keys)
 
@@ -54,11 +64,4 @@ class OpenAIEmbedder(BaseEmbedder):
         dataset.X = feature_vectors.transpose((1, 0, 2)).reshape((n_entries, -1))
         dataset.y = np.array(data[score_key])
         return dataset
-
-
-    def embed(self, input: str | None) -> list[float]:
-        if input == None:
-            input = ""
-        input = input.replace("\n", " ")
-        return self.client.embeddings.create(input=input, model=self.model).data[0].embedding
 
