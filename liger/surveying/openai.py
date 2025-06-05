@@ -83,7 +83,7 @@ class OpenAISurveryor(BaseSurveyor):
         response_seed: str,
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
-    ) -> list[tuple[str, float]]:
+    ) -> dict[str, float]:
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -101,15 +101,26 @@ class OpenAISurveryor(BaseSurveyor):
             response = logprobs.content[0].top_logprobs
         else:
             raise ValueError("No response was returned or response was unparseable")
+        if allowed_tokens is None:
+            return {
+                logprob.token: 10 ** logprob.logprob
+                for logprob in response
+            }
         if isinstance(allowed_tokens, str):
             allowed_tokens = set(allowed_tokens,)
-        if isinstance(allowed_tokens, set):
-            response = [logprob for logprob in response if logprob.token in allowed_tokens]
-        probs = [10 ** logprob.logprob for logprob in response]
+        probs = {
+            logprob.token: 10 ** logprob.logprob
+            for logprob in response
+            if logprob.token in allowed_tokens
+        }
+        for token in allowed_tokens:
+            probs[token] = probs.get(token, 0.0)
         if normalize:
-            total_prob = sum(probs)
-            probs = [prob / total_prob for prob in probs]
-        return [(logprob.token, prob) for logprob, prob in zip(response, probs)]
+            total_prob = sum(list(probs.values()))
+            if total_prob == 0.0:
+                return probs
+            probs = {token: prob / total_prob for token, prob in probs.items()}
+        return probs
 
     def probs_survey(
         self,
@@ -126,6 +137,6 @@ class OpenAISurveryor(BaseSurveyor):
             raise ValueError("`prompts` and `response_seeds` must be the same size")
         responses = []
         for prompt, response_seed in zip(prompts, response_seeds):
-            responses.append(self.logprobs(prompt, response_seed, allowed_tokens, normalize))
+            responses.append(self.probs(prompt, response_seed, allowed_tokens, normalize))
         return pd.DataFrame({"prompt": prompts, "response": responses})
 
