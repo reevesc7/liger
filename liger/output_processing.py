@@ -17,47 +17,31 @@
 
 from typing import Any, Sequence, overload
 from pathlib import Path
-import os
 import json
 
 
-def _dirpaths_and_filepaths_to_filepaths(paths: Sequence[Path]) -> set[Path]:
-    filepaths: set[Path] = set()
-    for path in paths:
-        if not path.exists():
-            print(f"Warning: {path} is not an existing directory or file")
-        elif path.is_file():
-            filepaths.add(path)
-        elif not path.is_dir():
-            print(f"Warning: {path} is exists but is not a directory or file")
-            continue
-        for base, _, names in os.walk(path):
-            filepaths.update({Path(base, name) for name in names})
-    return filepaths
+def _json_load(filepath: Path) -> Any:
+    with open(filepath, "r") as file:
+        return json.load(file)
 
 
 def mass_json_load(
     paths: Path | str | Sequence[Path | str],
-    read_all_json_files: bool = False,
-    filenames_to_read: str | set[str] = "pipeline_data.json",
+    pattern: str = "pipeline_data.json",
 ) -> Any:
-    if isinstance(paths, Path):
-        paths_f = [paths]
-    elif isinstance(paths, str):
-        paths_f = [Path(paths)]
-    elif isinstance(paths, Sequence):
-        paths_f = [Path(path) for path in paths]
-    if isinstance(filenames_to_read, str):
-        filenames_to_read = {filenames_to_read,}
-    filepaths = _dirpaths_and_filepaths_to_filepaths(paths_f)
-    for filepath in filepaths:
-        if (
-            not (read_all_json_files or filepath.name in filenames_to_read)
-            or filepath.name.rsplit(".", 1)[-1] != "json"
-        ):
+    if isinstance(paths, (Path, str)):
+        paths = paths,
+    for path in paths:
+        path = Path(path)
+        if not path.exists():
+            print(f"Warning: {path} does not exist")
             continue
-        with open(filepath, "r") as file:
-            yield json.load(file)
+        if path.is_file() and path.match(pattern) and path.suffix == ".json":
+            yield _json_load(path)
+        for fpath in path.rglob(pattern):
+            if not fpath.suffix == ".json":
+                continue
+            yield _json_load(fpath)
 
 
 _sentinel = object()
