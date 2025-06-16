@@ -15,7 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Union, Callable
+from types import FunctionType
+from typing import Any, Union
 import sys
 from os import path, makedirs, remove, walk
 from copy import deepcopy
@@ -25,11 +26,13 @@ from random import randint
 from datetime import datetime, timezone
 from importlib import import_module
 import numpy as np
+import pandas as pd
 from ..dataset import Dataset
 from ..training_testing import kfold_predict
 from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.metrics._scorer import _Scorer
+from sklearn.pipeline import Pipeline
 import dill
 
 
@@ -307,8 +310,8 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def init_scorers(param_scorers: list[str]) -> list[Union[str, Callable]]:
-        scorers: list[Union[str, Callable]] = []
+    def init_scorers(param_scorers: list[str]) -> list[Union[str, FunctionType]]:
+        scorers: list[Union[str, FunctionType]] = []
         for param_scorer in param_scorers:
             if "." not in param_scorer:
                 scorers.append(param_scorer)
@@ -319,27 +322,38 @@ class TPOTPipeline:
 
 
     @staticmethod
-    def dict_everything(objec: Any) -> str:
+    def json_everything(objec: Any) -> Any:
+        if isinstance(objec, pd.Series):
+            return {index: value for index, value in enumerate(objec.to_list())}
+        if isinstance(objec, pd.DataFrame):
+            return {
+                col: TPOTPipeline.json_everything(objec[col])
+                for col in objec.columns
+                if col != "Individual"
+            }
         if isinstance(objec, np.ndarray):
-            objec = objec.tolist()
-            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-        elif isinstance(objec, range):
-            objec = [i for i in objec]
-            return json.dumps(objec, indent=4, default=TPOTPipeline.dict_everything)
-        elif isinstance(objec, _Scorer):
+            return objec.tolist()
+        if isinstance(objec, range):
+            return list(objec)
+        if isinstance(objec, _Scorer):
             return ".".join([objec._score_func.__module__, objec._score_func.__name__])
-        elif isinstance(objec, Callable) and hasattr(objec, "__module__"):
+        if isinstance(objec, FunctionType) and hasattr(objec, "__module__"):
             return ".".join([objec.__module__, objec.__name__])
-        elif hasattr(objec, "__dict__"):
-            return json.dumps(objec.__dict__, indent=4, default=TPOTPipeline.dict_everything)
-        else:
-            return ""
+        if isinstance(objec, Pipeline):
+            return objec.__repr__().split("\n")
+        if hasattr(objec, "__dict__"):
+            return {
+                key: value
+                for key, value in objec.__dict__.items()
+                if not key.startswith("_") and not key.endswith("_")
+            }
+        return ""
 
 
     def save_data(self) -> None:
         pipeline_data = self.get_pipeline_data()
         with open(path.join(self.output_dir, PIPELINE_DATA), "w") as f:
-            json.dump(pipeline_data, f, indent=4, default=TPOTPipeline.dict_everything)
+            json.dump(pipeline_data, f, indent=4, default=TPOTPipeline.json_everything)
 
 
     def get_pipeline_data(self) -> dict:
