@@ -348,26 +348,22 @@ class TPOTPipeline:
             for key, value in self.__dict__.items()
             if key in PIPELINE_PARAM_KEYS
         }
-        #pipeline_parameters = {key: self.__dict__[key] for key in PIPELINE_PARAM_KEYS}
         tpot_parameters = {
             key: value
             for key, value in self.tpot.__dict__.items()
             if key in TPOT_PARAM_KEYS
         }
-        #tpot_parameters = {key: self.tpot.__dict__[key] for key in TPOT_PARAM_KEYS}
         tpot_parameters["search_space"] = self.config_search_space
         pipeline_attributes = {
             key: value
             for key, value in self.__dict__.items()
             if key in PIPELINE_ATTR_KEYS
         }
-        #pipeline_attributes = {key: self.__dict__[key] for key in PIPELINE_ATTR_KEYS}
         tpot_attributes = {
-            key: str(value).split("\n")
+            key: value
             for key, value in self.tpot.__dict__.items()
             if key in TPOT_ATTR_KEYS
         }
-        #tpot_attributes = {key: str(self.tpot.__dict__[key]) for key in TPOT_ATTR_KEYS}
         return {
             "pipeline_parameters": pipeline_parameters,
             "tpot_parameters": tpot_parameters,
