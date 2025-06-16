@@ -27,7 +27,7 @@ from .base import BaseSurveyor
 OPENAI_KEYFILE = "openai.key"
 
 
-class OpenAISurveryor(BaseSurveyor):
+class OpenAISurveyor(BaseSurveyor):
     def __init__(self, model_str: str, keyfile: str | Path = OPENAI_KEYFILE) -> None:
         keyfile = Path(keyfile)
         if not isfile(keyfile):
