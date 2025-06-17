@@ -25,6 +25,7 @@ import json
 from random import randint
 from datetime import datetime, timezone
 from importlib import import_module
+from typing_extensions import LiteralString
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
@@ -386,12 +387,34 @@ class TPOTPipeline:
         }
 
 
+    def append_scores(self, output_lines: list[LiteralString]) -> None:
+        gen_indices = [
+            index
+            for index, line in enumerate(output_lines)
+            if "Generation:  " in line
+        ] + [len(output_lines)]
+        for gen in range(len(gen_indices) - 1):
+            gen_start = gen_indices[gen]
+            gen_end = gen_indices[gen + 1]
+            self.gen_scores.append([
+                float(l.split(": ")[-1])
+                for l in output_lines[gen_start:gen_end]
+                if "score: " in l
+            ])
+
+
+    def update_complete_gens(self, output_lines: list[LiteralString]) -> None:
+        self.complete_gens = int([
+            l
+            for l in output_lines
+            if "Generation:  " in l
+        ][-1].split(":  ")[-1].removesuffix(".0"))
+
+
     def run_1_gen(self) -> None:
         # Capture output dynamically
         capture = LiveOutputCapture()
         sys.stdout = capture
-
-        # Save prep
         self.save_prep()
         self.in_progress()
         print("\nPIPELINE ID:", self.id, flush=True)
@@ -403,16 +426,8 @@ class TPOTPipeline:
         output_lines = output.split("\n")
         if "Generation:  " not in output and "score: " not in output:
             raise Exception("Fitting ended improperly... quitting")
-        self.gen_scores.append([
-            float(l.split(": ")[-1])
-            for l in output_lines
-            if "score: " in l
-        ])
-        self.complete_gens = int([
-            l
-            for l in output_lines
-            if "Generation:  " in l
-        ][0].split(":  ")[-1].removesuffix(".0"))
+        self.append_scores(output_lines)
+        self.update_complete_gens(output_lines)
         if path.isfile(path.join(self.output_dir, TEMP_POPULATION_PKL)):
             remove(path.join(self.output_dir, TEMP_POPULATION_PKL))
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
@@ -427,7 +442,6 @@ class TPOTPipeline:
         self.save_data()
         self.not_in_progress()
         print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
-        return
 
 
     def save_prep(self) -> None:
