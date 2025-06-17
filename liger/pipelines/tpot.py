@@ -419,9 +419,11 @@ class TPOTPipeline:
         self.in_progress()
         print("\nPIPELINE ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        output = capture.get_output()
-        if self.complete_gens < self.target_gens:
-            self.tpot.fit(self.dataset.X, self.dataset.y)
+        if self.complete_gens >= self.target_gens or self.detect_early_stop():
+            print("\nRUN TERMINATION CONDITIONS ALREADY MET")
+            print("\nRUN COMPLETE")
+            return
+        self.tpot.fit(self.dataset.X, self.dataset.y)
         output = capture.get_output()
         output_lines = output.split("\n")
         if "Generation:  " not in output and "score: " not in output:
