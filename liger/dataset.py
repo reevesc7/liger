@@ -29,7 +29,6 @@ class Dataset:
         else:
             self.y = np.array(np.zeros((n_entries, y_len)))
 
-
     @classmethod
     def from_df(cls, df: pd.DataFrame) -> 'Dataset':
         X_len = len(str(df['X'][0]).strip('[]').split(", "))
@@ -42,17 +41,14 @@ class Dataset:
             dataset.y = np.array(df['y'])
         return dataset
 
-
     @classmethod
     def from_csv(cls, filename: str) -> 'Dataset':
         df = pd.read_csv(filename)
         dataset = Dataset.from_df(df)
         return dataset
-    
 
     def __str__(self):
         return f"X: {self.X},\ny: {self.y}"
-
 
     def flatten(self) -> pd.DataFrame:
         df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ['X', 'y']})
@@ -60,10 +56,8 @@ class Dataset:
         df['y'] = self.y
         return df
 
-
     def to_csv(self, filename):
         self.flatten().to_csv(filename, index=False)
-
 
     def analyze_manifold(self, point_a: ArrayLike, point_b: ArrayLike) -> pd.DataFrame:
         manifold = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ['y', 'alpha', 'dist']})

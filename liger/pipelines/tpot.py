@@ -135,7 +135,6 @@ TPOT_ATTR_KEYS = {
 
 
 class TPOTPipeline:
-
     def __init__(
         self,
         config_file: str | None = None,
@@ -148,7 +147,6 @@ class TPOTPipeline:
         pipeline_attributes: dict | None = None,
     ) -> None:
         self.config_file = config_file
-
         _pipeline_params, _tpot_params, _pipeline_attrs = TPOTPipeline.load_config(self.config_file)
 
         # Override config parameters with argument parameters
@@ -215,7 +213,11 @@ class TPOTPipeline:
 
         # Create search space
         self.config_search_space = _tpot_params["search_space"]
-        search_space = create_search_space(self.config_search_space, self.dataset.X.shape[1], self.tpot_random_state)
+        search_space = create_search_space(
+            self.config_search_space,
+            self.dataset.X.shape[1],
+            self.tpot_random_state
+        )
 
         # Set scorer functions
         scorers = TPOTPipeline.init_scorers(_tpot_params["scorers"])
@@ -256,7 +258,6 @@ class TPOTPipeline:
             ]},
         )
 
-
     @classmethod
     def from_checkpoint(cls, checkpoint: str, slurm_id: int | None) -> 'TPOTPipeline':
         pipeline_params, tpot_params, pipeline_attrs = TPOTPipeline.load_config(path.join(checkpoint, PIPELINE_DATA))
@@ -269,7 +270,6 @@ class TPOTPipeline:
         pipeline = TPOTPipeline(**kwargs)
         return pipeline
 
-
     @staticmethod
     def use_first(*args) -> Any:
         """Return the first arg which is not None."""
@@ -278,11 +278,9 @@ class TPOTPipeline:
                 return arg
         return None
 
-
     @staticmethod
     def get_filename(filepath: str) -> str:
         return filepath.rsplit("/")[-1].split(".")[0]
-
 
     @staticmethod
     def find_checkpoint(id: str) -> str | None:
@@ -290,7 +288,6 @@ class TPOTPipeline:
             if id in dirnames and path.isfile(path.join(dirpath, id, PIPELINE_DATA)):
                 return path.join(dirpath, id)
         return None
-
 
     @staticmethod
     def load_config(config_file: str | None) -> tuple[dict, dict, dict]:
@@ -309,7 +306,6 @@ class TPOTPipeline:
             raise TypeError(f"pipeline_attributes should be type dict, not {type(pipeline_attributes)}")
         return (pipeline_parameters, tpot_parameters, pipeline_attributes)
 
-
     @staticmethod
     def init_scorers(param_scorers: list[str]) -> list[Union[str, FunctionType]]:
         scorers: list[Union[str, FunctionType]] = []
@@ -320,7 +316,6 @@ class TPOTPipeline:
             split_scorer = param_scorer.rsplit(".", 1)
             scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
         return scorers
-
 
     @staticmethod
     def json_everything(objec: Any) -> Any:
@@ -350,12 +345,10 @@ class TPOTPipeline:
             }
         return ""
 
-
     def save_data(self) -> None:
         pipeline_data = self.get_pipeline_data()
         with open(path.join(self.output_dir, PIPELINE_DATA), "w") as f:
             json.dump(pipeline_data, f, indent=4, default=TPOTPipeline.json_everything)
-
 
     def get_pipeline_data(self) -> dict:
         pipeline_parameters = {
@@ -386,7 +379,6 @@ class TPOTPipeline:
             "tpot_attributes": tpot_attributes,
         }
 
-
     def append_scores(self, output_lines: list[LiteralString]) -> None:
         gen_indices = [
             index
@@ -402,14 +394,12 @@ class TPOTPipeline:
                 if "score: " in l
             ])
 
-
     def update_complete_gens(self, output_lines: list[LiteralString]) -> None:
         self.complete_gens = int([
             l
             for l in output_lines
             if "Generation:  " in l
         ][-1].split(":  ")[-1].removesuffix(".0"))
-
 
     def run_1_gen(self) -> None:
         # Capture output dynamically
@@ -445,13 +435,11 @@ class TPOTPipeline:
         self.not_in_progress()
         print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
 
-
     def save_prep(self) -> None:
         if not path.isdir(self.output_dir):
             makedirs(self.output_dir)
         if not path.isdir(IN_PROGRESS):
             makedirs(IN_PROGRESS)
-
 
     def in_progress(self):
         with open(IN_PROGRESS + self.id + ".txt", "w") as f:
@@ -461,10 +449,8 @@ class TPOTPipeline:
                 "\nSLURM JOB ID: " + str(self.slurm_ids[-1]),
             ])
 
-
     def not_in_progress(self) -> None:
         remove(IN_PROGRESS + self.id + ".txt")
-
 
     def detect_early_stop(self) -> bool:
         if not isinstance(self.tpot.early_stop, int):
@@ -475,11 +461,9 @@ class TPOTPipeline:
             return False
         return True
 
-
     def export_fitted_pipeline(self) -> None:
         with open(path.join(self.output_dir, "fitted_pipeline.pkl"), "wb") as f:
             dill.dump(self.tpot.fitted_pipeline_, f)
-
 
     def evaluate(self) -> None:
         # training_score = self.tpot.score(self.dataset.X, self.dataset.y)
@@ -487,7 +471,6 @@ class TPOTPipeline:
             kfold_predictions, kfold_scores = self.tpot_test(eval_random_state)
             self.kfold_scores[eval_random_state] = kfold_scores
             self.kfold_predictions[eval_random_state] = kfold_predictions
-
 
     def tpot_test(self, eval_random_state: int) -> tuple[list[dict[int, Any]], list[Any]]:
         #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
