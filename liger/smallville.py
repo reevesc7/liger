@@ -1,4 +1,28 @@
+from pathlib import Path
 import pandas as pd
+
+
+PROMPT_START = "@PROMPT"
+PROMPT_END = "@RESPONSE"
+
+
+def get_logged_prompts(file_path: str | Path, filter: str) -> list[str]:
+    file_path = Path(file_path)
+    with open(file_path, "r", encoding="cp1252") as file:
+        lines = file.readlines()
+    prompts: list[str] = []
+    start_index = 0
+    for index, line in enumerate(lines):
+        if PROMPT_START in line:
+            start_index = index + 1
+            continue
+        elif PROMPT_END in line:
+            prompt = "".join(lines[start_index:index])
+            if filter not in prompt:
+                continue
+            prompts.append(prompt)
+            continue
+    return prompts
 
 
 def response_strip(responses: pd.Series) -> pd.Series:
