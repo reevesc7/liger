@@ -118,7 +118,7 @@ class Dataset:
         return pd.DataFrame(data)
 
     @staticmethod
-    def _concat(arrays: list) -> np.ndarray:
+    def _concat_cols(arrays: list) -> np.ndarray:
         for index, array in enumerate(arrays):
             if len(array.shape) == 0:
                 arrays[index] = np.array([array])
@@ -130,25 +130,50 @@ class Dataset:
         feature_keys: list[str],
         score_keys: list[str],
     ) -> pd.DataFrame:
-        return pd.DataFrame({
-            "X": df.apply(
-                lambda row: Dataset._concat([np.array(row[key]) for key in feature_keys]),
+        if len(feature_keys) > 1:
+            x = df.apply(
+                lambda row: Dataset._concat_cols([np.array(row[key]) for key in feature_keys]),
                 axis=1
-            ),
-            "y": df.apply(
-                lambda row: Dataset._concat([np.array(row[key]) for key in score_keys]),
+            )
+        else:
+            x = df[feature_keys[0]]
+        if len(score_keys) > 1:
+            y = df.apply(
+                lambda row: Dataset._concat_cols([np.array(row[key]) for key in score_keys]),
                 axis=1
-            ),
-        })
+            )
+        else:
+            y = df[score_keys[0]]
+        return pd.DataFrame({"X": x, "y": y})
 
-    def flatten(self) -> pd.DataFrame:
-        df = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ["X", "y"]})
-        df["X"] = np.apply_along_axis(lambda row: np.array2string(row, max_line_width=10000000, separator=", ", threshold=10000000), axis=1, arr=self.X)
-        df["y"] = self.y
-        return df
+    @staticmethod
+    def _2darray2string(a: np.ndarray) -> np.ndarray:
+        return np.apply_along_axis(lambda row: np.array2string(
+            row,
+            max_line_width=10000000,
+            separator=", ",
+            threshold=10000000,
+        ), axis=1, arr=a)
 
-    def to_csv(self, filename):
-        self.flatten().to_csv(filename, index=False)
+    @property
+    def X_strings(self) -> np.ndarray:
+        if len(self.X.shape) == 1:
+            return self.X
+        else:
+            return self._2darray2string(self.X)
+
+    @property
+    def y_strings(self) -> np.ndarray:
+        if len(self.y.shape) == 1:
+            return self.y
+        else:
+            return self._2darray2string(self.y)
+
+    def to_df(self) -> pd.DataFrame:
+        return pd.DataFrame({"X": self.X_strings, "y": self.y_strings})
+
+    def to_csv(self, filename: str) -> None:
+        self.to_df().to_csv(filename, index=False)
 
     def analyze_manifold(self, point_a: ArrayLike, point_b: ArrayLike) -> pd.DataFrame:
         manifold = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ["y", "alpha", "dist"]})
