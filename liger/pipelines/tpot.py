@@ -65,6 +65,8 @@ REG_CLASS_OVERLAP = {
 PIPELINE_PARAM_KEYS = {
     "config_file",
     "data_file",
+    "feature_keys",
+    "score_key",
     "target_gens",
     "eval_random_states",
     "id",
@@ -138,7 +140,6 @@ class TPOTPipeline:
     def __init__(
         self,
         config_file: str | None = None,
-        data_file: str | None = None,
         tpot_random_state: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
@@ -164,12 +165,11 @@ class TPOTPipeline:
         # Set special needs parameters
         if self.config_file is None:
             self.config_file = _pipeline_params.get("config_file")
-        self.data_file = TPOTPipeline.use_first(
-            data_file,
-            _pipeline_params.get("data_file"),
-        )
-        if self.data_file is None:
-            raise ValueError("No data file was specified")
+        self.data_file = _pipeline_params.get("data_file", None)
+        self.feature_keys = _pipeline_params.get("feature_keys", None)
+        self.score_key = _pipeline_params.get("score_key", None)
+        if self.data_file is None or self.feature_keys is None or self.score_key is None:
+            raise ValueError("Must specify a data file and feature and score keys in config")
         self.tpot_random_state = TPOTPipeline.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
@@ -191,7 +191,7 @@ class TPOTPipeline:
 
         # Set dataset
         self.data_name = TPOTPipeline.get_filename(self.data_file)
-        self.dataset = Dataset.from_csv(self.data_file)
+        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_key)
 
         # Set CV
         if _tpot_params["classification"]:

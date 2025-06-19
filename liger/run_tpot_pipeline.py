@@ -34,7 +34,6 @@ def main():
             raise ValueError("Config file must be specified for new runs!")
         pipeline = TPOTPipeline(
             config_file=args.config,
-            data_file=args.data,
             tpot_random_state=args.tpotrs,
             pipeline_parameters=args.pipeparam,
             tpot_parameters=args.tpotparam,
@@ -71,14 +70,6 @@ def get_args() -> Namespace:
         required=False,
         help="config file path",
     )       #e.g., "Configs/nolong_reg_1.json"
-    parser.add_argument(
-        "-d",
-        "--data",
-        type=str_or_none,
-        required=False,
-        default=None,
-        help="training data file path",
-    )       #e.g., "Data/human_size_rating_1_1.csv"
     parser.add_argument(
         "-r",
         "--tpotrs",
