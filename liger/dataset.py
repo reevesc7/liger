@@ -34,16 +34,37 @@ class Dataset:
     def from_df(
         cls,
         df: pd.DataFrame,
-        feature_keys: list[str] | list[int],
-        score_key: str | int,
+        feature_keys: list[str],
+        score_keys: list[str],
     ) -> 'Dataset':
+        """Initialize a `Dataset` from a `pandas.DataFrame`.
+
+        Parameters
+        ----------
+        `df` : `pandas.DataFrame`
+            The data to be incorporated into the `Dataset`.
+        `feature_keys` : `list[str]`
+            The column keys of inputs to models.
+        `score_keys` : `list[str]`
+            The column keys of sample scores.
+
+        Returns
+        -------
+        `dataset` : `Dataset`
+            A dataset containing 1D or 2D numpy arrays for `X` and `y`.
+        """
         df = cls._parse_df_lists(df)
-        df = cls._concatenate_df_cols(df, feature_keys, score_key)
-        X_len = len(df["X"][0])
-        try:
-            y_len = len(df["y"][0])
-        except TypeError:
+        df = cls._concatenate_df_cols(df, feature_keys, score_keys)
+        X_shape = df["X"].shape
+        if len(X_shape) == 1:
+            X_len = 1
+        else:
+            X_len = X_shape[1]
+        y_shape = df["y"].shape
+        if len(y_shape) == 1:
             y_len = 1
+        else:
+            y_len = y_shape[1]
         dataset = Dataset(df.shape[0], X_len, y_len)
         dataset.X = np.array(df["X"].tolist())
         dataset.y = np.array(df["y"].tolist())
@@ -52,16 +73,32 @@ class Dataset:
     @classmethod
     def from_csv(
         cls,
-        filename: str,
-        feature_keys: list[str] | list[int],
-        score_key: str | int,
+        file_path: str,
+        feature_keys: list[str],
+        score_keys: list[str],
     ) -> "Dataset":
+        """Initialize a `Dataset` from a `csv` file.
+
+        Parameters
+        ----------
+        `file_path` : `str`
+            The path of the `csv` file to read.
+        `feature_keys` : `list[str]`
+            The column keys of inputs to models.
+        `score_keys` : `list[str]`
+            The column keys of sample scores.
+
+        Returns
+        -------
+        `dataset` : `Dataset`
+            A dataset containing 1D or 2D numpy arrays for `X` and `y`.
+        """
         try:
-            df = pd.read_csv(filename, usecols=np.array(feature_keys + [score_key]))
+            df = pd.read_csv(file_path, usecols=np.array(feature_keys + score_keys))
         except ValueError:
             print("Key in config `feature_keys` or `score_key` not found in dataset")
             raise
-        dataset = Dataset.from_df(df, feature_keys, score_key)
+        dataset = Dataset.from_df(df, feature_keys, score_keys)
         return dataset
 
     def __str__(self):
@@ -81,15 +118,27 @@ class Dataset:
         return pd.DataFrame(data)
 
     @staticmethod
+    def _concat(arrays: list) -> np.ndarray:
+        for index, array in enumerate(arrays):
+            if len(array.shape) == 0:
+                arrays[index] = np.array([array])
+        return np.concatenate(arrays)
+
+    @staticmethod
     def _concatenate_df_cols(
         df: pd.DataFrame,
-        feature_keys: list[str] | list[int],
-        score_key: str | int
+        feature_keys: list[str],
+        score_keys: list[str],
     ) -> pd.DataFrame:
-        print(df)
         return pd.DataFrame({
-            "X": df.apply(lambda row: np.concatenate([row[key] for key in feature_keys]), axis=1),
-            "y": df[score_key],
+            "X": df.apply(
+                lambda row: Dataset._concat([np.array(row[key]) for key in feature_keys]),
+                axis=1
+            ),
+            "y": df.apply(
+                lambda row: Dataset._concat([np.array(row[key]) for key in score_keys]),
+                axis=1
+            ),
         })
 
     def flatten(self) -> pd.DataFrame:

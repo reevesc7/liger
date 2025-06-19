@@ -66,7 +66,7 @@ PIPELINE_PARAM_KEYS = {
     "config_file",
     "data_file",
     "feature_keys",
-    "score_key",
+    "score_keys",
     "target_gens",
     "eval_random_states",
     "id",
@@ -167,8 +167,8 @@ class TPOTPipeline:
             self.config_file = _pipeline_params.get("config_file")
         self.data_file = _pipeline_params.get("data_file", None)
         self.feature_keys = _pipeline_params.get("feature_keys", None)
-        self.score_key = _pipeline_params.get("score_key", None)
-        if self.data_file is None or self.feature_keys is None or self.score_key is None:
+        self.score_keys = _pipeline_params.get("score_keys", None)
+        if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
         self.tpot_random_state = TPOTPipeline.use_first(
             tpot_random_state,
@@ -191,7 +191,7 @@ class TPOTPipeline:
 
         # Set dataset
         self.data_name = TPOTPipeline.get_filename(self.data_file)
-        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_key)
+        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
 
         # Set CV
         if _tpot_params["classification"]:
