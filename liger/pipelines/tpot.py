@@ -42,6 +42,7 @@ IN_PROGRESS = "InProgress/"
 PIPELINE_DATA = "pipeline_data.json"
 POPULATION_PKL = "population.pkl"
 TEMP_POPULATION_PKL = "temp-population.pkl"
+DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
 REG_CLASS_OVERLAP = {
     "sklearn.preprocessing.Binarizer",
     "sklearn.decomposition.FastICA",
@@ -125,6 +126,8 @@ TPOT_PARAM_KEYS = {
 PIPELINE_ATTR_KEYS = {
     "complete_gens",
     "gen_scores",
+    "sxn_start_times",
+    "sxn_run_times",
     "slurm_ids",
     "kfold_scores",
     "kfold_predictions",
@@ -159,8 +162,7 @@ class TPOTPipeline:
             _pipeline_attrs.update(pipeline_attributes)
 
         # Record start time
-        dt = datetime.now(timezone.utc)
-        start_time = dt.strftime("%Y-%m-%d_%H-%M-%S.%f")
+        self.start_time = datetime.now(timezone.utc)
 
         # Set special needs parameters
         if self.config_file is None:
@@ -180,10 +182,13 @@ class TPOTPipeline:
         self.id = TPOTPipeline.use_first(
             id,
             _pipeline_params.get("id"),
-            start_time,
+            self.start_time.strftime(DATETIME_FMT),
         )
         self.complete_gens = _pipeline_attrs.get("complete_gens", 0)
         self.gen_scores = _pipeline_attrs.get("gen_scores", [])
+        self.sxn_start_times = _pipeline_attrs.get("sxn_start_times", [])
+        self.sxn_start_times.append(self.start_time.strftime(DATETIME_FMT))
+        self.sxn_run_times = _pipeline_attrs.get("sxn_run_times", [])
         self.slurm_ids = _pipeline_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
         self.kfold_scores = _pipeline_attrs.get("kfold_scores", {})
@@ -420,6 +425,8 @@ class TPOTPipeline:
             raise Exception("Fitting ended improperly... quitting")
         self.append_scores(output_lines)
         self.update_complete_gens(output_lines)
+        self.run_time = (datetime.now(timezone.utc) - self.start_time).total_seconds()
+        self.sxn_run_times.append(self.run_time)
         if path.isfile(path.join(self.output_dir, TEMP_POPULATION_PKL)):
             remove(path.join(self.output_dir, TEMP_POPULATION_PKL))
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
