@@ -30,16 +30,14 @@ def interpolate_points(point1: ArrayLike, point2: ArrayLike, alpha: float) -> np
 
 
 # Calculates the projection of AP onto AB as a proportion of the magnitude of AB.
-def vector_projection(ABvector: ArrayLike, APvector: ArrayLike) -> float:
-    return np.dot(APvector, ABvector) / np.dot(ABvector, ABvector)
+def vector_projection(ab_vector: ArrayLike, ap_vector: ArrayLike) -> float:
+    return np.dot(ap_vector, ab_vector) / np.dot(ab_vector, ab_vector)
 
 
 # Calculates the rejection of AP from AB.
-def vector_rejection(ABvector: ArrayLike, APvector: ArrayLike) -> float:
-    AP0vector = vector_projection(ABvector, APvector) * ABvector
-    return np.linalg.norm(APvector - AP0vector)
-
-def compute_R2(data: list[ArrayLike], equations: list) -> list:
-    actual_y = data[1]
-    return [np.corrcoef(actual_y, [equation(x) for x in data[0]])[0,1]**2 for equation in equations]
+def vector_rejection(ab_vector: ArrayLike, ap_vector: ArrayLike) -> float:
+    ab_vector = np.array(ab_vector)
+    ap_vector = np.array(ap_vector)
+    ap_0_vector = vector_projection(ab_vector, ap_vector) * ab_vector
+    return float(np.linalg.norm(ap_vector - ap_0_vector))
 
