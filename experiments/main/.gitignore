@@ -1,5 +1,6 @@
 # Data files
-/data/
+/data/*
+!/data/test_data.csv
 
 # The contents of directories modified by liger
 /in_progress/
