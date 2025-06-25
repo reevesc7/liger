@@ -1,0 +1,100 @@
+{
+    "pipeline_parameters": {
+        "data_file": "data/human_size_rating_4_stembed.csv",
+        "target_gens": 10,
+        "eval_random_states": [
+            0,
+            1
+        ],
+        "slurm_id": null,
+        "id": null
+    },
+    "tpot_parameters": {
+        "search_space": {
+            "node_type": "SequentialPipeline",
+            "search_spaces": [
+                {
+                    "node_type": "DynamicLinearPipeline",
+                    "search_space": {
+                        "node_type": "ChoicePipeline",
+                        "search_spaces": [
+                            {
+                                "node_type": "EstimatorNode",
+                                "class_name": "all_transformers"
+                            },
+                            {
+                                "node_type": "EstimatorNode",
+                                "class_name": "Passthrough"
+                            }
+                        ]
+                    },
+                    "max_length": 3
+                },
+                {
+                    "node_type": "ChoicePipeline",
+                    "search_spaces": [
+                        {
+                            "node_type": "EstimatorNode",
+                            "class_name": "classifiers"
+                        }
+                    ]
+                }
+            ]
+        },
+        "scorers": [
+            "roc_auc_ovr",
+            "tpot.objectives.complexity_scorer"
+        ],
+        "scorers_weights": [
+            1,
+            -1
+        ],
+        "classification": true,
+        "cv": 12,
+        "other_objective_functions": [],
+        "other_objective_functions_weights": [],
+        "objective_function_names": null,
+        "bigger_is_better": true,
+        "export_graphpipeline": false,
+        "memory": null,
+        "categorical_features": null,
+        "preprocessing": false,
+        "population_size": 4,
+        "initial_population_size": null,
+        "population_scaling": 0.5,
+        "generations_until_end_population": 1,
+        "generations": 1,
+        "max_time_mins": 220,
+        "max_eval_time_mins": 10,
+        "validation_strategy": "none",
+        "validation_fraction": 0.2,
+        "disable_label_encoder": false,
+        "early_stop": null,
+        "scorers_early_stop_tol": 0.001,
+        "other_objectives_early_stop_tol": null,
+        "threshold_evaluation_pruning": null,
+        "threshold_evaluation_scaling": 0.5,
+        "selection_evaluation_pruning": null,
+        "selection_evaluation_scaling": 0.5,
+        "min_history_threshold": 20,
+        "survival_percentage": 1,
+        "crossover_probability": 0.2,
+        "mutate_probability": 0.7,
+        "mutate_then_crossover_probability": 0.05,
+        "crossover_then_mutate_probability": 0.05,
+        "budget_range": null,
+        "budget_scaling": 0.5,
+        "generations_until_end_budget": 1,
+        "stepwise_steps": 5,
+        "n_jobs": 1,
+        "memory_limit": null,
+        "client": null,
+        "processes": true,
+        "warm_start": true,
+        "periodic_checkpoint_folder": null,
+        "callback": null,
+        "verbose": 4,
+        "scatter": true,
+        "random_state": null
+    }
+}

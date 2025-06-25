@@ -1,0 +1,68 @@
+#!/bin/bash --login
+
+#SBATCH --job-name=tpotpipeline
+#SBATCH --time=03:55:00
+
+#SBATCH --ntasks=1
+
+#SBATCH --constraint=[v100|v100s|a100|h200]
+#SBATCH --gres=gpu:1
+
+#SBATCH --cpus-per-task=1
+#SBATCH --mem-per-cpu=32G
+
+# %x: job name, %j: job ID
+#SBATCH --output=slurmout/%x-%j.out
+
+export CONFIG
+export DATA
+export TPOTRS
+export ID
+export SCRIPT
+
+module purge
+
+# CHANGE PATH TO PATH TO YOUR CONDA BINARIES
+module load CUDA/12.6.0
+export PATH=/mnt/ffs24/home/jory/projects/chris/py/python/bin:$PATH
+export PYTHONPATH=/mnt/ffs24/home/jory/projects/chris/py/python/lib/python3.10/site-packages
+export PYTHONHOME=/mnt/ffs24/home/jory/projects/chris/py/python
+
+# CHANGE PATH TO YOUR HOME DIRECTORY
+HOME=/mnt/home/jory
+cd ${HOME}
+
+# CHANGE PATH TO YOUR Liger-Testbed PATH
+#cd ${HOME}/projects/chris/liger-tb
+cd ${SCRATCH}/liger
+
+if [[ -z $CONFIG ]] && [[ -z $ID ]]; then
+    echo "No config file or ID set, can't start new run or find checkpoint"
+    exit 1
+fi
+
+[ -d "slurmout" ] || mkdir -p "slurmout"
+
+all_output=$(liger-pipeline \
+    --config="$CONFIG" \
+    --tpotrs="$TPOTRS" \
+    --slurmid="$SLURM_JOB_ID" \
+    --id="$ID" \
+    --pipeparam=$PIPEPARAM \
+    --tpotparam=$TPOTPARAM)
+echo "$all_output"
+output=$(echo "$all_output" | tail -n 1)
+
+if [[ "$output" == *"RUN INCOMPLETE"* ]]; then
+    echo "RUNNING NEXT GENERATION..."
+    outputid=${output##* }
+    sbatch --export="SCRIPT=$SCRIPT,ID=$outputid" "$SCRIPT"
+elif [[ "$output" == "RUN COMPLETE" ]]; then
+    echo "ENDING RECURSION"
+else
+    echo "UNEXPECTED OUTPUT:" "$output"
+fi
+
+scontrol show job $SLURM_JOB_ID
+js -j $SLURM_JOB_ID
+

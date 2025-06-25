@@ -1,0 +1,71 @@
+{
+    "pipeline_parameters": {
+        "data_file": "data/smallville_846.csv",
+        "feature_keys": [
+            "text-embedding-3-small"
+        ],
+        "score_keys": [
+            "mean"
+        ],
+        "target_gens": 10,
+        "eval_random_states": [
+            0,
+            1
+        ],
+        "id": null
+    },
+    "tpot_parameters": {
+        "search_space": {
+            "node_type": "SequentialPipeline",
+            "search_spaces": [
+                {
+                    "node_type": "DynamicLinearPipeline",
+                    "search_space": {
+                        "node_type": "ChoicePipeline",
+                        "search_spaces": [
+                            {
+                                "node_type": "EstimatorNode",
+                                "class_name": "all_transformers"
+                            },
+                            {
+                                "node_type": "EstimatorNode",
+                                "class_name": "Passthrough"
+                            }
+                        ]
+                    },
+                    "max_length": 3
+                },
+                {
+                    "node_type": "ChoicePipeline",
+                    "search_spaces": [
+                        {
+                            "node_type": "EstimatorNode",
+                            "class_name": "KNeighborsRegressor"
+                        }
+                    ]
+                }
+            ]
+        },
+        "scorers": [
+            "neg_mean_squared_error",
+            "tpot.objectives.complexity_scorer"
+        ],
+        "scorers_weights": [
+            1,
+            -1
+        ],
+        "classification": false,
+        "cv": 4,
+        "bigger_is_better": true,
+        "population_size": 4,
+        "generations": 1,
+        "max_time_mins": 220,
+        "max_eval_time_mins": 1,
+        "early_stop": 2,
+        "scorers_early_stop_tol": 0.001,
+        "other_objectives_early_stop_tol": null,
+        "warm_start": true,
+        "verbose": 4,
+        "random_state": 1
+    }
+}
