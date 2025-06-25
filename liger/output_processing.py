@@ -66,12 +66,11 @@ def is_run_finished(output: dict[str, Any]) -> bool:
 
 def list_unfinished_runs(
     paths: Path | str | Sequence[Path | str],
-    read_all_json_files: bool = False,
-    filenames_to_read: str | set[str] = "pipeline_data.json",
+    filename_pattern: str = "pipeline_data.json",
 ) -> list[str]:
     return sorted([
         output["pipeline_parameters"]["id"]
-        for output in mass_json_load(paths, read_all_json_files, filenames_to_read)
+        for output in mass_json_load(paths, filename_pattern)
         if not is_run_finished(output)
     ])
 
