@@ -37,8 +37,8 @@ from sklearn.pipeline import Pipeline
 import dill
 
 
-OUTPUT = "Outputs/"
-IN_PROGRESS = "InProgress/"
+OUTPUT = "outputs/"
+IN_PROGRESS = "in_progress/"
 PIPELINE_DATA = "pipeline_data.json"
 POPULATION_PKL = "population.pkl"
 TEMP_POPULATION_PKL = "temp-population.pkl"
