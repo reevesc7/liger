@@ -15,12 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import overload
+from typing import Any, MutableSequence, overload
 from pathlib import Path
-from os.path import isfile
+from math import sqrt
 from openai import OpenAI
 import tiktoken
-import pandas as pd
 from .base import BaseSurveyor
 
 
@@ -30,7 +29,7 @@ OPENAI_KEYFILE = "openai.key"
 class OpenAISurveyor(BaseSurveyor):
     def __init__(self, model_str: str, keyfile: str | Path = OPENAI_KEYFILE) -> None:
         keyfile = Path(keyfile)
-        if not isfile(keyfile):
+        if not keyfile.is_file():
             raise FileNotFoundError(f"\"{keyfile}\" is not a file.")
         self.client = OpenAI(api_key=keyfile.read_text().strip())
         self.model = model_str
@@ -59,17 +58,42 @@ class OpenAISurveyor(BaseSurveyor):
 
     def survey(
         self,
-        prompts: str | list[str],
+        prompts: str | MutableSequence[str],
         reps: int | None = None,
         allow_dupes: bool = False
-    ) -> pd.DataFrame:
+    ) -> list[str]:
         if isinstance(prompts, str):
             prompts = [prompts]
         self.check_prompts(prompts, allow_dupes)
         responses = []
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps))
-        return pd.DataFrame({"prompt": prompts, "response": responses})
+            print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
+        return responses
+
+    @staticmethod
+    def mean(probs: dict[int, float]) -> float:
+        return sum(key * value for key, value in probs.items())
+
+    @staticmethod
+    def mode(probs: dict[int, float]) -> int:
+        return max(probs, key=lambda k: probs[k])
+
+    @staticmethod
+    def std_dev(probs: dict[int, float]) -> float:
+        return sqrt(sum(key ** 2 * value for key, value in probs.items()) - OpenAISurveyor.mean(probs))
+
+    @staticmethod
+    def functionals(probs: dict[int, float]) -> dict[str, float | int]:
+        return {
+            "mean": OpenAISurveyor.mean(probs),
+            "mode": OpenAISurveyor.mode(probs),
+            "std_dev": OpenAISurveyor.std_dev(probs),
+        }
+
+    @staticmethod
+    def integerize_keys(dictionary: dict) -> dict[int, Any]:
+        return {int(key): value for key, value in dictionary.items()}
 
     def set_logit_bias(self, desired_tokens: str | set[str]) -> None:
         encoding = tiktoken.encoding_for_model(self.model)
@@ -128,19 +152,20 @@ class OpenAISurveyor(BaseSurveyor):
 
     def probs_survey(
         self,
-        prompts: list[str],
+        prompts: MutableSequence[str],
         response_seeds: str | list[str],
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
         allow_dupes: bool = False
-    ) -> pd.DataFrame:
+    ) -> list[dict[str, float]]:
         self.check_prompts(prompts, allow_dupes)
         if isinstance(response_seeds, str):
             response_seeds = [response_seeds] * len(prompts)
         elif len(response_seeds) != len(prompts):
             raise ValueError("`prompts` and `response_seeds` must be the same size")
-        responses = []
+        responses: list[dict[str, float]] = []
         for prompt, response_seed in zip(prompts, response_seeds):
             responses.append(self.probs(prompt, response_seed, allowed_tokens, normalize))
-        return pd.DataFrame({"prompt": prompts, "response": responses})
+            print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
+        return responses
 

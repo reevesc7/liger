@@ -15,15 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import pandas as pd
+from typing import MutableSequence
 
 
 class BaseSurveyor:
     @staticmethod
-    def check_prompts(prompts: list[str], allow_dupes: bool = False) -> None:
+    def check_prompts(prompts: MutableSequence[str], allow_dupes: bool = False) -> None:
         if not allow_dupes and len(set(prompts)) < len(prompts):
             raise ValueError("Duplicate prompts detected. Set `allow_dupes = True` to ignore")
 
-    def survey(self, prompts: list[str], reps: int = 1) -> pd.DataFrame:
+    def survey(self, prompts: MutableSequence[str], reps: int = 1) -> list[str]:
         raise NotImplementedError()
 
