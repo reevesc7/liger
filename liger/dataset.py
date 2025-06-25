@@ -23,12 +23,13 @@ from .operations import vector_projection, vector_rejection
 
 
 class Dataset:
-    def __init__(self, n_entries: int, X_len: int, y_len: int = 1):
-        self.X = np.array(np.zeros((n_entries, X_len)))
-        if y_len == 1:
-            self.y = np.array(np.zeros(n_entries))
-        else:
-            self.y = np.array(np.zeros((n_entries, y_len)))
+    def __init__(self, x: np.ndarray, y: np.ndarray):
+        if x.shape[0] != y.shape[0]:
+            raise ValueError("x and y must have the same number of entries")
+        if len(x.shape) > 2 or len(y.shape) > 2:
+            raise ValueError("x and y must be 1- or 2-dimensional")
+        self.X = x
+        self.y = y
 
     @classmethod
     def from_df(
@@ -53,22 +54,9 @@ class Dataset:
         `dataset` : `Dataset`
             A dataset containing 1D or 2D numpy arrays for `X` and `y`.
         """
-        df = cls._parse_df_lists(df)
+        df = cls._parse_df_strs(df)
         df = cls._concatenate_df_cols(df, feature_keys, score_keys)
-        X_shape = df["X"].shape
-        if len(X_shape) == 1:
-            X_len = 1
-        else:
-            X_len = X_shape[1]
-        y_shape = df["y"].shape
-        if len(y_shape) == 1:
-            y_len = 1
-        else:
-            y_len = y_shape[1]
-        dataset = Dataset(df.shape[0], X_len, y_len)
-        dataset.X = np.array(df["X"].tolist())
-        dataset.y = np.array(df["y"].tolist())
-        return dataset
+        return Dataset(np.array(df["X"].to_list()), np.array(df["y"].to_list()))
 
     @classmethod
     def from_csv(
@@ -105,7 +93,20 @@ class Dataset:
         return f"X: {self.X},\ny: {self.y}"
 
     @staticmethod
-    def _parse_df_lists(df: pd.DataFrame) -> pd.DataFrame:
+    def _parse_df_strs(df: pd.DataFrame) -> pd.DataFrame:
+        """Interpret string representations of data types in a dataframe.
+        Can convert `int`, `float`, `list`, `tuple`, `dict`, `set`.
+
+        Parameters
+        ----------
+        `df` : `pandas.Dataframe`
+            The dataframe to be parsed.
+
+        Returns
+        -------
+        `parsed_df` : `pandas.DataFrame`
+            The original dataframe with all parseable columns interpreted.
+        """
         data = {}
         for column in df.columns:
             try:
@@ -157,6 +158,8 @@ class Dataset:
 
     @property
     def X_strings(self) -> np.ndarray:
+        """Full string representations of each element of X.
+        """
         if len(self.X.shape) == 1:
             return self.X
         else:
@@ -164,15 +167,29 @@ class Dataset:
 
     @property
     def y_strings(self) -> np.ndarray:
+        """Full string representations of each element of y.
+        """
         if len(self.y.shape) == 1:
             return self.y
         else:
             return self._2darray2string(self.y)
 
     def to_df(self) -> pd.DataFrame:
+        """Convert this dataset to a dataframe.
+
+        Returns
+        -------
+        `df` : `pandas.DataFrame`
+            A dataframe representation of this dataset, with columns "X" and "y",
+            filled with string representations of `X` and `y` array elements.
+        """
         return pd.DataFrame({"X": self.X_strings, "y": self.y_strings})
 
     def to_csv(self, filename: str) -> None:
+        """Save this dataset as a `csv` file.
+
+        Arrays in `X` and `y` are converted to full string representations
+        """
         self.to_df().to_csv(filename, index=False)
 
     def analyze_manifold(self, point_a: ArrayLike, point_b: ArrayLike) -> pd.DataFrame:
