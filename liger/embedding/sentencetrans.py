@@ -15,11 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import pandas as pd
+from typing import MutableSequence
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from .base import BaseEmbedder
-from ..dataset import Dataset
 
 
 class STEmbedder(BaseEmbedder):
@@ -29,22 +28,9 @@ class STEmbedder(BaseEmbedder):
     ):
         self.model = SentenceTransformer(model_str)
 
-
-    # Generates a dataset from the specified rows of a DataFrame.
-    def embed_dataframe(self, data: pd.DataFrame, feature_keys: pd.Index, score_key: pd.Index) -> Dataset:
-        n_entries = data.shape[0]
-        n_features = len(feature_keys)
-
-        # Hate how hacky this is
-        feature_vectors = None
-        for feature_index, feature_key in enumerate(feature_keys):
-            embedding = np.array(self.model.encode(np.array(data[feature_key])))
-            if feature_vectors is None:
-                feature_vectors = np.zeros((n_features, n_entries, embedding.shape[1]))
-            feature_vectors[feature_index] = embedding
-        feature_vectors = np.array(feature_vectors)
-        dataset = Dataset(n_entries, n_features*feature_vectors.shape[2])
-        dataset.X = feature_vectors.transpose((1, 0, 2)).reshape((n_entries, -1))
-        dataset.y = np.array(data[score_key])
-        return dataset
+    def embed(self, strings: str | MutableSequence[str] | np.ndarray) -> np.ndarray:
+        if isinstance(strings, MutableSequence):
+            strings = list(strings)
+        print(f"STEmbedder embedding...")
+        return np.array(self.model.encode(strings))
 

@@ -15,30 +15,76 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import pandas as pd
+from typing import MutableSequence, overload
+import numpy as np
 import re
-from .. import Dataset
-
-
-# Replaces a string in every entry of the data with a different, given string.
-def change_sentences(data: pd.DataFrame, str_to_change: str, new_str: str) -> pd.DataFrame:
-    return pd.DataFrame({column: [re.sub(str_to_change, new_str, entry) if type(entry)==str else entry for entry in data.loc[:, column]] for column in data.columns})
-
-
-# Adds a string to the beginning of every entry.
-def add_sentences(data: pd.DataFrame, str_to_add: str) -> pd.DataFrame:
-    return pd.DataFrame({column: [str_to_add.strip() + " " + entry if type(entry)==str else entry for entry in data.loc[:, column]] for column in data.columns})
 
 
 class BaseEmbedder:
+    @staticmethod
+    @overload
+    def alter_strings(strings: str, to_replace: str, replacement: str) -> str: ...
+    @staticmethod
+    @overload
+    def alter_strings(strings: MutableSequence[str], to_replace: str, replacement: str) -> list[str]: ...
+    @staticmethod
+    def alter_strings(
+        strings: str | MutableSequence[str],
+        to_replace: str,
+        replacement: str,
+    ) -> str | list[str]:
+        """Substitute a string within all strings.
+
+        Parameters
+        ----------
+        `strings` : `str` or `MutableSequence[str]`
+            The strings to be transformed.
+        `to_replace` : `str`
+            The substring to replace in each `strings` string.
+        `add_string` : `str`
+            The string to add instead for each `strings` string.
+
+        Returns
+        -------
+        `strings` : `str` or `list[str]`
+            The strings with replacements.
+        """
+        if isinstance(strings, str):
+            return re.sub(to_replace, replacement, strings)
+        return [BaseEmbedder.alter_strings(string, to_replace, replacement) for string in strings]
+
+    @staticmethod
+    @overload
+    def prepend_to_strings(strings: str, add_string: str) -> str: ...
+    @staticmethod
+    @overload
+    def prepend_to_strings(strings: MutableSequence[str], add_string: str) -> list[str]: ...
+    @staticmethod
+    def prepend_to_strings(
+        strings: str | MutableSequence[str],
+        add_string: str,
+    ) -> str | list[str]:
+        """Add a string to the start of all strings.
+
+        Parameters
+        ----------
+        `strings` : `str` or `MutableSequence[str]`
+            The strings to be transformed.
+        `add_string` : `str`
+            The string to add to the beginning of each `strings` string.
+
+        Returns
+        -------
+        `strings` : `str` or `list[str]`
+            The strings with `add_string` prepended to each.
+        """
+        if isinstance(strings, str):
+            return add_string.strip() + " " + strings
+        return [BaseEmbedder.prepend_to_strings(string, add_string) for string in strings]
+
     def set_model(self, model_str: str) -> None:
         self.model = model_str
 
-
-    def embed_dataframe(
-        self,
-        data: pd.DataFrame,
-        feature_keys: pd.Index,
-        score_key: pd.Index
-    ) -> Dataset:
+    def embed(self, strings: str | MutableSequence[str] | np.ndarray) -> np.ndarray:
         raise NotImplementedError()
+
