@@ -3,3 +3,6 @@ __pycache__/
 
 # Editable install
 *.egg-info/
+
+# API key files
+*.key
