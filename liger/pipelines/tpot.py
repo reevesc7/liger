@@ -25,7 +25,7 @@ import json
 from random import randint
 from datetime import datetime, timezone
 from importlib import import_module
-from typing_extensions import LiteralString
+from typing_extensions import LiteralString, Self
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
@@ -151,7 +151,7 @@ class TPOTPipeline:
         pipeline_attributes: dict | None = None,
     ) -> None:
         self.config_file = config_file
-        _pipeline_params, _tpot_params, _pipeline_attrs = TPOTPipeline.load_config(self.config_file)
+        _pipeline_params, _tpot_params, _pipeline_attrs = self.load_config(self.config_file)
 
         # Override config parameters with argument parameters
         if isinstance(pipeline_parameters, dict):
@@ -172,14 +172,14 @@ class TPOTPipeline:
         self.score_keys = _pipeline_params.get("score_keys", None)
         if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
-        self.tpot_random_state = TPOTPipeline.use_first(
+        self.tpot_random_state = self.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
             randint(0, 2**32-1),
         )
         self.target_gens = _pipeline_params["target_gens"]
         self.eval_random_states = _pipeline_params["eval_random_states"]
-        self.id = TPOTPipeline.use_first(
+        self.id = self.use_first(
             id,
             _pipeline_params.get("id"),
             self.start_time.strftime(DATETIME_FMT),
@@ -195,7 +195,7 @@ class TPOTPipeline:
         self.kfold_predictions = _pipeline_attrs.get("kfold_predictions", {})
 
         # Set dataset
-        self.data_name = TPOTPipeline.get_filename(self.data_file)
+        self.data_name = self.get_filename(self.data_file)
         self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
 
         # Set CV
@@ -225,7 +225,7 @@ class TPOTPipeline:
         )
 
         # Set scorer functions
-        scorers = TPOTPipeline.init_scorers(_tpot_params["scorers"])
+        scorers = self.init_scorers(_tpot_params["scorers"])
 
         # Set output path
         self.output_dir = path.join(OUTPUT, self.data_name, self.id)
@@ -264,15 +264,15 @@ class TPOTPipeline:
         )
 
     @classmethod
-    def from_checkpoint(cls, checkpoint: str, slurm_id: int | None) -> 'TPOTPipeline':
-        pipeline_params, tpot_params, pipeline_attrs = TPOTPipeline.load_config(path.join(checkpoint, PIPELINE_DATA))
+    def from_checkpoint(cls, checkpoint: str, slurm_id: int | None) -> Self:
+        pipeline_params, tpot_params, pipeline_attrs = cls.load_config(path.join(checkpoint, PIPELINE_DATA))
         kwargs = {
             "pipeline_parameters": pipeline_params,
             "tpot_parameters": tpot_params,
             "pipeline_attributes": pipeline_attrs,
             "slurm_id": slurm_id,
         }
-        pipeline = TPOTPipeline(**kwargs)
+        pipeline = cls(**kwargs)
         return pipeline
 
     @staticmethod
@@ -353,7 +353,7 @@ class TPOTPipeline:
     def save_data(self) -> None:
         pipeline_data = self.get_pipeline_data()
         with open(path.join(self.output_dir, PIPELINE_DATA), "w") as f:
-            json.dump(pipeline_data, f, indent=4, default=TPOTPipeline.json_everything)
+            json.dump(pipeline_data, f, indent=4, default=self.json_everything)
 
     def get_pipeline_data(self) -> dict:
         pipeline_parameters = {
