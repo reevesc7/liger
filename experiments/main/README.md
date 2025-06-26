@@ -1,8 +1,8 @@
 # Liger-Testbed
 
-A simple repository made to act as a working directory for the Likert General Regressor project.
+A directory made to act as a working directory for the `liger` Python module.
 
-For now, only test scripts are included in this repository.
+**Required Packages:** `liger`
 
 ## Setting up environment
 
