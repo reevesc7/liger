@@ -26,7 +26,7 @@ from .dataset import Dataset
 
 # Takes a model, data in Dataset format, indices of data to train on. Returns trained model.
 def train_model(model, data: Dataset, train_indices: np.ndarray):
-    model.fit(data.X[train_indices], data.y[train_indices])
+    model.fit(data.x[train_indices], data.y[train_indices])
     return model
 
 
@@ -36,7 +36,7 @@ def evaluate_model(
     data: Dataset,
     test_indices: np.ndarray
 ) -> tuple[float, float]:
-    model_predictions = model.predict(data.X[test_indices])
+    model_predictions = model.predict(data.x[test_indices])
     mse = float(mean_squared_error(model_predictions, data.y[test_indices]))
     r2 = float(r2_score(model_predictions, data.y[test_indices]))
     return mse, r2
@@ -66,10 +66,10 @@ def kfold_predict(
     predicted: list[dict[int, Any]] = []
     fold_scores = np.zeros((kfold.get_n_splits(), len(scorers)))
     scorer_indices, objective_indices = _separate_objectives(scorers)
-    for fold, [train_indices, test_indices] in enumerate(kfold.split(data.X)):
+    for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x)):
         model_clone = clone(model)
-        model_clone.fit(data.X[train_indices], data.y[train_indices])
-        predicted.append(dict(zip(test_indices.tolist(), model_clone.predict(data.X[test_indices]).tolist())))
+        model_clone.fit(data.x[train_indices], data.y[train_indices])
+        predicted.append(dict(zip(test_indices.tolist(), model_clone.predict(data.x[test_indices]).tolist())))
         fold_scores[fold][scorer_indices] = [
             scorers[index]._score_func(data.y[test_indices], list(predicted[-1].values()))
             for index in scorer_indices

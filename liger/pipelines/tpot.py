@@ -220,7 +220,7 @@ class TPOTPipeline:
         self.config_search_space = _tpot_params["search_space"]
         search_space = create_search_space(
             self.config_search_space,
-            self.dataset.X.shape[1],
+            self.dataset.x.shape[1],
             self.tpot_random_state
         )
 
@@ -418,7 +418,7 @@ class TPOTPipeline:
             print("\nRUN TERMINATION CONDITIONS ALREADY MET")
             print("\nRUN COMPLETE")
             return
-        self.tpot.fit(self.dataset.X, self.dataset.y)
+        self.tpot.fit(self.dataset.x, self.dataset.y)
         output = capture.get_output()
         output_lines = output.split("\n")
         if "Generation:  " not in output and "score: " not in output:
@@ -473,7 +473,7 @@ class TPOTPipeline:
             dill.dump(self.tpot.fitted_pipeline_, f)
 
     def evaluate(self) -> None:
-        # training_score = self.tpot.score(self.dataset.X, self.dataset.y)
+        # training_score = self.tpot.score(self.dataset.x, self.dataset.y)
         for eval_random_state in self.eval_random_states:
             kfold_predictions, kfold_scores = self.tpot_test(eval_random_state)
             self.kfold_scores[eval_random_state] = kfold_scores
