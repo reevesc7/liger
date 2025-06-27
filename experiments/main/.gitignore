@@ -13,8 +13,5 @@
 /slurmout/
 *-*.out
 
-# API key files
-*.key
-
 # Personal pipeline tests
 /cr_*
