@@ -15,8 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import MutableSequence
-import numpy as np
+from typing import MutableSequence, overload
+import pandas as pd
 from sentence_transformers import SentenceTransformer
 from .base import BaseEmbedder
 
@@ -26,11 +26,22 @@ class STEmbedder(BaseEmbedder):
         self,
         model_str: str,
     ):
+        self.model_str = model_str
         self.model = SentenceTransformer(model_str)
 
-    def embed(self, strings: str | MutableSequence[str] | np.ndarray) -> np.ndarray:
-        if isinstance(strings, MutableSequence):
-            strings = list(strings)
+    @overload
+    def embed(self, strings: str) -> pd.Series: ...
+    @overload
+    def embed(self, strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
+    def embed(self, strings: str | MutableSequence[str] | pd.Series) -> pd.Series | pd.DataFrame:
         print(f"STEmbedder embedding...")
-        return np.array(self.model.encode(strings))
+        model_dims = self.model.get_sentence_embedding_dimension()
+        if model_dims is None:
+            raise ValueError("Model did not return number of embedding dimensions")
+        cols = pd.Index(f"{self.model_str}_{dim}" for dim in range(model_dims))
+        if isinstance(strings, (MutableSequence, pd.Series)):
+            strings = list(strings)
+        elif isinstance(strings, str):
+            return pd.Series(self.model.encode(strings, convert_to_numpy=True), index=cols)
+        return pd.DataFrame(self.model.encode(strings), columns=cols)
 

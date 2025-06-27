@@ -15,10 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import MutableSequence
+from typing import MutableSequence, overload
 from pathlib import Path
+import pandas as pd
 from openai import OpenAI
-import numpy as np
 from .base import BaseEmbedder
 
 
@@ -33,12 +33,26 @@ class OpenAIEmbedder(BaseEmbedder):
         self.client = OpenAI(api_key=keyfile.read_text().strip())
         self.model = model_str
 
-    def embed(self, strings: str | MutableSequence[str] | np.ndarray) -> np.ndarray:
+    def _embed_one(self, string: str) -> list[float]:
+        print(f"OpenAIEmbedder embedding \"{string[:16]}...{string[-16:]}\"".replace("\n", " "))
+        return self.client.embeddings.create(
+            input=string.replace("\n", " "),
+            model=self.model,
+        ).data[0].embedding
+
+    def _col_names(self, n_dims: int) -> pd.Index:
+        return pd.Index(f"{self.model}_{dim}" for dim in range(n_dims))
+
+    @overload
+    def embed(self, strings: str) -> pd.Series: ...
+    @overload
+    def embed(self, strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
+    def embed(self, strings: str | MutableSequence[str] | pd.Series) -> pd.Series | pd.DataFrame:
         if isinstance(strings, str):
-            print(f"OpenAIEmbedder embedding \"{strings[:16]}\"...".replace("\n", " "))
-            return np.array(self.client.embeddings.create(
-                input=strings.replace("\n", " "),
-                model=self.model
-            ).data[0].embedding)
-        return np.array([self.embed(string) for string in strings])
+            embedding = pd.Series(self._embed_one(strings))
+            embedding.index = self._col_names(embedding.size)
+            return embedding
+        embeddings = pd.DataFrame((self._embed_one(string) for string in strings))
+        embeddings.columns = self._col_names(embeddings.shape[1])
+        return embeddings
 

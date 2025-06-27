@@ -6,7 +6,7 @@ PROMPT_START = "@PROMPT"
 PROMPT_END = "@RESPONSE"
 
 
-def get_logged_prompts(file_path: str | Path, filter: str) -> list[str]:
+def get_logged_prompts(file_path: str | Path, filter: str) -> pd.Series:
     file_path = Path(file_path)
     with open(file_path, "r", encoding="cp1252") as file:
         lines = file.readlines()
@@ -22,7 +22,7 @@ def get_logged_prompts(file_path: str | Path, filter: str) -> list[str]:
                 continue
             prompts.append(prompt)
             continue
-    return prompts
+    return pd.Series(prompts, name="prompt")
 
 
 def response_strip(responses: pd.Series) -> pd.Series:

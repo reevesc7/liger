@@ -16,23 +16,31 @@
 
 
 from typing import MutableSequence, overload
-import numpy as np
+import pandas as pd
 import re
 
 
 class BaseEmbedder:
     @staticmethod
     @overload
-    def alter_strings(strings: str, to_replace: str, replacement: str) -> str: ...
+    def alter_strings(
+        strings: str,
+        to_replace: str,
+        replacement: str
+    ) -> str: ...
     @staticmethod
     @overload
-    def alter_strings(strings: MutableSequence[str], to_replace: str, replacement: str) -> list[str]: ...
+    def alter_strings(
+        strings: MutableSequence[str] | pd.Series,
+        to_replace: str,
+        replacement: str
+    ) -> pd.Series: ...
     @staticmethod
     def alter_strings(
-        strings: str | MutableSequence[str],
+        strings: str | MutableSequence[str] | pd.Series,
         to_replace: str,
         replacement: str,
-    ) -> str | list[str]:
+    ) -> str | pd.Series:
         """Substitute a string within all strings.
 
         Parameters
@@ -51,19 +59,25 @@ class BaseEmbedder:
         """
         if isinstance(strings, str):
             return re.sub(to_replace, replacement, strings)
-        return [BaseEmbedder.alter_strings(string, to_replace, replacement) for string in strings]
+        return pd.Series(
+            BaseEmbedder.alter_strings(string, to_replace, replacement)
+            for string in strings
+        )
 
     @staticmethod
     @overload
     def prepend_to_strings(strings: str, add_string: str) -> str: ...
     @staticmethod
     @overload
-    def prepend_to_strings(strings: MutableSequence[str], add_string: str) -> list[str]: ...
+    def prepend_to_strings(
+        strings: MutableSequence[str] | pd.Series,
+        add_string: str
+    ) -> pd.Series: ...
     @staticmethod
     def prepend_to_strings(
-        strings: str | MutableSequence[str],
+        strings: str | MutableSequence[str] | pd.Series,
         add_string: str,
-    ) -> str | list[str]:
+    ) -> str | pd.Series:
         """Add a string to the start of all strings.
 
         Parameters
@@ -80,11 +94,18 @@ class BaseEmbedder:
         """
         if isinstance(strings, str):
             return add_string.strip() + " " + strings
-        return [BaseEmbedder.prepend_to_strings(string, add_string) for string in strings]
+        return pd.Series(
+            BaseEmbedder.prepend_to_strings(string, add_string)
+            for string in strings
+        )
 
     def set_model(self, model_str: str) -> None:
         self.model = model_str
 
-    def embed(self, strings: str | MutableSequence[str] | np.ndarray) -> np.ndarray:
+    @overload
+    def embed(self, strings: str) -> pd.Series: ...
+    @overload
+    def embed(self, strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
+    def embed(self, strings: str | MutableSequence[str] | pd.Series) -> pd.Series | pd.DataFrame:
         raise NotImplementedError()
 

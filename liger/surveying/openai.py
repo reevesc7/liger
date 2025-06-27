@@ -18,6 +18,7 @@
 from typing import Any, MutableSequence, overload
 from pathlib import Path
 from math import sqrt
+import pandas as pd
 from openai import OpenAI
 import tiktoken
 from .base import BaseSurveyor
@@ -58,10 +59,10 @@ class OpenAISurveyor(BaseSurveyor):
 
     def survey(
         self,
-        prompts: str | MutableSequence[str],
+        prompts: str | MutableSequence[str] | pd.Series,
         reps: int | None = None,
         allow_dupes: bool = False
-    ) -> list[str]:
+    ) -> pd.Series:
         if isinstance(prompts, str):
             prompts = [prompts]
         self.check_prompts(prompts, allow_dupes)
@@ -69,27 +70,39 @@ class OpenAISurveyor(BaseSurveyor):
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps))
             print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
-        return responses
+        return pd.Series(responses, name="response")
 
     @staticmethod
-    def mean(probs: dict[int, float]) -> float:
-        return sum(key * value for key, value in probs.items())
+    def mean(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
+        print(probs.columns, type([col for col in probs.columns][0]))
+        return probs.apply(
+            lambda row: sum(int(col) * row[col] for col in probs.columns),
+            axis=1,
+        )
 
     @staticmethod
-    def mode(probs: dict[int, float]) -> int:
-        return max(probs, key=lambda k: probs[k])
+    def mode(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
+        return probs.apply(
+            lambda row: int(max(probs.columns, key=lambda col: row[col])),
+            axis=1,
+        )
 
     @staticmethod
-    def std_dev(probs: dict[int, float]) -> float:
-        return sqrt(sum(key ** 2 * value for key, value in probs.items()) - OpenAISurveyor.mean(probs))
+    def _row_std_dev(row: pd.Series) -> float:
+        mean = sum(int(col) * row[col] for col in row.index)
+        return sqrt(sum(row[col] * (int(col) - mean) ** 2 for col in row.index))
 
     @staticmethod
-    def functionals(probs: dict[int, float]) -> dict[str, float | int]:
-        return {
+    def std_dev(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
+        return probs.apply(OpenAISurveyor._row_std_dev, axis=1)
+
+    @staticmethod
+    def functionals(probs: pd.DataFrame) -> pd.DataFrame:
+        return pd.DataFrame({
             "mean": OpenAISurveyor.mean(probs),
             "mode": OpenAISurveyor.mode(probs),
             "std_dev": OpenAISurveyor.std_dev(probs),
-        }
+        })
 
     @staticmethod
     def integerize_keys(dictionary: dict) -> dict[int, Any]:
@@ -152,12 +165,12 @@ class OpenAISurveyor(BaseSurveyor):
 
     def probs_survey(
         self,
-        prompts: MutableSequence[str],
+        prompts: MutableSequence[str] | pd.Series,
         response_seeds: str | list[str],
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
         allow_dupes: bool = False
-    ) -> list[dict[str, float]]:
+    ) -> pd.DataFrame:
         self.check_prompts(prompts, allow_dupes)
         if isinstance(response_seeds, str):
             response_seeds = [response_seeds] * len(prompts)
@@ -167,5 +180,5 @@ class OpenAISurveyor(BaseSurveyor):
         for prompt, response_seed in zip(prompts, response_seeds):
             responses.append(self.probs(prompt, response_seed, allowed_tokens, normalize))
             print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
-        return responses
+        return pd.DataFrame(responses)
 
