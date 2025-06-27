@@ -68,10 +68,13 @@ def kfold_predict(
     scorer_indices, objective_indices = _separate_objectives(scorers)
     for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x)):
         model_clone = clone(model)
-        model_clone.fit(data.x[train_indices], data.y[train_indices])
-        predicted.append(dict(zip(test_indices.tolist(), model_clone.predict(data.x[test_indices]).tolist())))
+        model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
+        predicted.append(dict(zip(
+            test_indices.tolist(),
+            model_clone.predict(data.x.iloc[test_indices]).tolist()
+        )))
         fold_scores[fold][scorer_indices] = [
-            scorers[index]._score_func(data.y[test_indices], list(predicted[-1].values()))
+            scorers[index]._score_func(data.y.iloc[test_indices], list(predicted[-1].values()))
             for index in scorer_indices
         ]
     scores = np.average(fold_scores, axis=0)
