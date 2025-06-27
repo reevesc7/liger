@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ### 4. Test installation:
 
-With `liger` installed, you can run a test.
+With requirements installed, you can run a test.
 
 ```
 bash test_bash.sh
