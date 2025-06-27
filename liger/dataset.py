@@ -29,8 +29,8 @@ class Dataset:
 
     def __repr__(self):
         return f"""Dataset:
-    x: {self.x},
-    y: {self.y}"""
+x: {self.x},
+y: {self.y}"""
 
     @staticmethod
     def _to_set(input: str | MutableSequence[str] | set[str]) -> set[str]:
