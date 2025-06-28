@@ -20,14 +20,6 @@ import pandas as pd
 
 
 class BaseSurveyor:
-    @staticmethod
-    def check_prompts(
-        prompts: MutableSequence[str] | pd.Series,
-        allow_dupes: bool = False
-    ) -> None:
-        if not allow_dupes and len(set(prompts)) < len(prompts):
-            raise ValueError("Duplicate prompts detected. Set `allow_dupes = True` to ignore")
-
     def survey(self, prompts: MutableSequence[str] | pd.Series, reps: int = 1) -> pd.Series:
         raise NotImplementedError()
 

@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, MutableSequence, overload
+from typing import MutableSequence, overload
 from pathlib import Path
 from math import sqrt
 import pandas as pd
@@ -37,6 +37,7 @@ class OpenAISurveyor(BaseSurveyor):
         self.logit_bias: dict[str, int] | None = None
 
     def generate_response(self, prompt: str) -> str:
+        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
@@ -61,36 +62,38 @@ class OpenAISurveyor(BaseSurveyor):
         self,
         prompts: str | MutableSequence[str] | pd.Series,
         reps: int | None = None,
-        allow_dupes: bool = False
     ) -> pd.Series:
         if isinstance(prompts, str):
             prompts = [prompts]
-        self.check_prompts(prompts, allow_dupes)
         responses = []
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps))
-            print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
         return pd.Series(responses, name="response")
 
     @staticmethod
+    def _col2int(colname: str) -> int:
+        return int(colname.removeprefix("prob_"))
+
+    @staticmethod
     def mean(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
-        print(probs.columns, type([col for col in probs.columns][0]))
         return probs.apply(
-            lambda row: sum(int(col) * row[col] for col in probs.columns),
+            lambda row: sum(OpenAISurveyor._col2int(col) * row[col] for col in probs.columns),
             axis=1,
         )
 
     @staticmethod
     def mode(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
         return probs.apply(
-            lambda row: int(max(probs.columns, key=lambda col: row[col])),
+            lambda row: OpenAISurveyor._col2int(max(probs.columns, key=lambda col: row[col])),
             axis=1,
         )
 
     @staticmethod
     def _row_std_dev(row: pd.Series) -> float:
-        mean = sum(int(col) * row[col] for col in row.index)
-        return sqrt(sum(row[col] * (int(col) - mean) ** 2 for col in row.index))
+        mean = sum(OpenAISurveyor._col2int(str(col)) * row[col] for col in row.index)
+        return sqrt(sum(
+            row[col] * (OpenAISurveyor._col2int(str(col)) - mean) ** 2 for col in row.index
+        ))
 
     @staticmethod
     def std_dev(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
@@ -105,8 +108,8 @@ class OpenAISurveyor(BaseSurveyor):
         })
 
     @staticmethod
-    def integerize_keys(dictionary: dict) -> dict[int, Any]:
-        return {int(key): value for key, value in dictionary.items()}
+    def _col_names(tokens: pd.Index) -> pd.Index:
+        return pd.Index(f"prob_{token}" for token in tokens)
 
     def set_logit_bias(self, desired_tokens: str | set[str]) -> None:
         encoding = tiktoken.encoding_for_model(self.model)
@@ -118,13 +121,14 @@ class OpenAISurveyor(BaseSurveyor):
             for token_id in token_ids:
                 self.logit_bias[str(token_id)] = 100
 
-    def probs(
+    def _probs_one(
         self,
         prompt: str,
         response_seed: str,
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
     ) -> dict[str, float]:
+        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -143,42 +147,63 @@ class OpenAISurveyor(BaseSurveyor):
         else:
             raise ValueError("No response was returned or response was unparseable")
         if allowed_tokens is None:
-            return {
-                logprob.token: 10 ** logprob.logprob
-                for logprob in response
-            }
+            return {logprob.token: 10 ** logprob.logprob for logprob in response}
         if isinstance(allowed_tokens, str):
-            allowed_tokens = set(allowed_tokens,)
+            allowed_tokens = {allowed_tokens,}
         probs = {
             logprob.token: 10 ** logprob.logprob
             for logprob in response
             if logprob.token in allowed_tokens
         }
         for token in allowed_tokens:
-            probs[token] = probs.get(token, 0.0)
-        if normalize:
-            total_prob = sum(list(probs.values()))
-            if total_prob == 0.0:
-                return probs
-            probs = {token: prob / total_prob for token, prob in probs.items()}
+            probs.setdefault(token, 0.0)
+        if not normalize:
+            return probs
+        total_prob = sum(probs.values())
+        if total_prob == 0.0:
+            return probs
+        probs = {token: prob / total_prob for token, prob in probs.items()}
         return probs
 
+    @overload
+    def probs_survey(
+        self,
+        prompts: str,
+        response_seeds: str,
+        allowed_tokens: str | set[str] | None = None,
+        normalize: bool = True,
+    ) -> pd.Series: ...
+    @overload
     def probs_survey(
         self,
         prompts: MutableSequence[str] | pd.Series,
         response_seeds: str | list[str],
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
-        allow_dupes: bool = False
-    ) -> pd.DataFrame:
-        self.check_prompts(prompts, allow_dupes)
+    ) -> pd.DataFrame: ...
+    def probs_survey(
+        self,
+        prompts: str | MutableSequence[str] | pd.Series,
+        response_seeds: str | MutableSequence[str] | pd.Series,
+        allowed_tokens: str | set[str] | None = None,
+        normalize: bool = True,
+    ) -> pd.Series | pd.DataFrame:
+        if isinstance(prompts, str):
+            if not isinstance(response_seeds, str):
+                raise TypeError("response_seeds must be a string if prompts is a string")
+            response = pd.Series(
+                self._probs_one(prompts, response_seeds, allowed_tokens, normalize)
+            )
+            response.index = self._col_names(response.index)
+            return response
         if isinstance(response_seeds, str):
-            response_seeds = [response_seeds] * len(prompts)
+            response_seeds = [response_seeds,] * len(prompts)
         elif len(response_seeds) != len(prompts):
-            raise ValueError("`prompts` and `response_seeds` must be the same size")
-        responses: list[dict[str, float]] = []
-        for prompt, response_seed in zip(prompts, response_seeds):
-            responses.append(self.probs(prompt, response_seed, allowed_tokens, normalize))
-            print(f"OpenAISurveyor responded to \"{prompt[:16]}\"...".replace("\n", " "))
-        return pd.DataFrame(responses)
+            raise ValueError("prompts and response_seeds must be the same size")
+        responses = pd.DataFrame(
+            self._probs_one(prompt, response_seed, allowed_tokens, normalize)
+            for prompt, response_seed in zip(prompts, response_seeds)
+        )
+        responses.columns = self._col_names(responses.columns)
+        return responses
 
