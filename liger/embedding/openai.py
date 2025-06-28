@@ -29,12 +29,12 @@ class OpenAIEmbedder(BaseEmbedder):
     def __init__(self, model_str: str, keyfile: str | Path = OPENAI_KEYFILE):
         keyfile = Path(keyfile)
         if not keyfile.is_file():
-            raise FileNotFoundError(f"No \"{OPENAI_KEYFILE}\" in the working directory")
+            raise FileNotFoundError(f"\"{keyfile}\" is not a file.")
         self.client = OpenAI(api_key=keyfile.read_text().strip())
         self.model = model_str
 
     def _embed_one(self, string: str) -> list[float]:
-        print(f"OpenAIEmbedder embedding \"{string[:16]}...{string[-16:]}\"".replace("\n", " "))
+        print(f"{type(self).__name__} embedding \"{string[:16]}...{string[-16:]}\"".replace("\n", " "))
         return self.client.embeddings.create(
             input=string.replace("\n", " "),
             model=self.model,
@@ -52,7 +52,7 @@ class OpenAIEmbedder(BaseEmbedder):
             embedding = pd.Series(self._embed_one(strings))
             embedding.index = self._col_names(embedding.size)
             return embedding
-        embeddings = pd.DataFrame((self._embed_one(string) for string in strings))
+        embeddings = pd.DataFrame(self._embed_one(string) for string in strings)
         embeddings.columns = self._col_names(embeddings.shape[1])
         return embeddings
 
