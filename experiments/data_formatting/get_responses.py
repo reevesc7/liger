@@ -5,11 +5,11 @@ import get_prompts
 
 
 def responses() -> pd.DataFrame:
+    if cnst.RESPONSES_OP != cnst.Op.MAKE:
+        return pd.read_csv(cnst.RESPONSES_FILE)
     prompts = get_prompts.prompts()
-    if cnst.RESPONSES_OP == cnst.Op.MAKE:
-        surveyor = OpenAISurveyor(cnst.AI_SURVEY_MODEL)
-        return surveyor.probs_survey(prompts, cnst.RESPONSE_SEED, cnst.ALLOWED_TOKENS)
-    return pd.read_csv(cnst.RESPONSES_FILE)
+    surveyor = OpenAISurveyor(cnst.AI_SURVEY_MODEL)
+    return surveyor.probs_survey(prompts, cnst.RESPONSE_SEED, cnst.ALLOWED_TOKENS)
 
 
 def main():

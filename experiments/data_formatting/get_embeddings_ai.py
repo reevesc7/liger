@@ -5,11 +5,11 @@ import get_prompts
 
 
 def embeddings_ai() -> pd.DataFrame:
+    if cnst.EMBEDDINGS_AI_OP != cnst.Op.MAKE:
+        return pd.read_csv(cnst.EMBEDDINGS_AI_FILE)
     prompts = get_prompts.prompts()
-    if cnst.EMBEDDINGS_AI_OP == cnst.Op.MAKE:
-        embedder = OpenAIEmbedder(cnst.AI_EMBED_MODEL)
-        return embedder.embed(prompts)
-    return pd.read_csv(cnst.EMBEDDINGS_AI_FILE)
+    embedder = OpenAIEmbedder(cnst.AI_EMBED_MODEL)
+    return embedder.embed(prompts)
 
 
 def main():

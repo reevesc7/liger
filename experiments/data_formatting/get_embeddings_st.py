@@ -5,11 +5,11 @@ import get_prompts
 
 
 def embeddings_st() -> pd.DataFrame:
+    if cnst.EMBEDDINGS_ST_OP != cnst.Op.MAKE:
+        return pd.read_csv(cnst.EMBEDDINGS_ST_FILE)
     prompts = get_prompts.prompts()
-    if cnst.EMBEDDINGS_ST_OP == cnst.Op.MAKE:
-        embedder = STEmbedder(cnst.ST_EMBED_MODEL)
-        return embedder.embed(prompts)
-    return pd.read_csv(cnst.EMBEDDINGS_ST_FILE)
+    embedder = STEmbedder(cnst.ST_EMBED_MODEL)
+    return embedder.embed(prompts)
 
 
 def main():
