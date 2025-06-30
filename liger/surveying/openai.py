@@ -71,36 +71,36 @@ class OpenAISurveyor(BaseSurveyor):
         return pd.Series(responses, name="response")
 
     @staticmethod
-    def _col2int(colname: str) -> int:
-        return int(colname.removeprefix("prob_"))
-
-    @staticmethod
     def mean(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
-        return probs.apply(
-            lambda row: sum(OpenAISurveyor._col2int(col) * row[col] for col in probs.columns),
-            axis=1,
-        )
+        return probs.apply(lambda row: sum(col * row[col] for col in probs.columns), axis=1)
 
     @staticmethod
     def mode(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
-        return probs.apply(
-            lambda row: OpenAISurveyor._col2int(max(probs.columns, key=lambda col: row[col])),
-            axis=1,
-        )
+        return probs.apply(lambda row: max(probs.columns, key=lambda col: row[col]), axis=1)
 
     @staticmethod
     def _row_std_dev(row: pd.Series) -> float:
-        mean = sum(OpenAISurveyor._col2int(str(col)) * row[col] for col in row.index)
-        return sqrt(sum(
-            row[col] * (OpenAISurveyor._col2int(str(col)) - mean) ** 2 for col in row.index
-        ))
+        mean = sum(col * row[col] for col in row.index)
+        return sqrt(sum(row[col] * (col - mean) ** 2 for col in row.index))
 
     @staticmethod
     def std_dev(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
         return probs.apply(OpenAISurveyor._row_std_dev, axis=1)
 
     @staticmethod
-    def functionals(probs: pd.DataFrame) -> pd.DataFrame:
+    def _col2int(colname: str, prune: str | MutableSequence[str]) -> int:
+        if isinstance(prune, str):
+            prune = [prune,]
+        for string in prune:
+            colname = colname.removeprefix(string).removesuffix(string)
+        return int(colname)
+
+    @staticmethod
+    def functionals(
+        probs: pd.DataFrame,
+        colname_prune: str | MutableSequence[str] = "prob_",
+    ) -> pd.DataFrame:
+        probs.columns = probs.columns.map(lambda col: OpenAISurveyor._col2int(col, colname_prune))
         return pd.DataFrame({
             "mean": OpenAISurveyor.mean(probs),
             "mode": OpenAISurveyor.mode(probs),
