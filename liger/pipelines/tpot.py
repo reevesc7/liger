@@ -18,7 +18,7 @@
 from types import FunctionType
 from typing import Any, Union
 import sys
-from os import path, makedirs, remove, walk
+from pathlib import Path
 from copy import deepcopy
 import shutil
 import json
@@ -37,109 +37,90 @@ from sklearn.pipeline import Pipeline
 import dill
 
 
-OUTPUT = "outputs/"
-IN_PROGRESS = "in_progress/"
-PIPELINE_DATA = "pipeline_data.json"
-POPULATION_PKL = "population.pkl"
-TEMP_POPULATION_PKL = "temp-population.pkl"
-DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
-REG_CLASS_OVERLAP = {
-    "sklearn.preprocessing.Binarizer",
-    "sklearn.decomposition.FastICA",
-    "sklearn.cluster.FeatureAgglomeration",
-    "sklearn.preprocessing.MaxAbsScaler",
-    "sklearn.preprocessing.MinMaxScaler",
-    "sklearn.preprocessing.Normalizer",
-    "sklearn.kernel_approximation.Nystroem",
-    "sklearn.decomposition.PCA",
-    "sklearn.preprocessing.PolynomialFeatures",
-    "sklearn.kernel_approximation.RBFSampler",
-    "sklearn.preprocessing.RobustScaler",
-    "sklearn.preprocessing.StandardScaler",
-    "tpot.builtins.ZeroCount",
-    "tpot.builtins.OneHotEncoder",
-    "sklearn.feature_selection.SelectFwe",
-    "sklearn.feature_selection.SelectPercentile",
-    "sklearn.feature_selection.VarianceThreshold",
-    "sklearn.feature_selection.SelectFromModel",
-}
-PIPELINE_PARAM_KEYS = {
-    "config_file",
-    "data_file",
-    "feature_keys",
-    "score_keys",
-    "target_gens",
-    "eval_random_states",
-    "id",
-}
-TPOT_PARAM_KEYS = {
-    "scorers",
-    "scorers_weights",
-    "classification",
-    "cv",
-    "other_objective_functions",
-    "other_objective_functions_weights",
-    "objective_function_names",
-    "bigger_is_better",
-    "export_graphpipeline",
-    "memory",
-    "categorical_features",
-    "preprocessing",
-    "population_size",
-    "initial_population_size",
-    "population_scaling",
-    "generations_until_end_population",
-    "generations",
-    "max_time_mins",
-    "max_eval_time_mins",
-    "validation_strategy",
-    "validation_fraction",
-    "disable_label_encoder",
-    "early_stop",
-    "scorers_early_stop_tol",
-    "other_objectives_early_stop_tol",
-    "threshold_evaluation_pruning",
-    "threshold_evaluation_scaling",
-    "selection_evaluation_pruning",
-    "selection_evaluation_scaling",
-    "min_history_threshold",
-    "survival_percentage",
-    "crossover_probability",
-    "mutate_probability",
-    "mutate_then_crossover_probability",
-    "crossover_then_mutate_probability",
-    "budget_range",
-    "budget_scaling",
-    "generations_until_end_budget",
-    "stepwise_steps",
-    "n_jobs",
-    "memory_limit",
-    "client",
-    "processes",
-    "warm_start",
-    "periodic_checkpoint_folder",
-    "callback",
-    "verbose",
-    "scatter",
-    "random_state",
-}
-PIPELINE_ATTR_KEYS = {
-    "complete_gens",
-    "gen_scores",
-    "sxn_start_times",
-    "sxn_run_times",
-    "slurm_ids",
-    "kfold_scores",
-    "kfold_predictions",
-}
-TPOT_ATTR_KEYS = {
-    "fitted_pipeline_",
-    "evaluated_individuals",
-    "pareto_front",
-}
-
-
 class TPOTPipeline:
+    OUTPUT = Path("outputs/")
+    IN_PROGRESS = Path("in_progress/")
+    PIPELINE_DATA = Path("pipeline_data.json")
+    POPULATION_PKL = Path("population.pkl")
+    TEMP_POPULATION_PKL = Path("temp-population.pkl")
+    FITTED_PIPELINE = Path("fitted_pipeline.pkl")
+    DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
+    PIPELINE_PARAM_KEYS = {
+        "config_file",
+        "data_file",
+        "feature_keys",
+        "score_keys",
+        "target_gens",
+        "eval_random_states",
+        "id",
+    }
+    TPOT_PARAM_KEYS = {
+        "scorers",
+        "scorers_weights",
+        "classification",
+        "cv",
+        "other_objective_functions",
+        "other_objective_functions_weights",
+        "objective_function_names",
+        "bigger_is_better",
+        "export_graphpipeline",
+        "memory",
+        "categorical_features",
+        "preprocessing",
+        "population_size",
+        "initial_population_size",
+        "population_scaling",
+        "generations_until_end_population",
+        "generations",
+        "max_time_mins",
+        "max_eval_time_mins",
+        "validation_strategy",
+        "validation_fraction",
+        "disable_label_encoder",
+        "early_stop",
+        "scorers_early_stop_tol",
+        "other_objectives_early_stop_tol",
+        "threshold_evaluation_pruning",
+        "threshold_evaluation_scaling",
+        "selection_evaluation_pruning",
+        "selection_evaluation_scaling",
+        "min_history_threshold",
+        "survival_percentage",
+        "crossover_probability",
+        "mutate_probability",
+        "mutate_then_crossover_probability",
+        "crossover_then_mutate_probability",
+        "budget_range",
+        "budget_scaling",
+        "generations_until_end_budget",
+        "stepwise_steps",
+        "n_jobs",
+        "memory_limit",
+        "client",
+        "processes",
+        "warm_start",
+        "periodic_checkpoint_folder",
+        "callback",
+        "verbose",
+        "scatter",
+        "random_state",
+    }
+    PIPELINE_ATTR_KEYS = {
+        "complete_gens",
+        "gen_scores",
+        "sxn_start_times",
+        "sxn_run_times",
+        "slurm_ids",
+        "kfold_scores",
+        "kfold_predictions",
+    }
+    TPOT_ATTR_KEYS = {
+        "fitted_pipeline_",
+        "evaluated_individuals",
+        "pareto_front",
+    }
+
+
     def __init__(
         self,
         config_file: str | None = None,
@@ -182,12 +163,12 @@ class TPOTPipeline:
         self.id = self.use_first(
             id,
             _pipeline_params.get("id"),
-            self.start_time.strftime(DATETIME_FMT),
+            self.start_time.strftime(self.DATETIME_FMT),
         )
         self.complete_gens = _pipeline_attrs.get("complete_gens", 0)
         self.gen_scores = _pipeline_attrs.get("gen_scores", [])
         self.sxn_start_times = _pipeline_attrs.get("sxn_start_times", [])
-        self.sxn_start_times.append(self.start_time.strftime(DATETIME_FMT))
+        self.sxn_start_times.append(self.start_time.strftime(self.DATETIME_FMT))
         self.sxn_run_times = _pipeline_attrs.get("sxn_run_times", [])
         self.slurm_ids = _pipeline_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
@@ -228,21 +209,21 @@ class TPOTPipeline:
         scorers = self.init_scorers(_tpot_params["scorers"])
 
         # Set output path
-        self.output_dir = path.join(OUTPUT, self.data_name, self.id)
+        self.output_dir = self.OUTPUT / self.data_name / str(self.id)
 
         # Override mid-generation population.pkl, if need be
         # Create on-generation temp-population.pkl, if nonexistent
-        if path.isfile(path.join(self.output_dir, TEMP_POPULATION_PKL)):
-            print("USING", TEMP_POPULATION_PKL, flush=True)
+        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
+            print("USING", self.TEMP_POPULATION_PKL, flush=True)
             shutil.copy(
-                path.join(self.output_dir, TEMP_POPULATION_PKL),
-                path.join(self.output_dir, POPULATION_PKL)
+                self.output_dir / self.TEMP_POPULATION_PKL,
+                self.output_dir / self.POPULATION_PKL,
             )
-        elif path.isfile(path.join(self.output_dir, POPULATION_PKL)):
-            print("USING", POPULATION_PKL, flush=True)
+        elif (self.output_dir / self.POPULATION_PKL).is_file():
+            print("USING", self.POPULATION_PKL, flush=True)
             shutil.copy(
-                path.join(self.output_dir, POPULATION_PKL),
-                path.join(self.output_dir, TEMP_POPULATION_PKL)
+                self.output_dir / self.POPULATION_PKL,
+                self.output_dir / self.TEMP_POPULATION_PKL,
             )
 
         # Initialize estimator
@@ -264,8 +245,9 @@ class TPOTPipeline:
         )
 
     @classmethod
-    def from_checkpoint(cls, checkpoint: str, slurm_id: int | None) -> Self:
-        pipeline_params, tpot_params, pipeline_attrs = cls.load_config(path.join(checkpoint, PIPELINE_DATA))
+    def from_checkpoint(cls, checkpoint: str | Path, slurm_id: int | None) -> Self:
+        checkpoint = Path(checkpoint)
+        pipeline_params, tpot_params, pipeline_attrs = cls.load_config(checkpoint / cls.PIPELINE_DATA)
         kwargs = {
             "pipeline_parameters": pipeline_params,
             "tpot_parameters": tpot_params,
@@ -284,21 +266,22 @@ class TPOTPipeline:
         return None
 
     @staticmethod
-    def get_filename(filepath: str) -> str:
-        return filepath.rsplit("/")[-1].split(".")[0]
+    def get_filename(filepath: str | Path) -> str:
+        filepath = Path(filepath)
+        return filepath.stem
 
     @staticmethod
-    def find_checkpoint(id: str) -> str | None:
-        for dirpath, dirnames, _ in walk(OUTPUT):
-            if id in dirnames and path.isfile(path.join(dirpath, id, PIPELINE_DATA)):
-                return path.join(dirpath, id)
+    def find_checkpoint(id: str) -> Path | None:
+        for checkpoint_path in TPOTPipeline.OUTPUT.rglob(id):
+            return checkpoint_path
         return None
 
     @staticmethod
-    def load_config(config_file: str | None) -> tuple[dict, dict, dict]:
-        if config_file is None:
+    def load_config(config_path: str | Path | None) -> tuple[dict, dict, dict]:
+        if config_path is None:
             return ({}, {}, {})
-        with open(config_file) as f:
+        config_path = Path(config_path)
+        with open(config_path) as f:
             config = dict(json.load(f))
         pipeline_parameters = config.get("pipeline_parameters", {})
         tpot_parameters = config.get("tpot_parameters", {})
@@ -352,30 +335,30 @@ class TPOTPipeline:
 
     def save_data(self) -> None:
         pipeline_data = self.get_pipeline_data()
-        with open(path.join(self.output_dir, PIPELINE_DATA), "w") as f:
+        with open(self.output_dir / self.PIPELINE_DATA, "w") as f:
             json.dump(pipeline_data, f, indent=4, default=self.json_everything)
 
     def get_pipeline_data(self) -> dict:
         pipeline_parameters = {
             key: value
             for key, value in self.__dict__.items()
-            if key in PIPELINE_PARAM_KEYS
+            if key in self.PIPELINE_PARAM_KEYS
         }
         tpot_parameters = {
             key: value
             for key, value in self.tpot.__dict__.items()
-            if key in TPOT_PARAM_KEYS
+            if key in self.TPOT_PARAM_KEYS
         }
         tpot_parameters["search_space"] = self.config_search_space
         pipeline_attributes = {
             key: value
             for key, value in self.__dict__.items()
-            if key in PIPELINE_ATTR_KEYS
+            if key in self.PIPELINE_ATTR_KEYS
         }
         tpot_attributes = {
             key: value
             for key, value in self.tpot.__dict__.items()
-            if key in TPOT_ATTR_KEYS
+            if key in self.TPOT_ATTR_KEYS
         }
         return {
             "pipeline_parameters": pipeline_parameters,
@@ -407,7 +390,6 @@ class TPOTPipeline:
         ][-1].split(":  ")[-1].removesuffix(".0"))
 
     def run_1_gen(self) -> None:
-        # Capture output dynamically
         capture = LiveOutputCapture()
         sys.stdout = capture
         self.save_prep()
@@ -427,8 +409,8 @@ class TPOTPipeline:
         self.update_complete_gens(output_lines)
         self.run_time = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         self.sxn_run_times.append(self.run_time)
-        if path.isfile(path.join(self.output_dir, TEMP_POPULATION_PKL)):
-            remove(path.join(self.output_dir, TEMP_POPULATION_PKL))
+        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
+            (self.output_dir / self.TEMP_POPULATION_PKL).unlink()
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
             self.export_fitted_pipeline()
             self.evaluate()
@@ -443,13 +425,11 @@ class TPOTPipeline:
         print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
 
     def save_prep(self) -> None:
-        if not path.isdir(self.output_dir):
-            makedirs(self.output_dir)
-        if not path.isdir(IN_PROGRESS):
-            makedirs(IN_PROGRESS)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.IN_PROGRESS.mkdir(parents=True, exist_ok=True)
 
     def in_progress(self):
-        with open(IN_PROGRESS + self.id + ".txt", "w") as f:
+        with open((self.IN_PROGRESS / str(self.id)).with_suffix(".txt"), "w") as f:
             f.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
                 "\nGeneration: " + str(self.complete_gens + 1),
@@ -457,7 +437,7 @@ class TPOTPipeline:
             ])
 
     def not_in_progress(self) -> None:
-        remove(IN_PROGRESS + self.id + ".txt")
+        (self.IN_PROGRESS / str(self.id)).with_suffix(".txt").unlink()
 
     def detect_early_stop(self) -> bool:
         if not isinstance(self.tpot.early_stop, int):
@@ -469,7 +449,7 @@ class TPOTPipeline:
         return True
 
     def export_fitted_pipeline(self) -> None:
-        with open(path.join(self.output_dir, "fitted_pipeline.pkl"), "wb") as f:
+        with open(self.output_dir / self.FITTED_PIPELINE, "wb") as f:
             dill.dump(self.tpot.fitted_pipeline_, f)
 
     def evaluate(self) -> None:
