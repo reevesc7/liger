@@ -1,4 +1,5 @@
 from enum import Enum
+from pathlib import Path
 
 
 class Op(Enum):
@@ -8,21 +9,22 @@ class Op(Enum):
 
 
 # OPERATIONS: whether to skip, make, or retrieve each data type
-PROMPTS_OP         = Op.RETR
-RESPONSES_OP       = Op.RETR
-FUNCTIONALS_OP     = Op.RETR
-EMBEDDINGS_AI_OP   = Op.RETR
-EMBEDDINGS_ST_OP   = Op.RETR
+PROMPTS_OP         = Op.MAKE
+RESPONSES_OP       = Op.MAKE
+FUNCTIONALS_OP     = Op.MAKE
+EMBEDDINGS_AI_OP   = Op.MAKE
+EMBEDDINGS_ST_OP   = Op.MAKE
 
 
 # FILES: file paths to retrieve data from and write data to
-LOG_FILE           = "../../../generative_agents/response_logs/simulation_test_013_2024-10-24.txt"
-PROMPTS_FILE       = "smallville_846/prompts.csv"
-RESPONSES_FILE     = "smallville_846/responses.csv"
-FUNCTIONALS_FILE   = "smallville_846/functionals.csv"
-EMBEDDINGS_AI_FILE = "smallville_846/embeddings_ai.csv"
-EMBEDDINGS_ST_FILE = "smallville_846/embeddings_st.csv"
-DATASET_FILE       = "smallville_846/dataset.csv"
+DIRECTORY          = Path("smallville_846")
+LOG_FILE           = DIRECTORY / "simulation_test_013_2024-10-24.txt"
+PROMPTS_FILE       = DIRECTORY / "prompts.csv"
+RESPONSES_FILE     = DIRECTORY / "responses.csv"
+FUNCTIONALS_FILE   = DIRECTORY / "functionals.csv"
+EMBEDDINGS_AI_FILE = DIRECTORY / "embeddings_ai.csv"
+EMBEDDINGS_ST_FILE = DIRECTORY / "embeddings_st.csv"
+DATASET_FILE       = DIRECTORY / "smallville_846.csv"
 
 
 # SAVE INTERMEDIATES: whether to save prompts.csv, etc. when running format_dataset.py
