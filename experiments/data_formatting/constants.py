@@ -17,12 +17,12 @@ EMBEDDINGS_ST_OP   = Op.RETR
 
 # FILES: file paths to retrieve data from and write data to
 LOG_FILE           = "../../../generative_agents/response_logs/simulation_test_013_2024-10-24.txt"
-PROMPTS_FILE       = "data/prompts.csv"
-RESPONSES_FILE     = "data/responses.csv"
-FUNCTIONALS_FILE   = "data/functionals.csv"
-EMBEDDINGS_AI_FILE = "data/embeddings_ai.csv"
-EMBEDDINGS_ST_FILE = "data/embeddings_st.csv"
-DATASET_FILE       = "data/dataset.csv"
+PROMPTS_FILE       = "smallville_846/prompts.csv"
+RESPONSES_FILE     = "smallville_846/responses.csv"
+FUNCTIONALS_FILE   = "smallville_846/functionals.csv"
+EMBEDDINGS_AI_FILE = "smallville_846/embeddings_ai.csv"
+EMBEDDINGS_ST_FILE = "smallville_846/embeddings_st.csv"
+DATASET_FILE       = "smallville_846/dataset.csv"
 
 
 # SAVE INTERMEDIATES: whether to save prompts.csv, etc. when running format_dataset.py
