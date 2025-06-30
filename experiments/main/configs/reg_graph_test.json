@@ -1,18 +1,17 @@
 {
     "pipeline_parameters": {
-        "data_file": "data/smallville_846.csv",
+        "data_file": "data/test_data.csv",
         "feature_keys": [
-            "text-embedding-3-small"
+            "all-mpnet-base-v2"
         ],
         "score_keys": [
-            "mean"
+            "mean",
+            "median"
         ],
-        "target_gens": 50,
+        "target_gens": 10,
         "eval_random_states": [
             0,
-            1,
-            2,
-            3
+            1
         ],
         "id": null
     },
@@ -95,17 +94,17 @@
             -1
         ],
         "classification": false,
-        "cv": 9,
+        "cv": 4,
         "bigger_is_better": true,
-        "population_size": 100,
+        "population_size": 4,
         "generations": 1,
         "max_time_mins": 220,
         "max_eval_time_mins": 10,
-        "early_stop": 10,
+        "early_stop": 2,
         "scorers_early_stop_tol": 0.001,
         "other_objectives_early_stop_tol": null,
         "warm_start": true,
         "verbose": 4,
-        "random_state": null
+        "random_state": 0
     }
 }
