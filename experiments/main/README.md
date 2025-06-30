@@ -1,8 +1,8 @@
 # Liger-Testbed
 
-A directory made to act as a working directory for the `liger` Python module.
-
 **Required Packages:** `liger`
+
+A directory made to act as a working directory for the `liger` Python module.
 
 ## Setting up environment
 

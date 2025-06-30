@@ -1,5 +1,7 @@
 # Liger-Testbed
 
+**Required Packages:** `liger`
+
 A directory with scripts for formatting datasets for use with `liger`.
 
 Here are scripts for
@@ -8,8 +10,6 @@ Here are scripts for
 - surveying models for responses to prompts,
 - deriving functionals from model probability distribution responses,
 - and synthesizing all relevant fields into an aggregate dataset.
-
-**Required Packages:** `liger`
 
 ## Setting up environment
 
@@ -41,6 +41,25 @@ While in the directory of the desired experiment,
 pip install -r requirements.txt
 ```
 
-### 4. :
+### 4. Copy `example_config.py`:
 
+The file `config.py` is ignored by git,
+allowing users to modify it as needed for experiments.
+
+```
+cp example_config.py config.py
+```
+
+### 5. Modify configuration as needed:
+
+The behavior of the scripts in this directory are controlled by `config.py`.
+See below for an outline of how to modify the config.
+
+## Formatting data
+
+### Modifying configuration
+
+### Isolating formatting steps
+
+Each segment of the dataset formatting process can be run separately.
 
