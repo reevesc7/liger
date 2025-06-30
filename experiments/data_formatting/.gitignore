@@ -1,3 +1,6 @@
 Data files
 *.csv
 
+Config file
+/config.py
+
