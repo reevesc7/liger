@@ -70,6 +70,6 @@ the `PROMPTS_FILE` filepath.
 There are two exceptions:
 - `Op.SKIP` behaves like `Op.RETR`
 - An output file is always written
-at the filepath that would also be used to retrieve that data,
-even if `SAVE_INTERMEDIATES = False` or a file already exists at that location
+  at the filepath that would also be used to retrieve that data,
+  even if `SAVE_INTERMEDIATES = False` or a file already exists at that location
 
