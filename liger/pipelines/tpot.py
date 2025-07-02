@@ -16,7 +16,7 @@
 
 
 from types import FunctionType
-from typing import Any, Union
+from typing import Any
 import sys
 from pathlib import Path
 from copy import deepcopy
@@ -131,7 +131,7 @@ class TPOTPipeline:
         tpot_parameters: dict | None = None,
         pipeline_attributes: dict | None = None,
     ) -> None:
-        self.config_file = config_file
+        self.config_file: str | None = config_file
         _pipeline_params, _tpot_params, _pipeline_attrs = self.load_config(self.config_file)
 
         # Override config parameters with argument parameters
@@ -148,32 +148,32 @@ class TPOTPipeline:
         # Set special needs parameters
         if self.config_file is None:
             self.config_file = _pipeline_params.get("config_file")
-        self.data_file = _pipeline_params.get("data_file", None)
-        self.feature_keys = _pipeline_params.get("feature_keys", None)
-        self.score_keys = _pipeline_params.get("score_keys", None)
+        self.data_file: str | None = _pipeline_params.get("data_file", None)
+        self.feature_keys: list[str] | None = _pipeline_params.get("feature_keys", None)
+        self.score_keys: list[str] | None = _pipeline_params.get("score_keys", None)
         if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
-        self.tpot_random_state = self.use_first(
+        self.tpot_random_state: int = self.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
             randint(0, 2**32-1),
         )
-        self.target_gens = _pipeline_params["target_gens"]
-        self.eval_random_states = _pipeline_params["eval_random_states"]
+        self.target_gens: int = _pipeline_params.get("target_gens", 10)
+        self.eval_random_states: list[int] = _pipeline_params.get("eval_random_states", [0])
         self.id = self.use_first(
             id,
             _pipeline_params.get("id"),
             self.start_time.strftime(self.DATETIME_FMT),
         )
-        self.complete_gens = _pipeline_attrs.get("complete_gens", 0)
-        self.gen_scores = _pipeline_attrs.get("gen_scores", [])
-        self.sxn_start_times = _pipeline_attrs.get("sxn_start_times", [])
+        self.complete_gens: int = _pipeline_attrs.get("complete_gens", 0)
+        self.gen_scores: list[list[float]] = _pipeline_attrs.get("gen_scores", [])
+        self.sxn_start_times: list[str] = _pipeline_attrs.get("sxn_start_times", [])
         self.sxn_start_times.append(self.start_time.strftime(self.DATETIME_FMT))
-        self.sxn_run_times = _pipeline_attrs.get("sxn_run_times", [])
-        self.slurm_ids = _pipeline_attrs.get("slurm_ids", [])
+        self.sxn_run_times: list[float] = _pipeline_attrs.get("sxn_run_times", [])
+        self.slurm_ids: list[int | None] = _pipeline_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
-        self.kfold_scores = _pipeline_attrs.get("kfold_scores", {})
-        self.kfold_predictions = _pipeline_attrs.get("kfold_predictions", {})
+        self.kfold_scores: dict = _pipeline_attrs.get("kfold_scores", {})
+        self.kfold_predictions: dict = _pipeline_attrs.get("kfold_predictions", {})
 
         # Set dataset
         self.data_name = self.get_filename(self.data_file)
@@ -295,8 +295,8 @@ class TPOTPipeline:
         return (pipeline_parameters, tpot_parameters, pipeline_attributes)
 
     @staticmethod
-    def init_scorers(param_scorers: list[str]) -> list[Union[str, FunctionType]]:
-        scorers: list[Union[str, FunctionType]] = []
+    def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
+        scorers: list[str | FunctionType] = []
         for param_scorer in param_scorers:
             if "." not in param_scorer:
                 scorers.append(param_scorer)
