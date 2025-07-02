@@ -62,4 +62,14 @@ See below for an outline of how to modify the config.
 ### Isolating formatting steps
 
 Each segment of the dataset formatting process can be run separately.
+Simply run, for instance, `python get_prompts.py` to create a prompts file.
+
+All config parameters will be obeyed.
+E.g., `PROMPTS_OP = Op.RETR` will still look to retrieve prompts from
+the `PROMPTS_FILE` filepath.
+There are two exceptions:
+- `Op.SKIP` behaves like `Op.RETR`
+- An output file is always written
+at the filepath that would also be used to retrieve that data,
+even if `SAVE_INTERMEDIATES = False` or a file already exists at that location
 

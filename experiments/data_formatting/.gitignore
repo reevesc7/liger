@@ -1,5 +1,8 @@
-Data files
+Data and log files
 *.csv
+*.txt
+
+!/smallville_846/simulation_prompts.txt
 
 Config file
 /config.py
