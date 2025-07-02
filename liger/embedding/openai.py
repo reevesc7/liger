@@ -33,8 +33,13 @@ class OpenAIEmbedder(BaseEmbedder):
         self.client = OpenAI(api_key=keyfile.read_text().strip())
         self.model = model_str
 
+    def _print_limited(self, string: str, n: int = 16) -> None:
+        if len(string) > 2 * n + 5:
+            string = string[:n] + " ... " + string[-n:]
+        print(f"{type(self).__name__} embedding \"{string}\"".replace("\n", " "))
+
     def _embed_one(self, string: str) -> list[float]:
-        print(f"{type(self).__name__} embedding \"{string[:16]}...{string[-16:]}\"".replace("\n", " "))
+        self._print_limited(string)
         return self.client.embeddings.create(
             input=string.replace("\n", " "),
             model=self.model,

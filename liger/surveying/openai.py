@@ -36,8 +36,13 @@ class OpenAISurveyor(BaseSurveyor):
         self.model = model_str
         self.logit_bias: dict[str, int] | None = None
 
+    def _print_limited(self, string: str, n: int = 16) -> None:
+        if len(string) > 2 * n + 5:
+            string = string[:n] + " ... " + string[-n:]
+        print(f"{type(self).__name__} responding to \"{string}\"".replace("\n", " "))
+
     def generate_response(self, prompt: str) -> str:
-        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
+        self._print_limited(prompt)
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
