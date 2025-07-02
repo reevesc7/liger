@@ -444,7 +444,11 @@ class TPOTPipeline:
             return False
         if len(self.gen_scores) < self.tpot.early_stop + 1:
             return False
-        if len(set(str(s) for s in self.gen_scores[-(self.tpot.early_stop + 1):])) > 1:
+        if any(abs(i - j) >= t for i, j, t in zip(
+            self.gen_scores[-self.tpot.early_stop - 1],
+            self.gen_scores[-1],
+            self.tpot.early_stop_tol,
+        )):
             return False
         return True
 
