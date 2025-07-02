@@ -2,26 +2,42 @@ from pathlib import Path
 import pandas as pd
 
 
-PROMPT_START = "@PROMPT"
-PROMPT_END = "@RESPONSE"
+def _offset_of_match(line: str, substrs: dict[str, int]) -> int | None:
+    for substr, line_offset in substrs.items():
+        if substr in line:
+            return line_offset
 
 
-def get_logged_prompts(file_path: str | Path, filter: str) -> pd.Series:
+def get_logged_prompts(
+    file_path: str | Path,
+    start: dict[str, int],
+    end: dict[str, int],
+    filter: str | set[str],
+) -> pd.Series:
     file_path = Path(file_path)
     with open(file_path, "r", encoding="cp1252") as file:
         lines = file.readlines()
+    if isinstance(filter, str):
+        filter = {filter,}
     prompts: list[str] = []
     start_index = 0
+    collecting = False
     for index, line in enumerate(lines):
-        if PROMPT_START in line:
-            start_index = index + 1
-            continue
-        elif PROMPT_END in line:
-            prompt = "".join(lines[start_index:index])
-            if filter not in prompt:
+        if not collecting:
+            start_offset = _offset_of_match(line, start)
+            if start_offset is None:
+                continue
+            collecting = True
+            start_index = index + start_offset
+        else:
+            end_offset = _offset_of_match(line, end)
+            if end_offset is None:
+                continue
+            collecting = False
+            prompt = "".join(lines[start_index:index + end_offset + 1])
+            if not any(substr in prompt for substr in filter):
                 continue
             prompts.append(prompt)
-            continue
     return pd.Series(prompts, name="prompt")
 
 
