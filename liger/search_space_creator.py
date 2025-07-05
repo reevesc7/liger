@@ -19,7 +19,11 @@ from typing import Any
 import tpot
 
 
-def create_search_space(param_search_space: Any, n_features: int, random_state: int | None = None) -> tpot.search_spaces.SearchSpace:
+def create_search_space(
+    param_search_space: Any,
+    n_features: int,
+    random_state: int | None = None
+) -> tpot.search_spaces.SearchSpace:
     search_space = items_to_search_space(
         param_search_space["node_type"],
         {key: value for key, value in param_search_space.items() if key != "node_type"},
@@ -29,14 +33,23 @@ def create_search_space(param_search_space: Any, n_features: int, random_state: 
     return search_space
 
 
-def create_search_spaces(param_search_spaces: Any, n_features: int, random_state: int | None = None) -> list[tpot.search_spaces.SearchSpace]:
+def create_search_spaces(
+    param_search_spaces: Any,
+    n_features: int,
+    random_state: int | None = None
+) -> list[tpot.search_spaces.SearchSpace]:
     search_spaces = []
     for param_search_space in param_search_spaces:
         search_spaces.append(create_search_space(param_search_space, n_features, random_state))
     return search_spaces
 
 
-def items_to_search_space(node_type: str, node_parameters: Any, n_features: int, random_state: int | None = None) -> tpot.search_spaces.SearchSpace:
+def items_to_search_space(
+    node_type: str,
+    node_parameters: Any,
+    n_features: int,
+    random_state: int | None = None
+) -> tpot.search_spaces.SearchSpace:
     node_kwargs = {}
     for key, value in node_parameters.items():
         if key == "search_spaces":
@@ -61,7 +74,10 @@ def items_to_search_space(node_type: str, node_parameters: Any, n_features: int,
             search_space = tpot.search_spaces.pipelines.GraphSearchPipeline(**node_kwargs)
         case "EstimatorNode":
             search_space = tpot.config.get_search_space(node_parameters["class_name"], random_state=random_state)
-            if not isinstance(search_space, (tpot.search_spaces.nodes.EstimatorNode, tpot.search_spaces.pipelines.ChoicePipeline)):
+            if not isinstance(search_space, (
+                tpot.search_spaces.nodes.EstimatorNode,
+                tpot.search_spaces.pipelines.ChoicePipeline,
+            )):
                 raise ValueError(f"{node_parameters['class_name']} could not be converted into an EstimatorNode or ChoicePipeline")
         case "GeneticFeatureSelectorNode":
             search_space = tpot.search_spaces.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
