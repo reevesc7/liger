@@ -1,6 +1,6 @@
 [project]
 name = "liger"
-version = "0.5.3"
+version = "0.6.0"
 description = "Helper functions for the Likert General Regressor project"
 authors = [
     {name = "Chris Reeves",email = "reeves.chris.allan@gmail.com"}
