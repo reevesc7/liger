@@ -22,7 +22,7 @@ dependencies = [
 
 
 [project.scripts]
-liger-pipeline = "liger.run_tpot_pipeline:main"
+liger-pipeline = "liger.run_tpot_manager:main"
 
 [project.urls]
 Repository = "https://github.com/reevesc7/liger.git"

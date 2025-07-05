@@ -16,7 +16,7 @@
 
 
 from types import FunctionType
-from typing import Any
+from typing import Any, TextIO
 import sys
 from pathlib import Path
 from copy import deepcopy
@@ -24,12 +24,11 @@ import shutil
 import json
 from random import randint
 from datetime import datetime, timezone
-from importlib import import_module
-from typing_extensions import LiteralString, Self
+from typing_extensions import Self
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
-from ..training_testing import kfold_predict
+from ..training_testing import init_scorers, kfold_predict
 from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.metrics._scorer import _Scorer
@@ -37,7 +36,7 @@ from sklearn.pipeline import Pipeline
 import dill
 
 
-class TPOTPipeline:
+class TPOTManager:
     OUTPUT = Path("outputs/")
     IN_PROGRESS = Path("in_progress/")
     PIPELINE_DATA = Path("pipeline_data.json")
@@ -108,8 +107,8 @@ class TPOTPipeline:
     PIPELINE_ATTR_KEYS = {
         "complete_gens",
         "gen_scores",
-        "sxn_start_times",
-        "sxn_run_times",
+        "segment_start_times",
+        "segment_run_times",
         "slurm_ids",
         "kfold_scores",
         "kfold_predictions",
@@ -123,7 +122,7 @@ class TPOTPipeline:
 
     def __init__(
         self,
-        config_file: str | None = None,
+        config_file: str | Path | None = None,
         tpot_random_state: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
@@ -131,7 +130,8 @@ class TPOTPipeline:
         tpot_parameters: dict | None = None,
         pipeline_attributes: dict | None = None,
     ) -> None:
-        self.config_file: str | None = config_file
+        self.start_time = datetime.now(timezone.utc)
+        self.config_file: str | Path | None = config_file
         _pipeline_params, _tpot_params, _pipeline_attrs = self.load_config(self.config_file)
 
         # Override config parameters with argument parameters
@@ -142,22 +142,24 @@ class TPOTPipeline:
         if isinstance(pipeline_attributes, dict):
             _pipeline_attrs.update(pipeline_attributes)
 
-        # Record start time
-        self.start_time = datetime.now(timezone.utc)
-
-        # Set special needs parameters
         if self.config_file is None:
             self.config_file = _pipeline_params.get("config_file")
-        self.data_file: str | None = _pipeline_params.get("data_file", None)
+
+        self.data_file: str | Path | None = _pipeline_params.get("data_file", None)
         self.feature_keys: list[str] | None = _pipeline_params.get("feature_keys", None)
         self.score_keys: list[str] | None = _pipeline_params.get("score_keys", None)
         if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
-        self.tpot_random_state: int = self.use_first(
+        self.data_file = Path(self.data_file)
+        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
+
+        self._config_search_space = _tpot_params["search_space"]
+        _tpot_random_state: int = self.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
-            randint(0, 2**32-1),
+            randint(0, 2 ** 32 - 1),
         )
+
         self.target_gens: int = _pipeline_params.get("target_gens", 10)
         self.eval_random_states: list[int] = _pipeline_params.get("eval_random_states", [0])
         self.id = self.use_first(
@@ -165,74 +167,33 @@ class TPOTPipeline:
             _pipeline_params.get("id"),
             self.start_time.strftime(self.DATETIME_FMT),
         )
+
         self.complete_gens: int = _pipeline_attrs.get("complete_gens", 0)
         self.gen_scores: list[list[float]] = _pipeline_attrs.get("gen_scores", [])
-        self.sxn_start_times: list[str] = _pipeline_attrs.get("sxn_start_times", [])
-        self.sxn_start_times.append(self.start_time.strftime(self.DATETIME_FMT))
-        self.sxn_run_times: list[float] = _pipeline_attrs.get("sxn_run_times", [])
+        self.segment_start_times: list[str] = _pipeline_attrs.get("segment_start_times", [])
+        self.segment_start_times.append(self.start_time.strftime(self.DATETIME_FMT))
+        self.segment_run_times: list[float] = _pipeline_attrs.get("segment_run_times", [])
         self.slurm_ids: list[int | None] = _pipeline_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
         self.kfold_scores: dict = _pipeline_attrs.get("kfold_scores", {})
         self.kfold_predictions: dict = _pipeline_attrs.get("kfold_predictions", {})
 
-        # Set dataset
-        self.data_name = self.get_filename(self.data_file)
-        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
+        self.output_dir = self.OUTPUT / self.data_file.stem / str(self.id)
 
-        # Set CV
-        if _tpot_params["classification"]:
-            _, counts = np.unique(self.dataset.y, return_counts=True)
-            if counts.size == 1:
-                max_cv = int(counts[0])
-            else:
-                max_cv = int(np.sort(counts)[-2])
-        else:
-            max_cv = self.dataset.y.shape[0]
-        cv = _tpot_params.get("cv")
-        if cv is None:
-            cv = max_cv
-        elif cv > max_cv:
-            print(f"WARNING: Config \"cv\"={cv} is greater than the dataset allows. Using max allowed by dataset ({max_cv})", flush=True)
-            cv = max_cv
-        else:
-            cv = int(_tpot_params["cv"])
-
-        # Create search space
-        self.config_search_space = _tpot_params["search_space"]
-        search_space = create_search_space(
-            self.config_search_space,
-            self.dataset.x.shape[1],
-            self.tpot_random_state
-        )
-
-        # Set scorer functions
-        scorers = self.init_scorers(_tpot_params["scorers"])
-
-        # Set output path
-        self.output_dir = self.OUTPUT / self.data_name / str(self.id)
-
-        # Override mid-generation population.pkl, if need be
-        # Create on-generation temp-population.pkl, if nonexistent
-        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
-            print("USING", self.TEMP_POPULATION_PKL, flush=True)
-            shutil.copy(
-                self.output_dir / self.TEMP_POPULATION_PKL,
-                self.output_dir / self.POPULATION_PKL,
-            )
-        elif (self.output_dir / self.POPULATION_PKL).is_file():
-            print("USING", self.POPULATION_PKL, flush=True)
-            shutil.copy(
-                self.output_dir / self.POPULATION_PKL,
-                self.output_dir / self.TEMP_POPULATION_PKL,
-            )
-
-        # Initialize estimator
         self.tpot = TPOTEstimator(
-            search_space=search_space,
-            scorers=scorers,
-            cv=cv,
+            search_space=create_search_space(
+                self._config_search_space,
+                self.dataset.x.shape[1],
+                _tpot_random_state
+            ),
+            scorers=init_scorers(_tpot_params["scorers"]),
+            cv=self.get_cv(
+                _tpot_params.get("cv"),
+                _tpot_params["classification"],
+                self.dataset.y
+            ),
             periodic_checkpoint_folder=self.output_dir,
-            random_state=self.tpot_random_state,
+            random_state=_tpot_random_state,
             **{key: value for key, value in _tpot_params.items() if key not in [
                 "search_space",
                 "scorers",
@@ -248,31 +209,25 @@ class TPOTPipeline:
     def from_checkpoint(cls, checkpoint: str | Path, slurm_id: int | None) -> Self:
         checkpoint = Path(checkpoint)
         pipeline_params, tpot_params, pipeline_attrs = cls.load_config(checkpoint / cls.PIPELINE_DATA)
-        kwargs = {
+        return cls(**{
             "pipeline_parameters": pipeline_params,
             "tpot_parameters": tpot_params,
             "pipeline_attributes": pipeline_attrs,
             "slurm_id": slurm_id,
-        }
-        pipeline = cls(**kwargs)
-        return pipeline
+        })
 
     @staticmethod
     def use_first(*args) -> Any:
-        """Return the first arg which is not None."""
+        """Return the first arg which is not None.
+        """
         for arg in args:
             if arg is not None:
                 return arg
         return None
 
     @staticmethod
-    def get_filename(filepath: str | Path) -> str:
-        filepath = Path(filepath)
-        return filepath.stem
-
-    @staticmethod
     def find_checkpoint(id: str) -> Path | None:
-        for checkpoint_path in TPOTPipeline.OUTPUT.rglob(id):
+        for checkpoint_path in TPOTManager.OUTPUT.rglob(id):
             return checkpoint_path
         return None
 
@@ -295,15 +250,21 @@ class TPOTPipeline:
         return (pipeline_parameters, tpot_parameters, pipeline_attributes)
 
     @staticmethod
-    def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
-        scorers: list[str | FunctionType] = []
-        for param_scorer in param_scorers:
-            if "." not in param_scorer:
-                scorers.append(param_scorer)
-                continue
-            split_scorer = param_scorer.rsplit(".", 1)
-            scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
-        return scorers
+    def get_cv(param_cv: int | None, classification: bool, y: pd.DataFrame) -> int:
+        if classification:
+            _, counts = np.unique(y, return_counts=True)
+            if counts.size == 1:
+                max_cv = int(counts[0])
+            else:
+                max_cv = int(np.sort(counts)[-2])
+        else:
+            max_cv = y.shape[0]
+        if param_cv is None:
+            return max_cv
+        elif param_cv > max_cv:
+            print(f"WARNING: Config \"cv\"={param_cv} is greater than the dataset allows. Using max allowed by dataset ({max_cv})", flush=True)
+            return max_cv
+        return param_cv
 
     @staticmethod
     def json_everything(objec: Any) -> Any:
@@ -311,7 +272,7 @@ class TPOTPipeline:
             return {index: value for index, value in enumerate(objec.to_list())}
         if isinstance(objec, pd.DataFrame):
             return {
-                col: TPOTPipeline.json_everything(objec[col])
+                col: TPOTManager.json_everything(objec[col])
                 for col in objec.columns
                 if col != "Individual"
             }
@@ -325,13 +286,15 @@ class TPOTPipeline:
             return ".".join([objec.__module__, objec.__name__])
         if isinstance(objec, Pipeline):
             return objec.__repr__().split("\n")
+        if isinstance(objec, Path):
+            return str(objec)
         if hasattr(objec, "__dict__"):
             return {
                 key: value
                 for key, value in objec.__dict__.items()
                 if not key.startswith("_") and not key.endswith("_")
             }
-        return ""
+        raise TypeError(f"Could not convert type {type(objec)} to json format")
 
     def save_data(self) -> None:
         pipeline_data = self.get_pipeline_data()
@@ -349,7 +312,7 @@ class TPOTPipeline:
             for key, value in self.tpot.__dict__.items()
             if key in self.TPOT_PARAM_KEYS
         }
-        tpot_parameters["search_space"] = self.config_search_space
+        tpot_parameters["search_space"] = self._config_search_space
         pipeline_attributes = {
             key: value
             for key, value in self.__dict__.items()
@@ -367,7 +330,7 @@ class TPOTPipeline:
             "tpot_attributes": tpot_attributes,
         }
 
-    def append_scores(self, output_lines: list[LiteralString]) -> None:
+    def append_scores(self, output_lines: list[str]) -> None:
         gen_indices = [
             index
             for index, line in enumerate(output_lines)
@@ -382,14 +345,14 @@ class TPOTPipeline:
                 if "score: " in l
             ])
 
-    def update_complete_gens(self, output_lines: list[LiteralString]) -> None:
+    def update_complete_gens(self, output_lines: list[str]) -> None:
         self.complete_gens = int([
             l
             for l in output_lines
             if "Generation:  " in l
         ][-1].split(":  ")[-1].removesuffix(".0"))
 
-    def run_1_gen(self) -> None:
+    def run_segment(self) -> None:
         capture = LiveOutputCapture()
         sys.stdout = capture
         self.save_prep()
@@ -397,6 +360,7 @@ class TPOTPipeline:
         print("\nPIPELINE ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
+            self.not_in_progress()
             print("\nRUN TERMINATION CONDITIONS ALREADY MET")
             print("\nRUN COMPLETE")
             return
@@ -408,9 +372,7 @@ class TPOTPipeline:
         self.append_scores(output_lines)
         self.update_complete_gens(output_lines)
         self.run_time = (datetime.now(timezone.utc) - self.start_time).total_seconds()
-        self.sxn_run_times.append(self.run_time)
-        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
-            (self.output_dir / self.TEMP_POPULATION_PKL).unlink()
+        self.segment_run_times.append(self.run_time)
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
             self.export_fitted_pipeline()
             self.evaluate()
@@ -425,10 +387,35 @@ class TPOTPipeline:
         print(f"\nRUN INCOMPLETE WITH ID: {self.id}")
 
     def save_prep(self) -> None:
+        """Ensure the existence of the output and in-progress directories.
+        """
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.IN_PROGRESS.mkdir(parents=True, exist_ok=True)
 
     def in_progress(self):
+        """Set up in-progress signals.
+
+        If in-progress signals already exist, use them to recover
+        state from the last time this training was run.
+        A temporary population file is created before any training
+        occurs, which allows for reinstantiation from that file
+        if training was cut off mid-segment.
+        Additionally, a small file is generated in the in-progress
+        directory, enabling detection of runs which are currently
+        running or were cut off mid-segment.
+        """
+        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
+            print("USING", self.TEMP_POPULATION_PKL, flush=True)
+            shutil.copy(
+                self.output_dir / self.TEMP_POPULATION_PKL,
+                self.output_dir / self.POPULATION_PKL,
+            )
+        elif (self.output_dir / self.POPULATION_PKL).is_file():
+            print("USING", self.POPULATION_PKL, flush=True)
+            shutil.copy(
+                self.output_dir / self.POPULATION_PKL,
+                self.output_dir / self.TEMP_POPULATION_PKL,
+            )
         with open((self.IN_PROGRESS / str(self.id)).with_suffix(".txt"), "w") as f:
             f.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
@@ -437,15 +424,31 @@ class TPOTPipeline:
             ])
 
     def not_in_progress(self) -> None:
+        """Clear in-progress signals.
+
+        Remove the temporary population file and in-progress file.
+        If training was cut off mid-segment, this method will not
+        run, and new segments will initialize with the same state
+        as the cut-off segment, enabling re-attempting it.
+        """
+        if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
+            (self.output_dir / self.TEMP_POPULATION_PKL).unlink()
         (self.IN_PROGRESS / str(self.id)).with_suffix(".txt").unlink()
 
     def detect_early_stop(self) -> bool:
+        """Detect whether the early stop condition has been met.
+
+        Takes into account the `TPOTEstimator`'s `early_stop` and
+        `early_stop_tol` attributes.
+        Triggers if there has not been improvement ACROSS `early_stop` generations;
+        i.e., the score must be the same for `early_stop` + 1 generations.
+        """
         if not isinstance(self.tpot.early_stop, int):
             return False
         if len(self.gen_scores) < self.tpot.early_stop + 1:
             return False
-        if any(abs(i - j) >= t for i, j, t in zip(
-            self.gen_scores[-self.tpot.early_stop - 1],
+        if any(abs(a_score - z_score) >= tol for a_score, z_score, tol in zip(
+            self.gen_scores[-1 - self.tpot.early_stop],
             self.gen_scores[-1],
             self.tpot.early_stop_tol,
         )):
@@ -453,6 +456,12 @@ class TPOTPipeline:
         return True
 
     def export_fitted_pipeline(self) -> None:
+        """Creates a pickle file of the best performing pipeline.
+
+        The file is made in the output directory.
+        Pickling pipelines relies on the `dill` module, so loading
+        from a fitted pipeline pickle file requires `dill`.
+        """
         with open(self.output_dir / self.FITTED_PIPELINE, "wb") as f:
             dill.dump(self.tpot.fitted_pipeline_, f)
 
@@ -478,17 +487,27 @@ class TPOTPipeline:
 
 
 class LiveOutputCapture:
+    """A stand-in for `sys.stdout` which records the text it writes.
+
+    Recorded text can be retrieved with the `get_output()` method.
+    """
     def __init__(self):
         self.captured_text = []
-        self.original_stdout = sys.stdout
+        self.original_stdout: TextIO = sys.stdout
 
-    def write(self, text):
+    def write(self, text: str) -> int:
+        """Record the written text before writing it, as normal.
+        """
         self.captured_text.append(text)  # Store the output
-        self.original_stdout.write(text)  # Still print it to the console
+        return self.original_stdout.write(text)  # Still print it to the console
 
-    def flush(self):
+    def flush(self) -> None:
+        """Flush print buffer, as normal.
+        """
         self.original_stdout.flush()  # Ensure flushing still works
 
-    def get_output(self):
+    def get_output(self) -> str:
+        """Retreive all recorded text as a string.
+        """
         return "".join(self.captured_text)
 

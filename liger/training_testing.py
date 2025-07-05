@@ -16,30 +16,23 @@
 
 
 from typing import Any
+from types import FunctionType
+from importlib import import_module
 import numpy as np
-from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.model_selection import KFold
-from sklearn.base import clone
 from sklearn.metrics._scorer import _Scorer
 from .dataset import Dataset
 
 
-# Takes a model, data in Dataset format, indices of data to train on. Returns trained model.
-def train_model(model, data: Dataset, train_indices: np.ndarray):
-    model.fit(data.x[train_indices], data.y[train_indices])
-    return model
-
-
-# Takes a model, data in Dataset format, indices of data to tset on. Returns performance measures
-def evaluate_model(
-    model,
-    data: Dataset,
-    test_indices: np.ndarray
-) -> tuple[float, float]:
-    model_predictions = model.predict(data.x[test_indices])
-    mse = float(mean_squared_error(model_predictions, data.y[test_indices]))
-    r2 = float(r2_score(model_predictions, data.y[test_indices]))
-    return mse, r2
+def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
+    scorers: list[str | FunctionType] = []
+    for param_scorer in param_scorers:
+        if "." not in param_scorer:
+            scorers.append(param_scorer)
+            continue
+        split_scorer = param_scorer.rsplit(".", 1)
+        scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
+    return scorers
 
 
 def _separate_objectives(scorers: list[Any]) -> tuple[list[int], list[int]]:
@@ -67,11 +60,10 @@ def kfold_predict(
     fold_scores = np.zeros((kfold.get_n_splits(), len(scorers)))
     scorer_indices, objective_indices = _separate_objectives(scorers)
     for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x)):
-        model_clone = clone(model)
-        model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
+        model.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
         predicted.append(dict(zip(
             test_indices.tolist(),
-            model_clone.predict(data.x.iloc[test_indices]).tolist()
+            model.predict(data.x.iloc[test_indices]).tolist()
         )))
         fold_scores[fold][scorer_indices] = [
             scorers[index]._score_func(data.y.iloc[test_indices], list(predicted[-1].values()))

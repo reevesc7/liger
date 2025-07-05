@@ -18,7 +18,7 @@
 from typing import Any
 from argparse import ArgumentParser, Namespace
 import json
-from liger.pipelines.tpot import TPOTPipeline
+from liger.managers.tpot import TPOTManager
 
 
 def main():
@@ -26,13 +26,13 @@ def main():
 
     checkpoint = None
     if args.id is not None:
-        checkpoint = TPOTPipeline.find_checkpoint(args.id)
+        checkpoint = TPOTManager.find_checkpoint(args.id)
     if checkpoint is not None:
-        pipeline = TPOTPipeline.from_checkpoint(checkpoint, args.slurmid)
+        pipeline = TPOTManager.from_checkpoint(checkpoint, args.slurmid)
     else:
         if args.config is None:
             raise ValueError("Config file must be specified for new runs!")
-        pipeline = TPOTPipeline(
+        pipeline = TPOTManager(
             config_file=args.config,
             tpot_random_state=args.tpotrs,
             pipeline_parameters=args.pipeparam,
@@ -40,7 +40,7 @@ def main():
             slurm_id=args.slurmid,
             id=args.id,
         )
-    pipeline.run_1_gen()
+    pipeline.run_segment()
 
 
 def str_or_none(arg: Any | None) -> str | None:

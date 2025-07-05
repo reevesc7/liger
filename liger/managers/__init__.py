@@ -15,9 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .tpot import TPOTPipeline
+from .tpot import TPOTManager
 
 
 __all__ = [
-    "TPOTPipeline",
+    "TPOTManager",
 ]
