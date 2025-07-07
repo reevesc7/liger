@@ -1,43 +1,46 @@
 from statistics import mean
 import dill
-from sklearn.pipeline import Pipeline
+from sklearn.base import BaseEstimator
 from sklearn.model_selection import KFold
 from sklearn.metrics import get_scorer
 from liger.dataset import Dataset
 import liger.training_testing as tt
 
 
-# Dataset
-DATASET_PATH = "../main/data/smallville_846.csv"
+# MODEL: loading/creating a model
+MODEL_PATH = "../main/outputs/test_data/2025-07-05_00-49-55.061326/fitted_pipeline.pkl"
+
+# DATASET: filepath and column selection to create a dataset
+DATASET_PATH = "../main/data/test_data.csv"
 FEATURE_KEYS = [
-    "text-embedding-3-small",
+    "all-mpnet-base-v2",
 ]
 SCORE_KEYS = [
     "mean",
     "median",
 ]
 
-#Training/Testing
+#TRAINING/TESTING: cross-validation and scoring functions
 N_SPLITS = 5
 SCORER_NAMES = [
     "neg_mean_squared_error",
     "tpot.objectives.complexity_scorer",
 ]
-# ^ all scorer names: https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
+# ^ all scikit-learn scorer names:
+#   https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers
+#   Additionally, providing the path to a function will load the function and attempt
+#   to use it as a scorer or objective.
+#   Format: "<module>.<submodule>.<subsubmodule>...<function>"
 
-# This script loads a `fitted_pipeline.pkl`, output from TPOT.
-# Change to however you want to introduce your model.
-MODEL_PATH = "../main/outputs/smallville_846/2025-07-02_17-22-56.665343/fitted_pipeline.pkl"
 
-
-def load_model(filepath: str) -> Pipeline:
+def get_model(model_path: str) -> BaseEstimator:
     """Replace this logic with however you want to initialize your model.
     """
-    with open(filepath, "rb") as file:
+    with open(model_path, "rb") as file:
         return dill.load(file)
 
 
-def liger_kfold(model: Pipeline, kfold: KFold, scorers: list, dataset: Dataset) -> None:
+def liger_kfold(model: BaseEstimator, kfold: KFold, scorers: list, dataset: Dataset) -> None:
     """The liger KFold process, which gives scores for each scorer fed in.
     """
     _, kfold_scores = tt.kfold_predict(model, kfold, scorers, dataset)
@@ -57,7 +60,7 @@ def normal_kfold(model, kfold: KFold, dataset: Dataset) -> None:
 
 
 def main():
-    model = load_model(MODEL_PATH)
+    model = get_model(MODEL_PATH)
     dataset = Dataset.from_csv(DATASET_PATH, FEATURE_KEYS, SCORE_KEYS)
     scorers = [get_scorer(name) for name in tt.init_scorers(SCORER_NAMES)]
     kfold = KFold(N_SPLITS)

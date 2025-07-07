@@ -1,0 +1,8 @@
+# Everything
+*
+
+# Except `example.py`
+!/.gitignore
+!/README.md
+!/example.py
+
