@@ -33,6 +33,7 @@ from ..search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.metrics._scorer import _Scorer
 from sklearn.pipeline import Pipeline
+from tpot.graphsklearn import GraphPipeline
 import dill
 
 
@@ -284,8 +285,8 @@ class TPOTManager:
             return ".".join([objec._score_func.__module__, objec._score_func.__name__])
         if isinstance(objec, FunctionType) and hasattr(objec, "__module__"):
             return ".".join([objec.__module__, objec.__name__])
-        if isinstance(objec, Pipeline):
-            return objec.__repr__().split("\n")
+        if isinstance(objec, (Pipeline, GraphPipeline)):
+            return objec.__str__().split("\n")
         if isinstance(objec, Path):
             return str(objec)
         if hasattr(objec, "__dict__"):
