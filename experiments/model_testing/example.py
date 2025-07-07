@@ -8,10 +8,10 @@ import liger.training_testing as tt
 
 
 # MODEL: loading/creating a model
-MODEL_PATH = "../main/outputs/test_data/2025-07-05_00-49-55.061326/fitted_pipeline.pkl"
+MODEL_PATH = "../tpot/outputs/test_data/2025-07-05_00-49-55.061326/fitted_pipeline.pkl"
 
 # DATASET: filepath and column selection to create a dataset
-DATASET_PATH = "../main/data/test_data.csv"
+DATASET_PATH = "../tpot/data/test_data.csv"
 FEATURE_KEYS = [
     "all-mpnet-base-v2",
 ]
