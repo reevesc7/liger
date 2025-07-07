@@ -43,7 +43,7 @@ fi
 
 [ -d "slurmout" ] || mkdir -p "slurmout"
 
-all_output=$(liger-pipeline \
+all_output=$(lg-tpot \
     --config="$CONFIG" \
     --tpotrs="$TPOTRS" \
     --slurmid="$SLURM_JOB_ID" \

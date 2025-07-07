@@ -39,7 +39,7 @@ if [[ -z $config ]] && [[ -z $id ]]; then
     exit 1
 fi
 
-all_output=$(liger-pipeline \
+all_output=$(lg-tpot \
     --config="$config" \
     --tpotrs="$tpotrs" \
     --id="$id" \

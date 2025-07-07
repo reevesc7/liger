@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from .tpot import TPOTManager
+from .manager import TPOTManager
 
 
 __all__ = [
