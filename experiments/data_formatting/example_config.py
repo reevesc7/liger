@@ -39,7 +39,14 @@ PROMPT_START = {
 PROMPT_END = {
     "\"output\"": 0,
 }
-PROMPT_PATTERN = "rate the likely poignancy"
+PROMPT_WHITELIST = "rate the likely poignancy"
+PROMPT_BLACKLIST = {
+    "this is blank",
+    "<random>",
+    "<fill in>",
+    "Insight",
+    "(insight",
+}
 
 # SURVEYING: parameters for controlling response generation
 AI_SURVEY_MODEL = "gpt-3.5-turbo"
