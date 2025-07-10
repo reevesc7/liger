@@ -9,7 +9,8 @@ def prompts() -> pd.Series:
             cfg.LOG_FILE,
             cfg.PROMPT_START,
             cfg.PROMPT_END,
-            cfg.PROMPT_PATTERN,
+            cfg.PROMPT_WHITELIST,
+            cfg.PROMPT_BLACKLIST,
         )
     prompts = pd.read_csv(cfg.PROMPTS_FILE).squeeze(axis=1)
     if not isinstance(prompts, pd.Series):
