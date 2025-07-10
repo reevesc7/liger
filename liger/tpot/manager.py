@@ -29,7 +29,7 @@ import numpy as np
 import pandas as pd
 from ..dataset import Dataset
 from ..training_testing import init_scorers, kfold_predict
-from ..search_space_creator import create_search_space
+from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.metrics._scorer import _Scorer
 from sklearn.pipeline import Pipeline
