@@ -126,8 +126,8 @@ y: {self.y}"""
             How much each dimension of each sample can deviate, positive or negative,
             from the sample's "true" value in that dimension.
         """
-        point1 = np.array(point1)
-        point2 = np.array(point2)
+        point1 = np.asarray(point1)
+        point2 = np.asarray(point2)
         rng = np.random.default_rng(random_state)
         y = pd.DataFrame(rng.random(n_entries), columns=pd.Index(["y"]))
         x = pd.DataFrame(
@@ -158,8 +158,8 @@ y: {self.y}"""
         `interpolated_point` : `numpy.ndarray`
             A point on the line segment between `point1` and `point2`.
         """
-        point1 = np.array(point1)
-        point2 = np.array(point2)
+        point1 = np.asarray(point1)
+        point2 = np.asarray(point2)
         return point1 + alpha * (point2 - point1)
 
     @staticmethod
