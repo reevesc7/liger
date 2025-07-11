@@ -19,16 +19,6 @@ import numpy as np
 from numpy.typing import ArrayLike
 
 
-# Calculates a point along the line segment between point1 and point2, positioned in a range [0,1] along the segment.
-def interpolate_points(point1: ArrayLike, point2: ArrayLike, alpha: float) -> np.ndarray:
-    point1 = np.array(point1)
-    point2 = np.array(point2)
-    if alpha < 0 or alpha > 1:
-        raise ValueError("Alpha should be between 0 and 1.")
-    interpolated_point = point1 + alpha * (point2 - point1)
-    return interpolated_point
-
-
 # Calculates the projection of AP onto AB as a proportion of the magnitude of AB.
 def vector_projection(ab_vector: ArrayLike, ap_vector: ArrayLike) -> float:
     return np.dot(ap_vector, ab_vector) / np.dot(ab_vector, ab_vector)
