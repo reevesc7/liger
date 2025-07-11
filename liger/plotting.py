@@ -20,21 +20,56 @@ import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt
 from matplotlib.figure import Figure
+from matplotlib.axes import Axes
 
 
 def show() -> None:
     plt.show()
 
 
-def _fit_to_dim(data: ArrayLike, dim: int) -> np.ndarray:
-    data = np.asarray(data)
-    if data.shape[-1] != dim or (data.ndim != 2 and data.ndim != 3):
-        raise ValueError(f"Shape of data must be ({dim}, n) or (m, {dim}, n), but was {data.shape}")
+def _ndims(data: ArrayLike, depth: int = 0) -> int:
+    if isinstance(data, Iterable):
+        depths = {_ndims(item, depth + 1) for item in data}
+        if len(depths) > 1:
+            raise ValueError("Inconsistent dimensionality in data")
+        return next(iter(depths))
+    return depth
+
+
+def _fit_to_dim(data: ArrayLike, dim: int) -> np.ndarray | list[np.ndarray]:
+    ndims = _ndims(data)
+    if ndims < 2 or ndims > 3:
+        raise ValueError(f"Data must be 2D or 3D, but was {ndims}D")
+    if ndims <= 2:
+        data = np.asarray(data)
+        if data.shape[0] != dim:
+            raise ValueError(f"2D data must be shape ({dim}, n), but was {data.shape}")
+        return data
+    if not isinstance(data, Iterable):
+        raise TypeError("Data must be iterable (i.e., 2D or 3D, not 0D)")
+    data = [np.asarray(item) for item in data]
+    for item in data:
+        if item.shape[0] != dim:
+            raise ValueError(f"3D data arrays must be shape ({dim}, n), but was {item.shape}")
     return data
 
 
+def _1_scatter(ax: Axes, data: np.ndarray, trend_orders: list[int], plot_perfect: bool) -> None:
+    ax.scatter(data[0], data[1], alpha=0.3)
+    trend_Xvals = [
+        (max(data[0]) - min(data[0])) * float(i) / 32 + min(data[0])
+        for i in range(33)
+    ]
+    for trend_order in trend_orders:
+        trend_eq = np.poly1d(np.polyfit(data[0], data[1], trend_order))
+        ax.plot(trend_Xvals, trend_eq(trend_Xvals))
+    if plot_perfect:
+        perfect_mxb = np.poly1d([1,0])
+        ax.plot(trend_Xvals, perfect_mxb(trend_Xvals), color="gray")
+
+
 def scatter(
-    data: ArrayLike | Iterable[ArrayLike],
+    data: ArrayLike,
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
     trend_orders: list[int] = [],
@@ -42,11 +77,11 @@ def scatter(
 ) -> Figure:
     """Create a 2D scatter plot.
 
-    Points on the plot are black circles with `alpha=0.3`.
+    Points on the plot are circles with `alpha=0.3`.
 
     Parameters
     ----------
-    `data` : `ArrayLike` or `Iterable[ArrayLike]`
+    `data` : `ArrayLike`
         An array or iterable of arrays of shape `(2, n)` of scalar values,
         where each array represents a dataset and `n` is the number of data points
         in each dataset.
@@ -69,26 +104,16 @@ def scatter(
     """
     data = _fit_to_dim(data, 2)
     fig, ax = plt.subplots()
-    if data.ndim == 2:
-        ax.scatter(data[0], data[1], alpha=0.3)
-    if data.ndim == 3:
-        for dataset in data:
-            ax.scatter(dataset[0], dataset[1], alpha=0.3)
     if title is not None:
         ax.set_title(title, fontsize='small')
     if axis_labels is not None:
         ax.set_xlabel(axis_labels[0])
         ax.set_ylabel(axis_labels[1])
-    trend_Xvals = [
-        (max(data[0]) - min(data[0])) * float(i) / 32 + min(data[0])
-        for i in range(33)
-    ]
-    for trend_order in trend_orders:
-        trend_eq = np.poly1d(np.polyfit(data[0], data[1], trend_order))
-        ax.plot(trend_Xvals, trend_eq(trend_Xvals))
-    if plot_perfect:
-        perfect_mxb = np.poly1d([1,0])
-        ax.plot(trend_Xvals, perfect_mxb(trend_Xvals), color="gray")
+    if isinstance(data, np.ndarray):
+        _1_scatter(ax, data, trend_orders, plot_perfect)
+        return fig
+    for dataset in data:
+        _1_scatter(ax, dataset, trend_orders, plot_perfect)
     return fig
 
 
@@ -99,11 +124,15 @@ def plot(
 ) -> Figure:
     data = _fit_to_dim(data, 2)
     fig, ax = plt.subplots()
-    ax.plot(range(max_components), expl_var_ratios, marker='o', color='black')
     if title is not None:
         ax.set_title(title, fontsize='small')
     if axis_labels is not None:
         ax.set_xlabel(axis_labels[0])
         ax.set_ylabel(axis_labels[1])
+    if isinstance(data, np.ndarray):
+        ax.plot(data[0], data[1])
+        return fig
+    for dataset in data:
+        ax.plot(dataset[0], dataset[1])
     return fig
 
