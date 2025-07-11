@@ -21,7 +21,6 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
-#from .operations import vector_projection, vector_rejection
 
 
 class Dataset:
@@ -100,7 +99,6 @@ y: {self.y}"""
             pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, score_patterns)),
         )
 
-    # Generates a random dataset from a given point1 and point2, and an interpolated point. Uses equal distribution for interpolation.
     @classmethod
     def random_linear(
         cls,
@@ -211,14 +209,4 @@ y: {self.y}"""
         ...
         """
         pd.concat((self.x, self.y), axis=1).to_csv(filename, index=False)
-
-    #def analyze_manifold(self, point_a: ArrayLike, point_b: ArrayLike) -> pd.DataFrame:
-    #    manifold = pd.DataFrame({key: np.zeros(self.y.shape[0]) for key in ["y", "alpha", "dist"]})
-    #    ab_vector = np.subtract(point_b, point_a)
-    #    manifold["y"] = self.y
-    #    for i, point_p in enumerate(self.X):
-    #        ap_vector = np.subtract(point_p, point_a)
-    #        manifold["alpha"][i] = (vector_projection(ab_vector, ap_vector)*8)+1
-    #        manifold["dist"][i] = vector_rejection(ab_vector, ap_vector)
-    #    return manifold
 
