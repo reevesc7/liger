@@ -1,6 +1,5 @@
 from statistics import mean
 import dill
-from sklearn.base import BaseEstimator
 from sklearn.model_selection import KFold
 from sklearn.metrics import get_scorer
 from liger.dataset import Dataset
@@ -33,14 +32,14 @@ SCORER_NAMES = [
 #   Format: "<module>.<submodule>.<subsubmodule>...<function>"
 
 
-def get_model(model_path: str) -> BaseEstimator:
+def get_model(model_path: str):
     """Replace this logic with however you want to initialize your model.
     """
     with open(model_path, "rb") as file:
         return dill.load(file)
 
 
-def liger_kfold(model: BaseEstimator, kfold: KFold, scorers: list, dataset: Dataset) -> None:
+def liger_kfold(model, kfold: KFold, scorers: list, dataset: Dataset) -> None:
     """The liger KFold process, which gives scores for each scorer fed in.
     """
     _, kfold_scores = tt.kfold_predict(model, kfold, scorers, dataset)
