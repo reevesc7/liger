@@ -358,7 +358,7 @@ class TPOTManager:
         sys.stdout = capture
         self.save_prep()
         self.in_progress()
-        print("\nPIPELINE ID:", self.id, flush=True)
+        print("\nRUN ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
             self.not_in_progress()
