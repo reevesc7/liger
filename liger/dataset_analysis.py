@@ -21,14 +21,16 @@ import pandas as pd
 from sklearn.decomposition import PCA
 
 
-def _scalar_projection(vector: ArrayLike, target: ArrayLike) -> float:
-    return np.dot(vector, target) / np.linalg.norm(target)
+def _projection_coeff(vector: ArrayLike, target: ArrayLike) -> float:
+    target = np.asarray(target)
+    vector = np.asarray(vector)
+    return np.dot(vector, target) / np.dot(target, target)
 
 
 def _rejection(vector: ArrayLike, target: ArrayLike) -> float:
     target = np.asarray(target)
     vector = np.asarray(vector)
-    projection = _scalar_projection(target, vector) * target
+    projection = _projection_coeff(vector, target) * target
     return float(np.linalg.norm(vector - projection))
 
 
@@ -42,10 +44,15 @@ def linear_fit(data: pd.DataFrame, point1: ArrayLike, point2: ArrayLike) -> pd.D
     point1 = np.asarray(point1)
     point2 = np.asarray(point2)
     target = point2 - point1
-    x = data.x.apply(lambda row: (_scalar_projection(row, target), _rejection(row, target)))
+    x = data.apply(
+        lambda row: pd.Series((
+            _projection_coeff(row - point1, target),
+            _rejection(row - point1, target)
+        ), index=pd.Index(("alpha", "deviation"))),
+        axis=1,
+    )
     if not isinstance(x, pd.DataFrame):
-        raise TypeError("This error shouldn't have happened. x is not a DataFrame")
-    x.columns = pd.Index("alpha", "deviation")
+        raise TypeError("This error should not happen. x is not a DataFrame")
     return x
 
 
