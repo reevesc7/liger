@@ -434,7 +434,8 @@ class TPOTManager:
         """
         if (self.output_dir / self.TEMP_POPULATION_PKL).is_file():
             (self.output_dir / self.TEMP_POPULATION_PKL).unlink()
-        (self.IN_PROGRESS / (str(self.id) + ".txt")).unlink()
+        if (self.IN_PROGRESS / (str(self.id) + ".txt")).is_file():
+            (self.IN_PROGRESS / (str(self.id) + ".txt")).unlink()
 
     def detect_early_stop(self) -> bool:
         """Detect whether the early stop condition has been met.
