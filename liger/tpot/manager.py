@@ -417,7 +417,7 @@ class TPOTManager:
                 self.output_dir / self.POPULATION_PKL,
                 self.output_dir / self.TEMP_POPULATION_PKL,
             )
-        with open((self.IN_PROGRESS / str(self.id)).with_suffix(".txt"), "w") as f:
+        with open(str(self.IN_PROGRESS / str(self.id)) + ".txt", "w") as f:
             f.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
                 "\nGeneration: " + str(self.complete_gens + 1),
