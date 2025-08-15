@@ -4,6 +4,13 @@ Data and log files
 
 !/smallville_846/simulation_prompts.txt
 
-Config file
-/config.py
+Python files
+/*.py
+!format_data.py
+!get_prompts.py
+!get_responses.py
+!get_functionals.py
+!get_embeddings_ai.py
+!get_embeddings_st.py
+!example_config.py
 
