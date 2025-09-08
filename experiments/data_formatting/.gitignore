@@ -1,10 +1,10 @@
-Data and log files
+# Data and log files
 *.csv
 *.txt
 
 !/smallville_846/simulation_prompts.txt
 
-Python files
+# Python files
 /*.py
 !format_data.py
 !get_prompts.py
