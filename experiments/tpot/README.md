@@ -68,7 +68,8 @@ in the `outputs/test_data/<run ID>/` directory
 Upon completion of the last generation, the following should be the case:
 - The script printed a summary of the fitted pipeline
 - The script quit with the messages `RUN COMPLETE` and `ENDING RECURSION`
-- A `fitted_pipeline.pkl` file representing the run's best performing TPOT model is in the `outputs/test_data/<run ID>/` directory
+- A `fitted_pipeline.pkl` file representing the run's best performing TPOT model
+  is in the `outputs/test_data/<run ID>/` directory
 - A `pipeline_data.json` file is in the `Outputs/smallville_poignancy_avstd_llmembed/<run ID>/` directory
     - This JSON file should contain most of the run's information,
       including `"target_gens": 10` and `"complete_gens": <n complete gens>`,
@@ -103,5 +104,73 @@ config file for determining random states.
 The current file is set to submit a single TPOT pipeline with a TPOT random state
 determined by the config file (`-n 1`).
 
-To leave TPOT random states as random values, use the `-n (n jobs)` argument *instead* of `-s` and `-e` and use the `"random_state": null` in the config file.
+To leave TPOT random states as random values,
+use the `-n (n jobs)` argument *instead* of `-s` and `-e` and
+use the `"random_state": null` in the config file.
+
+## Experimental procedure
+
+### Set up config
+
+A number of existing JSON config files are stored in the `configs/` directory.
+A good place to start is by copying one and modifying it.
+
+#### Parameters to modify
+
+There are several parameters which may be desirable to modify across experiments.
+
+`"manager_parameters"`:
+- `"data_file"`
+- `"feature_keys"`
+- `"score_keys"`
+- `"target_gens"`
+- `"eval_random_states"`
+- `"id"` *(generally left `null`)*
+
+`"tpot_parameters"`:
+- `"search_space"` *(see [TPOT search spaces tutorial](https://epistasislab.github.io/tpot/latest/Tutorial/2_Search_Spaces/) - only [built-in search spaces](https://epistasislab.github.io/tpot/latest/Tutorial/2_Search_Spaces/#built-in-search-spaces-for-estimatornode-and-choicepipeline) work)*
+- `"scorers"` *(see [scikit-learn string name scorers](https://scikit-learn.org/stable/modules/model_evaluation.html#string-name-scorers))*
+- `"scorers_weights"`
+- `"cv"`
+- `"population_size"`
+- `"generations"`
+- `"max_time_mins"`
+- `"max_eval_time_mins"`
+- `"early_stop"`
+- `"random_state"` *(generally left `null`)*
+
+### Run training
+
+*tbd: use `bash_runner.sh`, `slurm_submitter.sh`, or some script that calls them*
+
+### Check results
+
+#### Check for unfinished jobs
+
+After running jobs, it is generally a good idea to check
+whether all jobs finished successfully.
+
+Run the `list_unfinished.py` script from within the directory `outputs/` is stored in
+(usually this directory).
+E.g., within this directory:
+
+```
+python list_unfinished.py
+```
+
+The IDs of any unfinished runs will be listed in `unfinished.txt`
+
+Checking the `pipeline_data.json` files and Slurm output files (if any) of unfinished runs
+can help diagnose why they terminated improperly.
+IDs of Slurm output files can be found in the `"manager_attributes"/"slurm_ids"`
+field within `pipeline_data.json` files.
+
+To resubmit unfinished runs, use `bash_unfinished_starter.sh` (for local runs)
+or `slurm_unfinished_submitter.sh` (for Slurm runs).
+Both will use the current list of IDs within `unfinished.txt` to initiate those runs,
+picking up from the last successfully completed segment.
+
+#### Compile results
+
+*tbd: use scripts in `experiments/results/`*
 
