@@ -1,5 +1,5 @@
 {
-    "pipeline_parameters": {
+    "manager_parameters": {
         "data_file": "data/smallville_846.csv",
         "feature_keys": [
             "text-embedding-3-small"

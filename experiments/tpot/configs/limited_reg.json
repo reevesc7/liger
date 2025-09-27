@@ -1,5 +1,5 @@
 {
-    "pipeline_parameters": {
+    "manager_parameters": {
         "data_file": "data/smallville_poignancy_av_llmembed.csv",
         "feature_keys": [
             "X"

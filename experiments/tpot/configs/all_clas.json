@@ -1,5 +1,5 @@
 {
-    "pipeline_parameters": {
+    "manager_parameters": {
         "data_file": "data/human_size_rating_4_stembed.csv",
         "target_gens": 10,
         "eval_random_states": [

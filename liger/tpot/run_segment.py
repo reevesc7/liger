@@ -35,7 +35,7 @@ def main():
         pipeline = TPOTManager(
             config_file=args.config,
             tpot_random_state=args.tpotrs,
-            pipeline_parameters=args.pipeparam,
+            manager_parameters=args.pipeparam,
             tpot_parameters=args.tpotparam,
             slurm_id=args.slurmid,
             id=args.id,

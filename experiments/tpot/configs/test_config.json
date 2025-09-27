@@ -1,5 +1,5 @@
 {
-    "pipeline_parameters": {
+    "manager_parameters": {
         "data_file": "data/test_data.csv",
         "feature_keys": [
             "all-mpnet-base-v2"

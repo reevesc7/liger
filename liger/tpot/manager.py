@@ -40,12 +40,12 @@ import dill
 class TPOTManager:
     OUTPUT = Path("outputs/")
     IN_PROGRESS = Path("in_progress/")
-    PIPELINE_DATA = Path("pipeline_data.json")
+    MANAGER_DATA = Path("manager_data.json")
     POPULATION_PKL = Path("population.pkl")
     TEMP_POPULATION_PKL = Path("temp-population.pkl")
     FITTED_PIPELINE = Path("fitted_pipeline.pkl")
     DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
-    PIPELINE_PARAM_KEYS = {
+    MANAGER_PARAM_KEYS = {
         "config_file",
         "data_file",
         "feature_keys",
@@ -105,7 +105,7 @@ class TPOTManager:
         "scatter",
         "random_state",
     }
-    PIPELINE_ATTR_KEYS = {
+    MANAGER_ATTR_KEYS = {
         "complete_gens",
         "gen_scores",
         "segment_start_times",
@@ -127,28 +127,28 @@ class TPOTManager:
         tpot_random_state: int | None = None,
         slurm_id: int | None = None,
         id: str | None = None,
-        pipeline_parameters: dict | None = None,
+        manager_parameters: dict | None = None,
         tpot_parameters: dict | None = None,
-        pipeline_attributes: dict | None = None,
+        manager_attributes: dict | None = None,
     ) -> None:
         self.start_time = datetime.now(timezone.utc)
         self.config_file: str | Path | None = config_file
-        _pipeline_params, _tpot_params, _pipeline_attrs = self.load_config(self.config_file)
+        _manager_params, _tpot_params, _manager_attrs = self.load_config(self.config_file)
 
         # Override config parameters with argument parameters
-        if isinstance(pipeline_parameters, dict):
-            _pipeline_params.update(pipeline_parameters)
+        if isinstance(manager_parameters, dict):
+            _manager_params.update(manager_parameters)
         if isinstance(tpot_parameters, dict):
             _tpot_params.update(tpot_parameters)
-        if isinstance(pipeline_attributes, dict):
-            _pipeline_attrs.update(pipeline_attributes)
+        if isinstance(manager_attributes, dict):
+            _manager_attrs.update(manager_attributes)
 
         if self.config_file is None:
-            self.config_file = _pipeline_params.get("config_file")
+            self.config_file = _manager_params.get("config_file")
 
-        self.data_file: str | Path | None = _pipeline_params.get("data_file", None)
-        self.feature_keys: list[str] | None = _pipeline_params.get("feature_keys", None)
-        self.score_keys: list[str] | None = _pipeline_params.get("score_keys", None)
+        self.data_file: str | Path | None = _manager_params.get("data_file", None)
+        self.feature_keys: list[str] | None = _manager_params.get("feature_keys", None)
+        self.score_keys: list[str] | None = _manager_params.get("score_keys", None)
         if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
         self.data_file = Path(self.data_file)
@@ -161,23 +161,23 @@ class TPOTManager:
             randint(0, 2 ** 32 - 1),
         )
 
-        self.target_gens: int = _pipeline_params.get("target_gens", 10)
-        self.eval_random_states: list[int] = _pipeline_params.get("eval_random_states", [0])
+        self.target_gens: int = _manager_params.get("target_gens", 10)
+        self.eval_random_states: list[int] = _manager_params.get("eval_random_states", [0])
         self.id = self.use_first(
             id,
-            _pipeline_params.get("id"),
+            _manager_params.get("id"),
             self.start_time.strftime(self.DATETIME_FMT),
         )
 
-        self.complete_gens: int = _pipeline_attrs.get("complete_gens", 0)
-        self.gen_scores: list[list[float]] = _pipeline_attrs.get("gen_scores", [])
-        self.segment_start_times: list[str] = _pipeline_attrs.get("segment_start_times", [])
+        self.complete_gens: int = _manager_attrs.get("complete_gens", 0)
+        self.gen_scores: list[list[float]] = _manager_attrs.get("gen_scores", [])
+        self.segment_start_times: list[str] = _manager_attrs.get("segment_start_times", [])
         self.segment_start_times.append(self.start_time.strftime(self.DATETIME_FMT))
-        self.segment_run_times: list[float] = _pipeline_attrs.get("segment_run_times", [])
-        self.slurm_ids: list[int | None] = _pipeline_attrs.get("slurm_ids", [])
+        self.segment_run_times: list[float] = _manager_attrs.get("segment_run_times", [])
+        self.slurm_ids: list[int | None] = _manager_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
-        self.kfold_scores: dict = _pipeline_attrs.get("kfold_scores", {})
-        self.kfold_predictions: dict = _pipeline_attrs.get("kfold_predictions", {})
+        self.kfold_scores: dict = _manager_attrs.get("kfold_scores", {})
+        self.kfold_predictions: dict = _manager_attrs.get("kfold_predictions", {})
 
         self.output_dir = self.OUTPUT / self.data_file.stem / str(self.id)
 
@@ -209,11 +209,18 @@ class TPOTManager:
     @classmethod
     def from_checkpoint(cls, checkpoint: str | Path, slurm_id: int | None) -> Self:
         checkpoint = Path(checkpoint)
-        pipeline_params, tpot_params, pipeline_attrs = cls.load_config(checkpoint / cls.PIPELINE_DATA)
+
+        #TODO: remove deprecation warning in v0.9.0+
+        try:
+            manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / cls.MANAGER_DATA)
+        except:
+            manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / "pipeline_data.json")
+            print("WARNING: \"pipeline_data.json\" is deprecated. Use \"manager_data.json\" instead.")
+
         return cls(**{
-            "pipeline_parameters": pipeline_params,
+            "manager_parameters": manager_params,
             "tpot_parameters": tpot_params,
-            "pipeline_attributes": pipeline_attrs,
+            "manager_attributes": manager_attrs,
             "slurm_id": slurm_id,
         })
 
@@ -239,16 +246,23 @@ class TPOTManager:
         config_path = Path(config_path)
         with open(config_path) as f:
             config = dict(json.load(f))
-        pipeline_parameters = config.get("pipeline_parameters", {})
+        manager_parameters = config.get("manager_parameters", {})
+
+        #TODO: remove deprecation check in v0.9.0+
+        if not manager_parameters:
+            manager_parameters = config.get("pipeline_parameters", {})
+            if manager_parameters:
+                print("WARNING: using \"pipeline_parameters\" is deprecated. Use \"manager_parameters\" instead.", flush=True)
+
         tpot_parameters = config.get("tpot_parameters", {})
-        pipeline_attributes = config.get("pipeline_attributes", {})
-        if not isinstance(pipeline_parameters, dict):
-            raise TypeError(f"pipeline_parameters should be type dict, not {type(pipeline_parameters)}")
+        manager_attributes = config.get("manager_attributes", {})
+        if not isinstance(manager_parameters, dict):
+            raise TypeError(f"manager_parameters should be type dict, not {type(manager_parameters)}")
         if not isinstance(tpot_parameters, dict):
             raise TypeError(f"tpot_parameters should be type dict, not {type(tpot_parameters)}")
-        if not isinstance(pipeline_attributes, dict):
-            raise TypeError(f"pipeline_attributes should be type dict, not {type(pipeline_attributes)}")
-        return (pipeline_parameters, tpot_parameters, pipeline_attributes)
+        if not isinstance(manager_attributes, dict):
+            raise TypeError(f"manager_attributes should be type dict, not {type(manager_attributes)}")
+        return (manager_parameters, tpot_parameters, manager_attributes)
 
     @staticmethod
     def get_cv(param_cv: int | None, classification: bool, y: pd.DataFrame) -> int:
@@ -298,15 +312,15 @@ class TPOTManager:
         raise TypeError(f"Could not convert type {type(objec)} to json format")
 
     def save_data(self) -> None:
-        pipeline_data = self.get_pipeline_data()
-        with open(self.output_dir / self.PIPELINE_DATA, "w") as f:
-            json.dump(pipeline_data, f, indent=4, default=self.json_everything)
+        manager_data = self.get_manager_data()
+        with open(self.output_dir / self.MANAGER_DATA, "w") as f:
+            json.dump(manager_data, f, indent=4, default=self.json_everything)
 
-    def get_pipeline_data(self) -> dict:
-        pipeline_parameters = {
+    def get_manager_data(self) -> dict:
+        manager_parameters = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.PIPELINE_PARAM_KEYS
+            if key in self.MANAGER_PARAM_KEYS
         }
         tpot_parameters = {
             key: value
@@ -314,10 +328,10 @@ class TPOTManager:
             if key in self.TPOT_PARAM_KEYS
         }
         tpot_parameters["search_space"] = self._config_search_space
-        pipeline_attributes = {
+        manager_attributes = {
             key: value
             for key, value in self.__dict__.items()
-            if key in self.PIPELINE_ATTR_KEYS
+            if key in self.MANAGER_ATTR_KEYS
         }
         tpot_attributes = {
             key: value
@@ -325,9 +339,9 @@ class TPOTManager:
             if key in self.TPOT_ATTR_KEYS
         }
         return {
-            "pipeline_parameters": pipeline_parameters,
+            "manager_parameters": manager_parameters,
             "tpot_parameters": tpot_parameters,
-            "pipeline_attributes": pipeline_attributes,
+            "manager_attributes": manager_attributes,
             "tpot_attributes": tpot_attributes,
         }
 
