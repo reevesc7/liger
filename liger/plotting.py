@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Iterable
+from typing import Sequence
 import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt
@@ -27,41 +27,37 @@ def show() -> None:
     plt.show()
 
 
-def _ndims(data: ArrayLike, depth: int = 0) -> int:
-    if isinstance(data, Iterable):
-        depths = {_ndims(item, depth + 1) for item in data}
-        if len(depths) > 1:
+def _ensure_same_shape(arrays: Sequence[np.ndarray]) -> None:
+    if len(arrays) == 0:
+        return
+    shape_1 = arrays[0].shape
+    for array in arrays[1:]:
+        if array.shape != shape_1:
             raise ValueError("Inconsistent dimensionality in data")
-        return next(iter(depths))
-    return depth
 
 
-def _fit_to_dim(data: ArrayLike, dim: int) -> np.ndarray | list[np.ndarray]:
-    ndims = _ndims(data)
-    if ndims < 2 or ndims > 3:
-        raise ValueError(f"Data must be 2D or 3D, but was {ndims}D")
-    if ndims <= 2:
-        data = np.asarray(data)
-        if data.shape[0] != dim:
-            raise ValueError(f"2D data must be shape ({dim}, n), but was {data.shape}")
-        return data
-    if not isinstance(data, Iterable):
-        raise TypeError("Data must be iterable (i.e., 2D or 3D, not 0D)")
-    data = [np.asarray(item) for item in data]
-    for item in data:
-        if item.shape[0] != dim:
-            raise ValueError(f"3D data arrays must be shape ({dim}, n), but was {item.shape}")
-    return data
+def _set_titles(ax: Axes, title: str | None, axis_labels: tuple[str, str] | None) -> None:
+    if title is not None:
+        ax.set_title(title, fontsize='small')
+    if axis_labels is not None:
+        ax.set_xlabel(axis_labels[0])
+        ax.set_ylabel(axis_labels[1])
 
 
-def _1_scatter(ax: Axes, data: np.ndarray, trend_orders: list[int], plot_perfect: bool) -> None:
-    ax.scatter(data[0], data[1], alpha=0.3)
+def _single_scatter(
+    ax: Axes,
+    x: np.ndarray,
+    y: np.ndarray,
+    trend_orders: list[int],
+    plot_perfect: bool
+) -> None:
+    ax.scatter(x, y, alpha=0.3)
     trend_Xvals = [
-        (max(data[0]) - min(data[0])) * float(i) / 32 + min(data[0])
+        (max(x) - min(x)) * float(i) / 32 + min(x)
         for i in range(33)
     ]
     for trend_order in trend_orders:
-        trend_eq = np.poly1d(np.polyfit(data[0], data[1], trend_order))
+        trend_eq = np.poly1d(np.polyfit(x, y, trend_order))
         ax.plot(trend_Xvals, trend_eq(trend_Xvals))
     if plot_perfect:
         perfect_mxb = np.poly1d([1,0])
@@ -69,7 +65,8 @@ def _1_scatter(ax: Axes, data: np.ndarray, trend_orders: list[int], plot_perfect
 
 
 def scatter(
-    data: ArrayLike,
+    x: ArrayLike,
+    y: ArrayLike,
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
     trend_orders: list[int] = [],
@@ -81,10 +78,11 @@ def scatter(
 
     Parameters
     ----------
-    `data` : `ArrayLike`
-        An array or iterable of arrays of shape `(2, n)` of scalar values,
-        where each array represents a dataset and `n` is the number of data points
-        in each dataset.
+    `x` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
+    `y` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
+        Must be the same shape as `x`.
     `title` : `str`, optional
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
@@ -102,37 +100,54 @@ def scatter(
         The figure plotting the data with any trendlines drawn. Show any current
         figures with `liger.plotting.show()`, and save it with `fig.savefig()`.
     """
-    data = _fit_to_dim(data, 2)
+    x = np.asarray(x)
+    y = np.asarray(y)
+    _ensure_same_shape((x, y))
     fig, ax = plt.subplots()
-    if title is not None:
-        ax.set_title(title, fontsize='small')
-    if axis_labels is not None:
-        ax.set_xlabel(axis_labels[0])
-        ax.set_ylabel(axis_labels[1])
-    if isinstance(data, np.ndarray):
-        _1_scatter(ax, data, trend_orders, plot_perfect)
+    _set_titles(ax, title, axis_labels)
+    if len(x.shape) == 1:
+        _single_scatter(ax, x, y, trend_orders, plot_perfect)
         return fig
-    for dataset in data:
-        _1_scatter(ax, dataset, trend_orders, plot_perfect)
+    for dataset in range(x.shape[0]):
+        _single_scatter(ax, x[dataset], y[dataset], trend_orders, plot_perfect)
     return fig
 
 
 def plot(
-    data: ArrayLike,
+    x: ArrayLike,
+    y: ArrayLike,
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
 ) -> Figure:
-    data = _fit_to_dim(data, 2)
+    """Create a 2D line plot.
+
+    Parameters
+    ----------
+    `x` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
+    `y` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
+        Must be the same shape as `x`.
+    `title` : `str`, optional
+        A title for the plot.
+    `axis_labels` : `tuple[str]`, optional
+        A labels for the plot's x and y axes.
+
+    Returns
+    -------
+    `fig` : `matplotlib.figure.Figure`
+        The figure plotting the data. Show any current
+        figures with `liger.plotting.show()`, and save it with `fig.savefig()`.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    _ensure_same_shape((x, y))
     fig, ax = plt.subplots()
-    if title is not None:
-        ax.set_title(title, fontsize='small')
-    if axis_labels is not None:
-        ax.set_xlabel(axis_labels[0])
-        ax.set_ylabel(axis_labels[1])
-    if isinstance(data, np.ndarray):
-        ax.plot(data[0], data[1])
+    _set_titles(ax, title, axis_labels)
+    if len(x.shape) == 1:
+        ax.plot(x, y)
         return fig
-    for dataset in data:
-        ax.plot(dataset[0], dataset[1])
+    for dataset in range(x.shape[0]):
+        ax.plot(x[dataset], y[dataset])
     return fig
 
