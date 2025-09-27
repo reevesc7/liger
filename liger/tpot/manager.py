@@ -53,6 +53,7 @@ class TPOTManager:
         "target_gens",
         "eval_random_states",
         "id",
+        "export_fitted_pipeline",
     }
     TPOT_PARAM_KEYS = {
         "scorers",
@@ -168,6 +169,7 @@ class TPOTManager:
             _manager_params.get("id"),
             self.start_time.strftime(self.DATETIME_FMT),
         )
+        self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
 
         self.complete_gens: int = _manager_attrs.get("complete_gens", 0)
         self.gen_scores: list[list[float]] = _manager_attrs.get("gen_scores", [])
@@ -389,7 +391,7 @@ class TPOTManager:
         self.run_time = (datetime.now(timezone.utc) - self.start_time).total_seconds()
         self.segment_run_times.append(self.run_time)
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
-            self.export_fitted_pipeline()
+            self.export_pipeline()
             self.evaluate()
             self.save_data()
             self.not_in_progress()
@@ -471,13 +473,15 @@ class TPOTManager:
             return False
         return True
 
-    def export_fitted_pipeline(self) -> None:
+    def export_pipeline(self) -> None:
         """Creates a pickle file of the best performing pipeline.
 
         The file is made in the output directory.
         Pickling pipelines relies on the `dill` module, so loading
         from a fitted pipeline pickle file requires `dill`.
         """
+        if not self.export_fitted_pipeline:
+            return
         with open(self.output_dir / self.FITTED_PIPELINE, "wb") as f:
             dill.dump(self.tpot.fitted_pipeline_, f)
 
