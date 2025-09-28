@@ -1,18 +1,7 @@
-from pathlib import Path
 import pandas as pd
 import liger.output_processing as op
-
-
-#OUTPUT_PATHS = [
-#    "../tpot/outputs/smallville_846",
-#]
-#OUTPUT_PATTERN = "*07-16*/pipeline_data.json"
-#DEST = Path("smallville_846")
-OUTPUT_PATHS = [
-    "../tpot/outputs/smallville_765",
-]
-OUTPUT_PATTERN = "*07-18*/pipeline_data.json"
-DEST = Path("smallville_765")
+#from experiments.results.config import DIRECTORY, OUTPUTS_PATHS, RUN_ID_PATTERN
+import experiments.results.config as cfg
 
 
 def find_root(fitted_pipeline: list[str]) -> str:
@@ -42,7 +31,7 @@ def run_responses(
 
 
 def main():
-    data = op.mass_json_load(paths=OUTPUT_PATHS, pattern=OUTPUT_PATTERN)
+    data = op.mass_json_load(paths=cfg.OUTPUTS_PATHS, pattern=cfg.RUN_ID_PATTERN)
     summary = {key: [] for key in ("id", "complete_gens", "score", "fitted_pipeline")}
     responses = {}
     for run_data in data:
@@ -59,10 +48,10 @@ def main():
             responses.update(run_responses(summary["id"][-1], kfold_predictions))
     summary = pd.DataFrame(summary)
     print(summary)
-    summary.to_csv(DEST / "summary.csv", index=False)
+    summary.to_csv(cfg.DIRECTORY / "summary.csv", index=False)
     responses = pd.DataFrame(responses)
     print(responses)
-    responses.to_csv(DEST / "responses.csv", index=False)
+    responses.to_csv(cfg.DIRECTORY / "responses.csv", index=False)
 
 
 if __name__ == "__main__":
