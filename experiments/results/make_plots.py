@@ -17,7 +17,7 @@ def plot_training_variances(means: ArrayLike, std_devs: ArrayLike):
         trend_orders=[],
         plot_perfect=False,
     )
-    plot.savefig(cfg.DIRECTORY / "training_variances")
+    plot.savefig(cfg.DIRECTORY / "1_training_variances")
 
 
 def plot_responses(responses: pd.DataFrame, means: pd.DataFrame):
@@ -31,7 +31,7 @@ def plot_responses(responses: pd.DataFrame, means: pd.DataFrame):
         trend_orders=[5],
         plot_perfect=True,
     )
-    plot.savefig(cfg.DIRECTORY / "responses")
+    plot.savefig(cfg.DIRECTORY / "2_responses")
 
 
 def plot_abs_errors(responses: pd.DataFrame, means: pd.DataFrame) -> None:
@@ -45,7 +45,21 @@ def plot_abs_errors(responses: pd.DataFrame, means: pd.DataFrame) -> None:
         axis_labels=("ChatGPT mean", "predicted absolute error"),
         trend_orders=[5],
     )
-    plot.savefig(cfg.DIRECTORY / "abs_errors")
+    plot.savefig(cfg.DIRECTORY / "3_abs_errors")
+
+
+def plot_squared_errors(responses: pd.DataFrame, means: pd.DataFrame) -> None:
+    """Plot squared errors of predictions across training means.
+    """
+    squared_errors = np.square(responses - means)
+    plot = pl.scatter(
+        x=np.transpose(means),
+        y=np.transpose(squared_errors),
+        title=f"{cfg.DATASET}: squared errors of predicted responses against training means",
+        axis_labels=("ChatGPT mean", "predicted squared error"),
+        trend_orders=[5],
+    )
+    plot.savefig(cfg.DIRECTORY / "4_squared_errors")
 
 
 def plot_zscores(responses: pd.DataFrame, means: pd.DataFrame, std_devs: pd.DataFrame) -> None:
@@ -59,7 +73,7 @@ def plot_zscores(responses: pd.DataFrame, means: pd.DataFrame, std_devs: pd.Data
         axis_labels=("ChatGPT mean", "predicted Z-score"),
         trend_orders=[5],
     )
-    plot.savefig(cfg.DIRECTORY / "zscores")
+    plot.savefig(cfg.DIRECTORY / "5_zscores")
 
 
 def main():
@@ -72,6 +86,7 @@ def main():
     plot_training_variances(dataset.y["mean"], dataset.y["std_dev"])
     plot_responses(responses, means)
     plot_abs_errors(responses, means)
+    plot_squared_errors(responses, means)
     plot_zscores(responses, means, std_devs)
 
 
