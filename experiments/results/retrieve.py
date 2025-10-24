@@ -46,6 +46,7 @@ def main():
         if kfold_predictions:
             #responses[summary["id"][-1]] = order_responses(kfold_predictions)
             responses.update(run_responses(summary["id"][-1], kfold_predictions))
+    cfg.DIRECTORY.mkdir(parents=True, exist_ok=True)
     summary = pd.DataFrame(summary)
     print(summary)
     summary.to_csv(cfg.DIRECTORY / "summary.csv", index=False)
