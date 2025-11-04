@@ -376,11 +376,11 @@ class TPOTManager:
         self.in_progress()
         print("\nRUN ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        if self.complete_gens >= self.target_gens or self.detect_early_stop():
-            self.not_in_progress()
-            print("\nRUN TERMINATION CONDITIONS ALREADY MET")
-            print("\nRUN COMPLETE")
-            return
+        #if self.complete_gens >= self.target_gens or self.detect_early_stop():
+        #    self.not_in_progress()
+        #    print("\nRUN TERMINATION CONDITIONS ALREADY MET")
+        #    print("\nRUN COMPLETE")
+        #    return
         self.tpot.fit(self.dataset.x, self.dataset.y)
         output = capture.get_output()
         output_lines = output.split("\n")
