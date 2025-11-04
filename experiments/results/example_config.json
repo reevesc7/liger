@@ -1,0 +1,12 @@
+{
+    "retrieve_runs": true,
+    "make_plots": true,
+    "dataset": "smallville_1251_agentint",
+    "dataset_loc": "../tpot/data",
+    "outputs_locs": [
+        "../tpot/outputs"
+    ],
+    "run_id_pattern": "*/*_data.json",
+    "summary": "summary.csv",
+    "responses": "responses.csv"
+}

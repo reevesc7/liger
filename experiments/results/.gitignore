@@ -3,5 +3,5 @@
 *.png
 
 # Config file
-/config.py
+/config.json
 
