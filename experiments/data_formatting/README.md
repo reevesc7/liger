@@ -1,4 +1,4 @@
-# Liger-Testbed
+# `liger/experiments/data_formatting`
 
 **Required Packages:** `liger`
 

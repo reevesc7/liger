@@ -1,4 +1,4 @@
-# Liger-Testbed
+# `liger/experiments/tpot`
 
 **Required Packages:** `liger`
 
