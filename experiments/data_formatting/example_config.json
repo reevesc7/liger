@@ -1,0 +1,69 @@
+{
+    "include": {
+        "prompts": true,
+        "responses": false,
+        "functionals": false,
+        "embeddings_ai": true,
+        "embeddings_st": false
+    },
+    "try_retrieve": {
+        "prompts": true,
+        "responses": true,
+        "functionals": true,
+        "embeddings_ai": true,
+        "embeddings_st": true
+    },
+    "save": {
+        "prompts": true,
+        "responses": true,
+        "functionals": true,
+        "embeddings_ai": true,
+        "embeddings_st": true
+    },
+    "names": {
+        "dataset": "smallville_846",
+        "log": "simulation_prompts",
+        "prompts": "prompts",
+        "responses": "responses",
+        "functionals": "functionals",
+        "embeddings_ai": "embeddings_ai",
+        "embeddings_st": "embeddings_st",
+        "full": "dataset"
+    },
+    "prompts": {
+        "starts": {
+            "Here is a brief description": -1
+        },
+        "ends": {
+            "\"output\"": 0
+        },
+        "whitelist": [
+            "rate the likely poignancy"
+        ],
+        "blacklist": [
+            "this is blank",
+            "<random>",
+            "<fill in>",
+            "Insight",
+            "(insight"
+        ]
+    },
+    "surveying": {
+        "model": "gpt-3.5-turbo",
+        "response_seed": "{\"output\": \"",
+        "allowed_responses": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+        ]
+    },
+    "ai_embedding_model": "text-embedding-3-small",
+    "st_embedding_model": "all-mpnet-base-v2"
+}
