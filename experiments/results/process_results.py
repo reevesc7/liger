@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 import json
+import re
 import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
@@ -39,13 +40,23 @@ def read_config(config_file: str | Path) -> Config:
     )
 
 
-def find_root(fitted_pipeline: list[str]) -> str:
-    """Only works with GraphPipeline runs
+def find_root(fitted_pipeline: str | list[str]) -> str:
+    """Find the root `EstimatorNode` of a `GraphPipeline` or `Pipeline`, given a string representation.
+    If the pipeline is a `GraphPipeline`, this only works if its root is an `EstimatorNode`.
     """
-    string = fitted_pipeline[0]
-    start = string.find("'") + 1
-    end = string.find("_", start)
-    return string[start:end]
+    full_str = "".join(fitted_pipeline)
+    error_msg = f"Malformed fitted_pipeline string:\n    {full_str}"
+    if full_str[0] == "[":
+        match = re.search(r"\b([A-Z][A-Za-z0-9_]*)_1", full_str)
+        if match is None:
+            raise ValueError(error_msg)
+        return match.group(1)
+    if full_str[0] == "P":
+        matches = re.findall(r"\b([A-Z][A-Za-z0-9_]*)", full_str)
+        if len(matches) == 0:
+            raise ValueError(error_msg)
+        return matches[-1]
+    raise ValueError(error_msg)
 
 
 def order_responses(folds: list[dict[str, float]]) -> list[float]:
