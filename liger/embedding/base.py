@@ -45,17 +45,17 @@ class BaseEmbedder:
 
         Parameters
         ----------
-        `strings` : `str` or `MutableSequence[str]`
+        `strings` : `str` or `MutableSequence[str] or pandas.Series`
             The strings to be transformed.
         `to_replace` : `str`
             The substring to replace in each `strings` string.
         `add_string` : `str`
-            The string to add instead for each `strings` string.
+            The substring to add instead for each `strings` string.
 
         Returns
         -------
-        `strings` : `str` or `list[str]`
-            The strings with replacements.
+        `strings` : `str` or `pandas.Series`
+            The string(s) with replacements.
         """
         if isinstance(strings, str):
             return re.sub(to_replace, replacement, strings)
@@ -82,15 +82,15 @@ class BaseEmbedder:
 
         Parameters
         ----------
-        `strings` : `str` or `MutableSequence[str]`
+        `strings` : `str` or `MutableSequence[str] or pandas.Series`
             The strings to be transformed.
         `add_string` : `str`
             The string to add to the beginning of each `strings` string.
 
         Returns
         -------
-        `strings` : `str` or `list[str]`
-            The strings with `add_string` prepended to each.
+        `strings` : `str` or `pandas.Series`
+            The string(s) with `add_string` prepended to each.
         """
         if isinstance(strings, str):
             return add_string.strip() + " " + strings
