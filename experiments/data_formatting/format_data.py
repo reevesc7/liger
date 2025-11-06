@@ -43,6 +43,9 @@ class PromptConfig:
     ends: dict[str, int]
     whitelist: set[str]
     blacklist: set[str]
+    alter_replaced: str
+    alter_replacement: str
+    prepend: str
 
 
 @dataclass(slots=True)
@@ -95,14 +98,25 @@ def get_prompts(cfg: Config, data: Data) -> pd.Series:
         prompts = pd.read_csv(cfg.paths.prompts).squeeze(axis=1)
         if not isinstance(prompts, pd.Series):
             raise TypeError(f"Prompts read from {prompts} do not form a pandas.Series")
-        return prompts
-    return smallville.get_logged_prompts(
-        cfg.paths.log,
-        cfg.prompts.starts,
-        cfg.prompts.ends,
-        cfg.prompts.whitelist,
-        cfg.prompts.blacklist,
-    )
+    else:
+        prompts = smallville.get_logged_prompts(
+            cfg.paths.log,
+            cfg.prompts.starts,
+            cfg.prompts.ends,
+            cfg.prompts.whitelist,
+            cfg.prompts.blacklist,
+        )
+    prompt_modder = OpenAIEmbedder("")
+    if cfg.prompts.alter_replaced != "":
+        prompts = prompt_modder.alter_strings(
+            prompts,
+            cfg.prompts.alter_replaced,
+            cfg.prompts.alter_replacement,
+        )
+    if cfg.prompts.prepend != "":
+        prompts = prompt_modder.prepend_to_strings(prompts, cfg.prompts.prepend)
+    prompts.name = "prompt"
+    return prompts
 
 
 def get_responses(cfg: Config, data: Data) -> pd.DataFrame:

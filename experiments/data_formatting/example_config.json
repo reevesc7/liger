@@ -46,7 +46,10 @@
             "<fill in>",
             "Insight",
             "(insight"
-        ]
+        ],
+        "alter_replaced": "",
+        "alter_replacement": "",
+        "prepend": ""
     },
     "surveying": {
         "model": "gpt-3.5-turbo",
