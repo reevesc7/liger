@@ -38,7 +38,7 @@ def mass_json_load(
             continue
         if path.is_file() and path.match(pattern) and path.suffix == ".json":
             yield _json_load(path)
-        for fpath in path.rglob(pattern):
+        for fpath in sorted(path.rglob(pattern)):
             if not fpath.suffix == ".json":
                 continue
             yield _json_load(fpath)
