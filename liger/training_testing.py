@@ -61,10 +61,11 @@ def kfold_predict(
     scorer_indices, objective_indices = _separate_objectives(scorers)
     for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x)):
         model.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
-        predicted.append(dict(zip(
-            test_indices.tolist(),
-            model.predict(data.x.iloc[test_indices]).tolist()
-        )))
+        fold_predicted = [
+            prediction[0] if isinstance(prediction, list) and len(prediction) == 1 else prediction
+            for prediction in model.predict(data.x.iloc[test_indices]).tolist()
+        ]
+        predicted.append(dict(zip(test_indices.tolist(), fold_predicted)))
         fold_scores[fold][scorer_indices] = [
             scorers[index]._score_func(data.y.iloc[test_indices], list(predicted[-1].values()))
             for index in scorer_indices
