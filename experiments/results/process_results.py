@@ -40,6 +40,10 @@ def read_config(config_file: str | Path) -> Config:
     )
 
 
+def mean_gen_time(manager_attributes: dict) -> float:
+    return sum(manager_attributes["segment_run_times"]) / manager_attributes["complete_gens"]
+
+
 def find_root(fitted_pipeline: str | list[str]) -> str:
     """Find the root `EstimatorNode` of a `GraphPipeline` or `Pipeline`, given a string representation.
     If the pipeline is a `GraphPipeline`, this only works if its root is an `EstimatorNode`.
@@ -76,16 +80,57 @@ def run_responses(
     return responses
 
 
-def retrieve_runs(cfg: Config):
+def retrieve_runs(cfg: Config) -> None:
     data = op.mass_json_load(paths=cfg.outputs_dirs, pattern=cfg.run_id_pattern)
-    summary = {key: [] for key in ("id", "complete_gens", "score", "fitted_pipeline")}
+    summary = {key: [] for key in (
+        "id",
+        "random_state",
+        "classification",
+        "cv",
+        "population_size",
+        "max_time_mins",
+        "max_eval_time_mins",
+        "target_gens",
+        "gens_per_segment",
+        "early_stop",
+        "complete_gens",
+        "mean_gen_time",
+        "scorers",
+        "scorers_weights",
+        "score",
+        "fitted_pipeline"
+    )}
     responses = {}
     for run_data in data:
-        manager_parameters = run_data.get("pipeline_parameters")
-        manager_attributes = run_data.get("pipeline_attributes")
+        manager_parameters = run_data.get("manager_parameters")
+        tpot_parameters = run_data.get("tpot_parameters")
+        manager_attributes = run_data.get("manager_attributes")
+
+        # TODO: remove deprecation check in v0.9.0+
+        if manager_parameters is None:
+            manager_parameters = run_data.get("pipeline_parameters")
+            if manager_parameters is not None:
+                print("WARNING: using \"pipeline_parameters\" is deprecated. Use \"manager_parameters\" instead.", flush=True)
+        if manager_attributes is None:
+            manager_attributes = run_data.get("pipeline_attributes")
+            if manager_attributes is not None:
+                print("WARNING: using \"pipeline_attributes\" is deprecated. Use \"manager_attributes\" instead.", flush=True)
+
         tpot_attributes = run_data.get("tpot_attributes")
         summary["id"].append(manager_parameters.get("id"))
+        summary["random_state"].append(tpot_parameters.get("random_state"))
+        summary["classification"].append(tpot_parameters.get("classification"))
+        summary["cv"].append(tpot_parameters.get("cv"))
+        summary["population_size"].append(tpot_parameters.get("population_size"))
+        summary["max_time_mins"].append(tpot_parameters.get("max_time_mins"))
+        summary["max_eval_time_mins"].append(tpot_parameters.get("max_eval_time_mins"))
+        summary["target_gens"].append(manager_parameters.get("target_gens"))
+        summary["gens_per_segment"].append(tpot_parameters.get("generations"))
+        summary["early_stop"].append(tpot_parameters.get("early_stop"))
         summary["complete_gens"].append(manager_attributes.get("complete_gens"))
+        summary["mean_gen_time"].append(mean_gen_time(manager_attributes))
+        summary["scorers"].append(tpot_parameters.get("scorers"))
+        summary["scorers_weights"].append(tpot_parameters.get("scorers_weights"))
         summary["score"].append(manager_attributes.get("gen_scores")[-1])
         summary["fitted_pipeline"].append(find_root(tpot_attributes.get("fitted_pipeline_")))
         kfold_predictions = manager_attributes.get("kfold_predictions")
