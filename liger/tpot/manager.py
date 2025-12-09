@@ -54,6 +54,7 @@ class TPOTManager:
         "eval_random_states",
         "id",
         "export_fitted_pipeline",
+        "clean_population_file",
     }
     TPOT_PARAM_KEYS = {
         "scorers",
@@ -170,6 +171,7 @@ class TPOTManager:
             self.start_time.strftime(self.DATETIME_FMT),
         )
         self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
+        self.clean_population_file = _manager_params.get("clean_population_file", False)
 
         self.complete_gens: int = _manager_attrs.get("complete_gens", 0)
         self.gen_scores: list[list[float]] = _manager_attrs.get("gen_scores", [])
@@ -313,11 +315,6 @@ class TPOTManager:
             }
         raise TypeError(f"Could not convert type {type(objec)} to json format")
 
-    def save_data(self) -> None:
-        manager_data = self.get_manager_data()
-        with open(self.output_dir / self.MANAGER_DATA, "w") as f:
-            json.dump(manager_data, f, indent=4, default=self.json_everything)
-
     def get_manager_data(self) -> dict:
         manager_parameters = {
             key: value
@@ -346,6 +343,15 @@ class TPOTManager:
             "manager_attributes": manager_attributes,
             "tpot_attributes": tpot_attributes,
         }
+
+    def save_data(self) -> None:
+        manager_data = self.get_manager_data()
+        with open(self.output_dir / self.MANAGER_DATA, "w") as f:
+            json.dump(manager_data, f, indent=4, default=self.json_everything)
+
+    def cleanup(self) -> None:
+        if self.clean_population_file and (self.output_dir / self.POPULATION_PKL).is_file():
+            (self.output_dir / self.POPULATION_PKL).unlink()
 
     def append_scores(self, output_lines: list[str]) -> None:
         gen_indices = [
@@ -394,6 +400,7 @@ class TPOTManager:
             self.export_pipeline()
             self.evaluate()
             self.save_data()
+            self.cleanup()
             self.not_in_progress()
             print("\nFITTED PIPELINE:")
             print(self.tpot.fitted_pipeline_)
@@ -433,6 +440,8 @@ class TPOTManager:
                 self.output_dir / self.POPULATION_PKL,
                 self.output_dir / self.TEMP_POPULATION_PKL,
             )
+        else:
+            print("NO PRE-EXISTING POPULATION FILE FOUND - GENERATING POPULATION")
         with open(self.IN_PROGRESS / (str(self.id) + ".txt"), "w") as f:
             f.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
