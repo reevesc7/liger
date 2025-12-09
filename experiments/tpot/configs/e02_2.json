@@ -14,7 +14,9 @@
             2,
             3
         ],
-        "id": null
+        "id": null,
+        "export_fitted_pipeline": false,
+        "clean_population_file": true
     },
     "tpot_parameters": {
         "scorers": [
