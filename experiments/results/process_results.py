@@ -162,6 +162,49 @@ def training_variances_fig(
     )
 
 
+def training_confidence_fig(
+    means: ArrayLike,
+    std_devs: ArrayLike,
+    dataset: str,
+) -> Figure:
+    """Plot the confidences of LLM response distributions, across means.
+    """
+    std_devs = np.asarray(std_devs)
+    return pl.scatter(
+        x=means,
+        y=np.full(std_devs.shape, 1) - std_devs ** 2 / 20.25,
+        title=f"{dataset}: ChatGPT responses, confidence by mean",
+        axis_labels=("mean", "confidence"),
+        trend_orders=[],
+        plot_perfect=False,
+    )
+
+
+def _agreement(row: pd.Series) -> float:
+    response = round(float(row["mean"]))
+    return sum(float(row[f"prob_{i}"]) for i in range(
+        max(response - 1, 1),
+        min(response + 2, 11),
+    ))
+
+
+def training_agreement_fig(
+    means: pd.Series,
+    probs: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    """Plot the confidences of LLM response distributions, across means.
+    """
+    return pl.scatter(
+        x=means,
+        y=pd.concat((means, probs), axis=1).apply(_agreement, axis=1),
+        title=f"{dataset}: ChatGPT responses, agreement by mean",
+        axis_labels=("mean", "confidence"),
+        trend_orders=[],
+        plot_perfect=False,
+    )
+
+
 def responses_fig(
     responses: pd.DataFrame,
     means: pd.DataFrame,
@@ -232,7 +275,7 @@ def zscores_fig(
 
 
 def make_plots(cfg: Config):
-    dataset = ds.Dataset.from_csv(cfg.dataset_file, "no_match!@#", ["mean", "std_dev"])
+    dataset = ds.Dataset.from_csv(cfg.dataset_file, "no_match!@#", ["mean", "std_dev", "prob"])
     responses = pd.read_csv(cfg.responses_file)
     means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
     std_devs = pd.concat([pd.Series(dataset.y["std_dev"])] * responses.shape[1], axis=1)
@@ -242,11 +285,21 @@ def make_plots(cfg: Config):
         dataset.y["mean"],
         dataset.y["std_dev"],
         cfg.dataset,
-    ).savefig(cfg.results_dir / "1_training_variances")
-    responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "2_responses")
-    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "3_abs_errors")
-    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "4_squared_errors")
-    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.results_dir / "5_zscores")
+    ).savefig(cfg.results_dir / "00_training_variances")
+    training_confidence_fig(
+        dataset.y["mean"],
+        dataset.y["std_dev"],
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "01_training_confidences")
+    training_agreement_fig(
+        pd.Series(dataset.y["mean"]),
+        dataset.y.filter(like="prob"),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "02_training_agreements")
+    responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "10_responses")
+    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_abs_errors")
+    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "21_squared_errors")
+    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.results_dir / "22_zscores")
 
 
 def main():
