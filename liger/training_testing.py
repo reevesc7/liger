@@ -19,7 +19,7 @@ from typing import Any
 from types import FunctionType
 from importlib import import_module
 import numpy as np
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, StratifiedKFold
 from sklearn.metrics._scorer import _Scorer
 from .dataset import Dataset
 
@@ -52,14 +52,14 @@ def _separate_objectives(scorers: list[Any]) -> tuple[list[int], list[int]]:
 # Returns a model's predictions across all training instances of a KFold cross validation
 def kfold_predict(
     model,
-    kfold: KFold,
+    kfold: KFold | StratifiedKFold,
     scorers: list[Any],
     data: Dataset
 ) -> tuple[list[dict[int, Any]], list[float | list[float]]]:
     predicted: list[dict[int, Any]] = []
     fold_scores = np.zeros((kfold.get_n_splits(), len(scorers)))
     scorer_indices, objective_indices = _separate_objectives(scorers)
-    for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x)):
+    for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x, data.y)):
         model.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
         fold_predicted = [
             prediction[0] if isinstance(prediction, list) and len(prediction) == 1 else prediction
