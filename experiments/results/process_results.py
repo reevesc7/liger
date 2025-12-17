@@ -112,6 +112,8 @@ def retrieve_runs(cfg: Config) -> None:
         "early_stop",
         "complete_gens",
         "mean_gen_time",
+        "feature_keys",
+        "score_keys",
         "scorers",
         "scorers_weights",
         "score",
@@ -146,6 +148,8 @@ def retrieve_runs(cfg: Config) -> None:
         summary["early_stop"].append(tpot_parameters.get("early_stop"))
         summary["complete_gens"].append(manager_attributes.get("complete_gens"))
         summary["mean_gen_time"].append(mean_gen_time(manager_attributes))
+        summary["feature_keys"].append(manager_parameters.get("feature_keys"))
+        summary["score_keys"].append(manager_parameters.get("score_keys"))
         summary["scorers"].append(tpot_parameters.get("scorers"))
         summary["scorers_weights"].append(tpot_parameters.get("scorers_weights"))
         summary["score"].append(manager_attributes.get("gen_scores")[-1])
