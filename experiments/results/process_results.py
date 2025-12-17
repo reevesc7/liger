@@ -1,3 +1,4 @@
+from typing import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -44,7 +45,23 @@ def mean_gen_time(manager_attributes: dict) -> float:
     return sum(manager_attributes["segment_run_times"]) / manager_attributes["complete_gens"]
 
 
-def find_root(fitted_pipeline: str | list[str]) -> str:
+def _blacklist_search(items: Sequence[str], reverse: bool = False) -> str:
+    blacklist = (
+        "False",
+        "True_",
+        "C",
+    )
+    if reverse:
+        it_var = -1
+    else:
+        it_var = 0
+    for item in items[it_var::it_var]:
+        if item not in blacklist:
+            return item
+    raise ValueError(f"No appropriate items found in {items}")
+
+
+def find_root(fitted_pipeline: str | Sequence[str]) -> str:
     """Find the root `EstimatorNode` of a `GraphPipeline` or `Pipeline`, given a string representation.
     If the pipeline is a `GraphPipeline`, this only works if its root is an `EstimatorNode`.
     """
@@ -59,11 +76,11 @@ def find_root(fitted_pipeline: str | list[str]) -> str:
         matches = re.findall(r"\b([A-Z][A-Za-z0-9_]*)", full_str)
         if len(matches) == 0:
             raise ValueError(error_msg)
-        return matches[-1]
+        return _blacklist_search(matches, reverse=True)
     raise ValueError(error_msg)
 
 
-def order_responses(folds: list[dict[str, float]]) -> list[float]:
+def order_responses(folds: Sequence[dict[str, float]]) -> list[float]:
     responses: dict[str, float] = {}
     for fold in folds:
         responses.update(fold)
@@ -72,7 +89,7 @@ def order_responses(folds: list[dict[str, float]]) -> list[float]:
 
 def run_responses(
     id: str,
-    kfold_predictions: dict[str, list[dict[str, float]]],
+    kfold_predictions: dict[str, Sequence[dict[str, float]]],
 ) -> dict[str, list[float]]:
     responses: dict[str, list[float]] = {}
     for rand_state, folds in kfold_predictions.items():
@@ -275,7 +292,11 @@ def zscores_fig(
 
 
 def make_plots(cfg: Config):
-    dataset = ds.Dataset.from_csv(cfg.dataset_file, "no_match!@#", ["mean", "std_dev", "prob"])
+    dataset = ds.Dataset.from_csv(
+        cfg.dataset_file,
+        "no_match!@#",
+        ["mean", "mode", "std_dev", "prob"],
+    )
     responses = pd.read_csv(cfg.responses_file)
     means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
     std_devs = pd.concat([pd.Series(dataset.y["std_dev"])] * responses.shape[1], axis=1)
