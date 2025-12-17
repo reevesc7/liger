@@ -226,11 +226,11 @@ def training_confidence_fig(
     )
 
 
-def _agreement(row: pd.Series) -> float:
+def _agreement(row: pd.Series, interval: int = 1) -> float:
     response = round(float(row["mean"]))
     return sum(float(row[f"prob_{i}"]) for i in range(
-        max(response - 1, 1),
-        min(response + 2, 11),
+        max(response - interval, 1),
+        min(response + interval + 1, 11),
     ))
 
 
@@ -245,7 +245,7 @@ def training_agreement_fig(
         x=means,
         y=pd.concat((means, probs), axis=1).apply(_agreement, axis=1),
         title=f"{dataset}: ChatGPT responses, agreement by mean",
-        axis_labels=("mean", "confidence"),
+        axis_labels=("mean", "agreement"),
         trend_orders=[],
         plot_perfect=False,
     )
