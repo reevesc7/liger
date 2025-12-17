@@ -183,6 +183,31 @@ def training_variances_fig(
     )
 
 
+def _sq_mode_dist(row: pd.Series) -> float:
+    return sum(
+        float(row[f"prob_{i}"]) * (i - float(row["mode"])) ** 2
+        for i in range(1,11)
+    )
+
+
+def training_sq_mode_dist_fig(
+    means: ArrayLike,
+    modes: pd.Series,
+    probs: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    """Plot the expected squared distance to the mode of LLM response distributions, across means.
+    """
+    return pl.scatter(
+        x=means,
+        y=pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1),
+        title=f"{dataset}: ChatGPT responses, expected squared distance to the mode by mean",
+        axis_labels=("mean", "sq_mode_dist"),
+        trend_orders=[],
+        plot_perfect=False,
+    )
+
+
 def training_confidence_fig(
     means: ArrayLike,
     std_devs: ArrayLike,
@@ -311,16 +336,22 @@ def make_plots(cfg: Config):
         dataset.y["std_dev"],
         cfg.dataset,
     ).savefig(cfg.results_dir / "00_training_variances")
+    training_sq_mode_dist_fig(
+        dataset.y["mean"],
+        pd.Series(dataset.y["mode"]),
+        dataset.y.filter(like="prob"),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "01_training_sq_mode_dist")
     training_confidence_fig(
         dataset.y["mean"],
         dataset.y["std_dev"],
         cfg.dataset,
-    ).savefig(cfg.results_dir / "01_training_confidences")
+    ).savefig(cfg.results_dir / "02_training_confidences")
     training_agreement_fig(
         pd.Series(dataset.y["mean"]),
         dataset.y.filter(like="prob"),
         cfg.dataset,
-    ).savefig(cfg.results_dir / "02_training_agreements")
+    ).savefig(cfg.results_dir / "03_training_agreements")
     responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "10_responses")
     abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_abs_errors")
     squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "21_squared_errors")
