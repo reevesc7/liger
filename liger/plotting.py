@@ -113,6 +113,56 @@ def scatter(
     return fig
 
 
+def bar(
+    x: ArrayLike,
+    y: ArrayLike,
+    error: ArrayLike | None = None,
+    title: str | None = None,
+    axis_labels: tuple[str, str] | None = None,
+) -> Figure:
+    """Create a 2D bar plot, optionally with error bars.
+
+    Parameters
+    ----------
+    `x` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
+    `y` : `ArrayLike`
+        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
+        Must be the same shape as `x`.
+    `error` : `ArrayLike` | None, optional
+        A 1- or 2-dimensional array-like, of error magnitudes from one or more datasets.
+        Must be the same shape as `x`.
+    `title` : `str`, optional
+        A title for the plot.
+    `axis_labels` : `tuple[str]`, optional
+        A labels for the plot's x and y axes.
+
+    Returns
+    -------
+    `fig` : `matplotlib.figure.Figure`
+        The figure plotting the data. Show any current figures with
+        `liger.plotting.show()`, and save it with `fig.savefig()`.
+    """
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if error is not None:
+        error = np.asarray(error)
+        _ensure_same_shape((x, y, error))
+    else:
+        _ensure_same_shape((x, y))
+    fig, ax = plt.subplots()
+    _set_titles(ax, title, axis_labels)
+    if len(x.shape) == 1:
+        ax.bar(x, y, yerr=error)
+        return fig
+    for dataset in range(x.shape[0]):
+        if error is not None:
+            ax.bar(x[dataset], y[dataset], yerr=error[dataset])
+        else:
+            ax.bar(x[dataset], y[dataset])
+    return fig
+
+
 def plot(
     x: ArrayLike,
     y: ArrayLike,

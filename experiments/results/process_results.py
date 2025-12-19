@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -190,13 +190,13 @@ def _sq_mode_dist(row: pd.Series) -> float:
     )
 
 
-def training_sq_mode_dist_fig(
+def training_sq_mode_dists_fig(
     means: ArrayLike,
     modes: pd.Series,
     probs: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    """Plot the expected squared distance to the mode of LLM response distributions, across means.
+    """Plot the expected squared distances to the mode of LLM response distributions, across means.
     """
     return pl.scatter(
         x=means,
@@ -208,46 +208,157 @@ def training_sq_mode_dist_fig(
     )
 
 
-def training_confidence_fig(
+def training_mode_fig(
     means: ArrayLike,
-    std_devs: ArrayLike,
+    modes: ArrayLike,
     dataset: str,
 ) -> Figure:
-    """Plot the confidences of LLM response distributions, across means.
+    """Plot the modes of LLM response distributions, across means.
     """
-    std_devs = np.asarray(std_devs)
     return pl.scatter(
         x=means,
-        y=np.full(std_devs.shape, 1) - std_devs ** 2 / 20.25,
-        title=f"{dataset}: ChatGPT responses, confidence by mean",
-        axis_labels=("mean", "confidence"),
+        y=modes,
+        title=f"{dataset}: ChatGPT responses, mode by mean",
+        axis_labels=("mean", "mode"),
         trend_orders=[],
         plot_perfect=False,
     )
 
 
-def _agreement(row: pd.Series, interval: int = 1) -> float:
-    response = round(float(row["mean"]))
+# def training_confidence_fig(
+#     means: ArrayLike,
+#     std_devs: ArrayLike,
+#     dataset: str,
+# ) -> Figure:
+#     """Plot the confidences of LLM response distributions, across means.
+#     """
+#     return pl.scatter(
+#         x=means,
+#         y=np.full(std_devs.shape, 1) - np.asarray(std_devs) ** 2 / 20.25,
+#         title=f"{dataset}: ChatGPT responses, confidence by mean",
+#         axis_labels=("mean", "confidence"),
+#         trend_orders=[],
+#         plot_perfect=False,
+#     )
+
+
+def _agreement(row: pd.Series, target: str, interval: int = 1) -> float:
+    response = int(row[target])
     return sum(float(row[f"prob_{i}"]) for i in range(
         max(response - interval, 1),
         min(response + interval + 1, 11),
     ))
 
 
-def training_agreement_fig(
+def training_mean_agreement_fig(
     means: pd.Series,
     probs: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    """Plot the confidences of LLM response distributions, across means.
+    """Plot the agreements of LLM response distributions, across means.
     """
+    targets = means.apply(lambda row: round(row))
     return pl.scatter(
         x=means,
-        y=pd.concat((means, probs), axis=1).apply(_agreement, axis=1),
-        title=f"{dataset}: ChatGPT responses, agreement by mean",
+        y=pd.concat((targets, probs), axis=1).apply(lambda row: _agreement(row, "mean"), axis=1),
+        title=f"{dataset}: ChatGPT responses, agreement with mean by mean",
         axis_labels=("mean", "agreement"),
         trend_orders=[],
         plot_perfect=False,
+    )
+
+
+def _sem(row: pd.Series) -> pd.Series:
+    return pd.Series(
+        (row["mean"], row["std_dev"] / row["n"] ** 0.5),
+        index=["mean", "sem"],
+    )
+
+
+def _mean_sem_of_2_grouped_by_1(data: pd.DataFrame, groups: Iterable) -> pd.DataFrame:
+    return pd.DataFrame(data.groupby(data.columns[0]).agg(
+        mean=(data.columns[1], "mean"),
+        std_dev=(data.columns[1], "std"),
+        n=(data.columns[1], "count"),
+    ).apply(_sem, axis=1).reindex(groups).fillna(0.0))
+
+
+def training_variances_mode_fig(
+    data: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    modes = range(1,11)
+    data["std_dev"] = data["std_dev"].apply(lambda row: row ** 2)
+    variance_stats = _mean_sem_of_2_grouped_by_1(data, modes)
+    return pl.bar(
+        x=modes,
+        y=variance_stats["mean"],
+        error=variance_stats["sem"],
+        title=f"{dataset}: ChatGPT responses, variance by mode",
+        axis_labels=("ChatGPT mode", "mean of variances (SEM)"),
+    )
+
+
+def training_sq_mode_dists_mode_fig(
+    data: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    modes = range(1,11)
+    variance_stats = _mean_sem_of_2_grouped_by_1(pd.DataFrame(pd.concat((
+        data["mode"],
+        data.filter(like="o").apply(_sq_mode_dist, axis=1),
+    ), axis=1)), modes)
+    return pl.bar(
+        x=modes,
+        y=variance_stats["mean"],
+        error=variance_stats["sem"],
+        title=f"{dataset}: ChatGPT responses, expected squared distance to mode by mode",
+        axis_labels=("ChatGPT mode", "mean of expected squared distance to mode (SEM)"),
+    )
+
+
+def training_means_mode_fig(
+    data: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    modes = range(1,11)
+    mean_stats = _mean_sem_of_2_grouped_by_1(data, modes)
+    return pl.bar(
+        x=modes,
+        y=mean_stats["mean"],
+        error=mean_stats["sem"],
+        title=f"{dataset}: ChatGPT responses, mean by mode",
+        axis_labels=("ChatGPT mode", "mean of means (SEM)"),
+    )
+
+
+def training_mode_agreement_mode_fig(
+    data: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    modes = range(1,11)
+    agreement = data.apply(lambda row: _agreement(row, "mode"), axis=1)
+    agreement_stats = _mean_sem_of_2_grouped_by_1(pd.concat((data["mode"], agreement), axis=1), modes)
+    return pl.bar(
+        x=modes,
+        y=agreement_stats["mean"],
+        error=agreement_stats["sem"],
+        title=f"{dataset}: ChatGPT responses, agreement with mode by mode",
+        axis_labels=("ChatGPT mode", "mean of means (SEM)"),
+    )
+
+
+def training_n_mode_fig(
+    data: pd.DataFrame,
+    dataset: str,
+) -> Figure:
+    modes = range(1,11)
+    ns = data.groupby("mode").agg(n=("mode", "count")).reindex(modes).fillna(0.0)
+    return pl.bar(
+        x=modes,
+        y=ns["n"],
+        title=f"{dataset}: ChatGPT responses, agreement with mode by mode",
+        axis_labels=("ChatGPT mode", "n"),
     )
 
 
@@ -336,26 +447,51 @@ def make_plots(cfg: Config):
         dataset.y["std_dev"],
         cfg.dataset,
     ).savefig(cfg.results_dir / "00_training_variances")
-    training_sq_mode_dist_fig(
+    training_sq_mode_dists_fig(
         dataset.y["mean"],
         pd.Series(dataset.y["mode"]),
         dataset.y.filter(like="prob"),
         cfg.dataset,
-    ).savefig(cfg.results_dir / "01_training_sq_mode_dist")
-    training_confidence_fig(
+    ).savefig(cfg.results_dir / "01_training_sq_mode_dists")
+    training_mode_fig(
         dataset.y["mean"],
-        dataset.y["std_dev"],
+        dataset.y["mode"],
         cfg.dataset,
-    ).savefig(cfg.results_dir / "02_training_confidences")
-    training_agreement_fig(
+    ).savefig(cfg.results_dir / "02_training_modes")
+    # training_confidence_fig(
+    #     dataset.y["mean"],
+    #     dataset.y["std_dev"],
+    #     cfg.dataset,
+    # ).savefig(cfg.results_dir / "02_training_confidences")
+    training_mean_agreement_fig(
         pd.Series(dataset.y["mean"]),
         dataset.y.filter(like="prob"),
         cfg.dataset,
-    ).savefig(cfg.results_dir / "03_training_agreements")
-    responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "10_responses")
-    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_abs_errors")
-    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "21_squared_errors")
-    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.results_dir / "22_zscores")
+    ).savefig(cfg.results_dir / "03_training_mean_agreements")
+    training_variances_mode_fig(
+        dataset.y.filter(("mode", "std_dev")),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "10_training_variances_mode")
+    training_sq_mode_dists_mode_fig(
+        dataset.y.filter(like="o"),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "11_training_sq_mode_dists_mode")
+    training_means_mode_fig(
+        dataset.y.filter(("mode", "mean")),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "12_training_means_mode")
+    training_mode_agreement_mode_fig(
+        dataset.y.filter(like="o"),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "13_training_mode_agreements")
+    training_n_mode_fig(
+        dataset.y.filter(like="mode"),
+        cfg.dataset,
+    ).savefig(cfg.results_dir / "14_training_mode_ns")
+    responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_responses")
+    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "30_abs_errors")
+    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "31_squared_errors")
+    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.results_dir / "32_zscores")
 
 
 def main():
