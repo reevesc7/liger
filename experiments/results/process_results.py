@@ -171,13 +171,13 @@ def training_variances_fig(
     std_devs: ArrayLike,
     dataset: str,
 ) -> Figure:
-    """Plot the standard deviation of LLM response distributions, across means.
+    """Plot the variances of LLM response distributions, across means.
     """
     return pl.scatter(
         x=means,
-        y=std_devs,
-        title=f"{dataset}: ChatGPT responses, standard deviation by mean",
-        axis_labels=("mean", "std_dev"),
+        y=np.asarray(std_devs) ** 2,
+        title=f"{dataset}: ChatGPT responses, variance by mean",
+        axis_labels=("mean", "variance"),
         trend_orders=[],
         plot_perfect=False,
     )
