@@ -41,11 +41,12 @@ class OpenAISurveyor(BaseSurveyor):
             string = string[:n] + " ... " + string[-n:]
         print(f"{type(self).__name__} responding to \"{string}\"".replace("\n", " "))
 
-    def generate_response(self, prompt: str) -> str:
+    def generate_response(self, prompt: str, **kwargs) -> str:
         self._print_limited(prompt)
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": prompt}],
+            **kwargs,
         )
         response = completion.choices[0].message.content
         if response is None:
@@ -53,26 +54,27 @@ class OpenAISurveyor(BaseSurveyor):
         return response
 
     @overload
-    def generate_responses(self, prompt: str) -> str: ...
+    def generate_responses(self, prompt: str, **kwargs) -> str: ...
     @overload
-    def generate_responses(self, prompt: str, reps: None) -> str: ...
+    def generate_responses(self, prompt: str, reps: None, **kwargs) -> str: ...
     @overload
-    def generate_responses(self, prompt: str, reps: int) -> list[str]: ...
-    def generate_responses(self, prompt: str, reps: int | None = None) -> str | list[str]:
+    def generate_responses(self, prompt: str, reps: int, **kwargs) -> list[str]: ...
+    def generate_responses(self, prompt: str, reps: int | None = None, **kwargs) -> str | list[str]:
         if reps is None or reps == 1:
-            return self.generate_response(prompt)
-        return [self.generate_response(prompt) for _ in range(reps)]
+            return self.generate_response(prompt, **kwargs)
+        return [self.generate_response(prompt, **kwargs) for _ in range(reps)]
 
     def survey(
         self,
         prompts: str | MutableSequence[str] | pd.Series,
         reps: int | None = None,
+        **kwargs,
     ) -> pd.Series:
         if isinstance(prompts, str):
             prompts = [prompts]
         responses = []
         for prompt in prompts:
-            responses.append(self.generate_responses(prompt, reps))
+            responses.append(self.generate_responses(prompt, reps, **kwargs))
         return pd.Series(responses, name="response")
 
     @staticmethod
