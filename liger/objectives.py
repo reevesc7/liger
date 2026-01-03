@@ -49,6 +49,10 @@ def score_test(y_true: NDArray, y_pred: NDArray) -> np.floating[Any]:
     return np.mean(a + b + c + d - e)
 
 
+# def soft_brier(y_true_pmf: NDArray, y_pred_proba: NDArray) -> np.floating[Any]:
+#     return np.mean(np.sum((y_pred_proba - y_true_pmf) ** 2, axis=1))
+
+
 # Define scorers
 neg_msle_2d = make_scorer(
     score_msle_2d,
@@ -60,4 +64,9 @@ neg_test = make_scorer(
     response_method="predict",
     greater_is_better=False,
 )
+# neg_soft_brier = make_scorer(
+#     soft_brier,
+#     response_method="predict_proba",
+#     greater_is_better=False,
+# )
 
