@@ -6,6 +6,7 @@ from liger import smallville
 from liger.surveying.openai import OpenAISurveyor
 from liger.embedding.openai import OpenAIEmbedder
 from liger.embedding.sentencetrans import STEmbedder
+from liger import probabilities as prb
 
 
 @dataclass(slots=True)
@@ -53,6 +54,7 @@ class SurveyConfig:
     model: str
     response_seed: str
     allowed_responses: set[str]
+    temperature: float
 
 
 @dataclass(slots=True)
@@ -124,7 +126,7 @@ def get_responses(cfg: Config, data: Data) -> pd.DataFrame:
         return data.responses
     if cfg.retrieve.responses and cfg.paths.responses.exists():
         return pd.read_csv(cfg.paths.responses)
-    return OpenAISurveyor(cfg.survey.model).probs_survey(
+    return OpenAISurveyor(cfg.survey.model).log_probs_survey(
         get_prompts(cfg, data),
         cfg.survey.response_seed,
         cfg.survey.allowed_responses,
@@ -136,7 +138,22 @@ def get_functionals(cfg: Config, data: Data) -> pd.DataFrame:
         return data.functionals
     if cfg.retrieve.functionals and cfg.paths.functionals.exists():
         return pd.read_csv(cfg.paths.functionals)
-    return OpenAISurveyor.functionals(get_responses(cfg, data))
+    logprobs = get_responses(cfg, data)
+    probs = logprobs.apply(
+        lambda row: prb.softmax(row, temperature=cfg.survey.temperature),
+        axis=1,
+    )
+    if not isinstance(probs, pd.DataFrame):
+        raise TypeError("A problem occurred while converting logprobs to probs")
+    probs.rename(columns={
+        col: float(str(col).removeprefix("prob_logprob_"))
+        for col in probs.columns
+    }, inplace=True)
+    return pd.DataFrame({
+        "mean": probs.apply(prb.pmf_mean, axis=1),
+        "mode": probs.apply(prb.pmf_mode, axis=1),
+        "std_dev": probs.apply(prb.pmf_std_dev, axis=1),
+    })
 
 
 def get_embeddings_ai(cfg: Config, data: Data) -> pd.DataFrame:
