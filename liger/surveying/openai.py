@@ -17,7 +17,8 @@
 
 from typing import MutableSequence, overload
 from pathlib import Path
-from math import sqrt
+import math
+import numpy as np
 import pandas as pd
 from openai import OpenAI
 import tiktoken
@@ -77,23 +78,28 @@ class OpenAISurveyor(BaseSurveyor):
             responses.append(self.generate_responses(prompt, reps, **kwargs))
         return pd.Series(responses, name="response")
 
+    # TODO: remove unused method
     @staticmethod
     def mean(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
         return probs.apply(lambda row: sum(col * row[col] for col in probs.columns), axis=1)
 
+    # TODO: remove unused method
     @staticmethod
     def mode(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
         return probs.apply(lambda row: max(probs.columns, key=lambda col: row[col]), axis=1)
 
+    # TODO: remove unused method
     @staticmethod
     def _row_std_dev(row: pd.Series) -> float:
         mean = sum(col * row[col] for col in row.index)
-        return sqrt(sum(row[col] * (col - mean) ** 2 for col in row.index))
+        return math.sqrt(sum(row[col] * (col - mean) ** 2 for col in row.index))
 
+    # TODO: remove unused method
     @staticmethod
     def std_dev(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
         return probs.apply(OpenAISurveyor._row_std_dev, axis=1)
 
+    # TODO: remove unused method
     @staticmethod
     def _col2int(colname: str, prune: str | MutableSequence[str]) -> int:
         if isinstance(prune, str):
@@ -102,6 +108,7 @@ class OpenAISurveyor(BaseSurveyor):
             colname = colname.removeprefix(string).removesuffix(string)
         return int(colname)
 
+    # TODO: remove unused method
     @staticmethod
     def functionals(
         probs: pd.DataFrame,
@@ -114,9 +121,10 @@ class OpenAISurveyor(BaseSurveyor):
             "std_dev": OpenAISurveyor.std_dev(probs),
         })
 
+    # TODO: remove unused method
     @staticmethod
     def _col_names(tokens: pd.Index) -> pd.Index:
-        return pd.Index(f"prob_{token}" for token in tokens)
+        return pd.Index(f"logprob_{token}" for token in tokens)
 
     def set_logit_bias(self, desired_tokens: str | set[str]) -> None:
         encoding = tiktoken.encoding_for_model(self.model)
@@ -128,6 +136,7 @@ class OpenAISurveyor(BaseSurveyor):
             for token_id in token_ids:
                 self.logit_bias[str(token_id)] = 100
 
+    # TODO: remove unused method
     def _probs_one(
         self,
         prompt: str,
@@ -172,6 +181,7 @@ class OpenAISurveyor(BaseSurveyor):
         probs = {token: prob / total_prob for token, prob in probs.items()}
         return probs
 
+    # TODO: remove unused method
     @overload
     def probs_survey(
         self,
@@ -209,6 +219,78 @@ class OpenAISurveyor(BaseSurveyor):
             raise ValueError("prompts and response_seeds must be the same size")
         responses = pd.DataFrame(
             self._probs_one(prompt, response_seed, allowed_tokens, normalize)
+            for prompt, response_seed in zip(prompts, response_seeds)
+        )
+        responses.columns = self._col_names(responses.columns)
+        return responses
+
+    def _log_probs_one(
+        self,
+        prompt: str,
+        response_seed: str,
+        allowed_tokens: set[str] | None = None,
+    ) -> dict[str, float]:
+        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
+        completion = self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {"role": "user", "content": prompt},
+                {"role": "assistant", "content": response_seed},
+            ],
+            max_tokens=1,
+            logprobs=True,
+            top_logprobs=20,
+            logit_bias=self.logit_bias,
+        )
+        logprobs = completion.choices[0].logprobs
+        if logprobs is not None and logprobs.content is not None:
+            top_logprobs = {
+                logprob.token: logprob.logprob
+                for logprob in logprobs.content[0].top_logprobs
+            }
+        else:
+            raise ValueError("No response was returned or response was unparseable")
+        if allowed_tokens is not None:
+            top_logprobs = {
+                token: top_logprobs.setdefault(token, -np.inf)
+                for token in allowed_tokens
+            }
+        return top_logprobs
+
+    @overload
+    def log_probs_survey(
+        self,
+        prompts: str,
+        response_seeds: str,
+        allowed_tokens: set[str] | None = None,
+    ) -> pd.Series: ...
+    @overload
+    def log_probs_survey(
+        self,
+        prompts: MutableSequence[str] | pd.Series,
+        response_seeds: str | list[str],
+        allowed_tokens: set[str] | None = None,
+    ) -> pd.DataFrame: ...
+    def log_probs_survey(
+        self,
+        prompts: str | MutableSequence[str] | pd.Series,
+        response_seeds: str | MutableSequence[str] | pd.Series,
+        allowed_tokens: set[str] | None = None,
+    ) -> pd.Series | pd.DataFrame:
+        if isinstance(prompts, str):
+            if not isinstance(response_seeds, str):
+                raise TypeError("response_seeds must be a string if prompts is a string")
+            response = pd.Series(
+                self._log_probs_one(prompts, response_seeds, allowed_tokens)
+            )
+            response.index = self._col_names(response.index)
+            return response
+        if isinstance(response_seeds, str):
+            response_seeds = [response_seeds,] * len(prompts)
+        elif len(response_seeds) != len(prompts):
+            raise ValueError("prompts and response_seeds must be the same size")
+        responses = pd.DataFrame(
+            self._log_probs_one(prompt, response_seed, allowed_tokens)
             for prompt, response_seed in zip(prompts, response_seeds)
         )
         responses.columns = self._col_names(responses.columns)
