@@ -50,6 +50,10 @@ class TPOTManager:
         "data_file",
         "feature_keys",
         "score_keys",
+        "feature_transformers",
+        "score_transformers",
+        "feature_transformers_kwargs",
+        "score_transformers_kwargs",
         "target_gens",
         "eval_random_states",
         "id",
@@ -155,6 +159,26 @@ class TPOTManager:
             raise ValueError("Must specify a data file and feature and score keys in config")
         self.data_file = Path(self.data_file)
         self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
+        self.feature_transformers: list[str] = _manager_params.get("feature_transformers", [])
+        self.feature_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
+            "feature_transformers_kwargs",
+            None,
+        )
+        self.score_transformers: list[str] = _manager_params.get("score_transformers", [])
+        self.score_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
+            "score_transformers_kwargs",
+            None,
+        )
+        self.dataset.set_x_transformers(
+            self.feature_transformers,
+            self.feature_transformers_kwargs,
+        )
+        self.dataset.set_y_transformers(
+            self.score_transformers,
+            self.score_transformers_kwargs,
+        )
+        self.dataset.transform_x()
+        self.dataset.transform_y()
 
         self._config_search_space = _tpot_params["search_space"]
         _tpot_random_state: int = self.use_first(
