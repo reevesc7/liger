@@ -139,21 +139,12 @@ def get_functionals(cfg: Config, data: Data) -> pd.DataFrame:
     if cfg.retrieve.functionals and cfg.paths.functionals.exists():
         return pd.read_csv(cfg.paths.functionals)
     logprobs = get_responses(cfg, data)
-    probs = logprobs.apply(
-        lambda row: prb.softmax(row, temperature=cfg.survey.temperature),
-        axis=1,
-    )
-    if not isinstance(probs, pd.DataFrame):
-        raise TypeError("A problem occurred while converting logprobs to probs")
-    probs.rename(columns={
-        col: float(str(col).removeprefix("prob_logprob_"))
-        for col in probs.columns
-    }, inplace=True)
-    return pd.DataFrame({
-        "mean": probs.apply(prb.pmf_mean, axis=1),
-        "mode": probs.apply(prb.pmf_mode, axis=1),
-        "std_dev": probs.apply(prb.pmf_std_dev, axis=1),
-    })
+    return pd.concat([
+        prb.apply_logprobs_mode(logprobs, temperature=cfg.survey.temperature),
+        prb.apply_logprobs_mean(logprobs, temperature=cfg.survey.temperature),
+        prb.apply_logprobs_variance(logprobs, temperature=cfg.survey.temperature),
+        prb.apply_logprobs_std_dev(logprobs, temperature=cfg.survey.temperature),
+    ], axis=1)
 
 
 def get_embeddings_ai(cfg: Config, data: Data) -> pd.DataFrame:

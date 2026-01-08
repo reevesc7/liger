@@ -15,29 +15,112 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import math
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
+from scipy import special
 
 
-def pmf_mean(pmf: pd.Series) -> float:
-    return sum(index * pmf[index] for index in pmf.index)
+def _strip_prefix(
+    columns: pd.Index,
+    prefix: str,
+) -> pd.Index:
+    return pd.Index([
+        str(col).removeprefix(prefix)
+        for col in columns
+    ])
 
 
-def pmf_mode(pmf: pd.Series) -> float:
-    return max(pmf.index, key=lambda index: pmf[index])
+def softmax(
+    logprobs: ArrayLike,
+    temperature: float = 1.0,
+) -> np.ndarray:
+    logprobs = np.asarray(logprobs)
+    return special.softmax(logprobs / temperature, axis=-1)
 
 
-def pmf_std_dev(pmf: pd.Series) -> float:
-    mean = pmf_mean(pmf)
-    return math.sqrt(sum(pmf[index] * (index - mean) ** 2 for index in pmf.index))
+def pmf_mode(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+    x_vals = np.asarray(x_vals)
+    masses = np.asarray(masses)
+    mode_indices = np.argmax(masses, axis=-1, keepdims=True)
+    return np.take_along_axis(x_vals, mode_indices, axis=-1)[..., 0]
 
 
-def softmax(logprobs: pd.Series, temperature: float = 1.0) -> pd.Series:
-    logprobs = (logprobs - np.max(logprobs)) / temperature
-    probs = pd.Series(np.exp(logprobs)).rename(index={
-        index: f"prob_{index}"
-        for index in logprobs.index
-    })
-    return probs / np.sum(probs)
+def pmf_mean(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+    x_vals = np.asarray(x_vals)
+    masses = np.asarray(masses)
+    return np.average(x_vals, axis=-1, weights=masses)
+
+
+def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+    x_vals = np.asarray(x_vals)
+    masses = np.asarray(masses)
+    return np.average(
+        (x_vals - pmf_mean(x_vals, masses)[..., np.newaxis]) ** 2,
+        axis=-1,
+        weights=masses,
+    )
+
+
+def pmf_std_dev(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+    return np.sqrt(pmf_variance(x_vals, masses))
+
+
+def apply_softmax(
+    logprobs: pd.DataFrame,
+    temperature: float = 1.0,
+    strip_prefix: str = "logprob_",
+) -> pd.DataFrame:
+    x_vals = _strip_prefix(logprobs.columns, strip_prefix)
+    return pd.DataFrame(
+        softmax(logprobs.to_numpy(), temperature),
+        columns=pd.Index([f"prob_{x_val}" for x_val in x_vals]),
+    )
+
+
+def _format_x_vals(df: pd.DataFrame, strip_prefix: str) -> np.ndarray:
+    return np.broadcast_to(
+        _strip_prefix(df.columns, strip_prefix).to_numpy(dtype=float),
+        df.shape,
+    )
+
+
+def apply_logprobs_mode(
+    logprobs: pd.DataFrame,
+    temperature: float,
+    strip_prefix: str = "logprob_",
+) -> pd.Series:
+    masses = apply_softmax(logprobs, temperature, strip_prefix)
+    x_vals = _format_x_vals(logprobs, strip_prefix)
+    return pd.Series(pmf_mode(x_vals, masses), name="mode")
+
+
+def apply_logprobs_mean(
+    logprobs: pd.DataFrame,
+    temperature: float,
+    strip_prefix: str = "logprob_",
+) -> pd.Series:
+    masses = apply_softmax(logprobs, temperature, strip_prefix)
+    x_vals = _format_x_vals(logprobs, strip_prefix)
+    return pd.Series(pmf_mean(x_vals, masses), name="mean")
+
+
+def apply_logprobs_variance(
+    logprobs: pd.DataFrame,
+    temperature: float,
+    strip_prefix: str = "logprob_",
+) -> pd.Series:
+    masses = apply_softmax(logprobs, temperature, strip_prefix)
+    x_vals = _format_x_vals(logprobs, strip_prefix)
+    return pd.Series(pmf_variance(x_vals, masses), name="variance")
+
+
+def apply_logprobs_std_dev(
+    logprobs: pd.DataFrame,
+    temperature: float,
+    strip_prefix: str = "logprob_",
+) -> pd.Series:
+    masses = apply_softmax(logprobs, temperature, strip_prefix)
+    x_vals = _format_x_vals(logprobs, strip_prefix)
+    return pd.Series(pmf_std_dev(x_vals, masses), name="std_dev")
 
