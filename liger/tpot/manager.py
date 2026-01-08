@@ -61,7 +61,6 @@ class TPOTManager:
         "clean_population_file",
     }
     TPOT_PARAM_KEYS = {
-        "scorers",
         "scorers_weights",
         "classification",
         "cv",
@@ -181,6 +180,7 @@ class TPOTManager:
         self.dataset.transform_y()
 
         self._config_search_space = _tpot_params["search_space"]
+        self._config_scorers = _tpot_params["scorers"]
         _tpot_random_state: int = self.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
@@ -215,7 +215,7 @@ class TPOTManager:
                 self.dataset.x.shape[1],
                 _tpot_random_state
             ),
-            scorers=init_scorers(_tpot_params["scorers"]),
+            scorers=init_scorers(self._config_scorers),
             cv=self.get_cv(
                 _tpot_params.get("cv"),
                 _tpot_params["classification"],
@@ -351,6 +351,7 @@ class TPOTManager:
             if key in self.TPOT_PARAM_KEYS
         }
         tpot_parameters["search_space"] = self._config_search_space
+        tpot_parameters["scorers"] = self._config_scorers
         manager_attributes = {
             key: value
             for key, value in self.__dict__.items()
@@ -533,7 +534,7 @@ class TPOTManager:
         kfold_predictions, kfold_scores = kfold_predict(
             self.tpot.fitted_pipeline_,
             kfold,
-            self.tpot._scorers,
+            self.tpot.scorers,
             self.dataset,
         )
         return kfold_predictions, kfold_scores
