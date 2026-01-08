@@ -151,7 +151,7 @@ y_transformer:
     ) -> Self:
         """
         Initialize a `Dataset` from a `csv` file.
-
+        #
         Parameters
         ----------
         `file_path` : `str`
@@ -164,7 +164,7 @@ y_transformer:
             The pattern(s) to search for in column names to use for scores.
             NOTE: If both `feature_pattern` and `score_pattern` are provided,
             only columns matching them will be loaded into memory.
-
+        #
         Returns
         -------
         `dataset` : `Dataset`
@@ -183,6 +183,30 @@ y_transformer:
             y_transformers_kwargs,
         )
 
+    @staticmethod
+    def interpolated_point(point1: ArrayLike, point2: ArrayLike, alpha: float) -> np.ndarray:
+        """Creates a point along the line segment between two points.
+        #
+        Parameters
+        ----------
+        `point1` : `ArrayLike`
+            An array of scalar values.
+        `point2` : `ArrayLike`
+            An array of scalar values. Should be the same shape as `point1`.
+        `alpha` : `float`
+            Where to place the new point. If 0.0, new will be the same as `point1`.
+            If 1.0, new will be the same as `point2`. If 0.5, new will be at the
+            average position of the two points.
+        #
+        Returns
+        -------
+        `interpolated_point` : `numpy.ndarray`
+            A point on the line segment between `point1` and `point2`.
+        """
+        point1 = np.asarray(point1)
+        point2 = np.asarray(point2)
+        return point1 + alpha * (point2 - point1)
+
     @classmethod
     def random_linear(
         cls,
@@ -195,7 +219,7 @@ y_transformer:
         """Generate a dataset of random points on the line segment between two given
         points, with scores corresponding to the distance of each point along that
         line segment and noise applied to each point.
-
+        #
         Parameters
         ----------
         `n_entries` : `int`
@@ -221,30 +245,6 @@ y_transformer:
         return cls(x, y)
 
     @staticmethod
-    def interpolated_point(point1: ArrayLike, point2: ArrayLike, alpha: float) -> np.ndarray:
-        """Creates a point along the line segment between two points.
-
-        Parameters
-        ----------
-        `point1` : `ArrayLike`
-            An array of scalar values.
-        `point2` : `ArrayLike`
-            An array of scalar values. Should be the same shape as `point1`.
-        `alpha` : `float`
-            Where to place the new point. If 0.0, new will be the same as `point1`.
-            If 1.0, new will be the same as `point2`. If 0.5, new will be at the
-            average position of the two points.
-
-        Returns
-        -------
-        `interpolated_point` : `numpy.ndarray`
-            A point on the line segment between `point1` and `point2`.
-        """
-        point1 = np.asarray(point1)
-        point2 = np.asarray(point2)
-        return point1 + alpha * (point2 - point1)
-
-    @staticmethod
     @overload
     def random_points(
         n_points: None = None,
@@ -266,7 +266,7 @@ y_transformer:
     ) -> np.ndarray | tuple[np.ndarray, ...]:
         """Generate random data points within a range.
         The value of each scalar within each point/vector is in the range `[0,1)`
-
+        #
         Parameters
         ----------
         `n_points` : `int`, optional
@@ -276,7 +276,7 @@ y_transformer:
             How many dimensions the vector of each point should have.
         `random_state` : `int`, optional
             The random state to use.
-
+        #
         Returns
         -------
         `random_point(s)` : `numpy.ndarray` or `tuple[numpy.ndarray]`
@@ -289,7 +289,7 @@ y_transformer:
 
     def to_csv(self, filename: str | Path) -> None:
         """Save this dataset as a `csv` file.
-
+        #
         ...
         """
         pd.concat((self.x, self.y), axis=1).to_csv(filename, index=False)

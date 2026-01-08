@@ -73,9 +73,9 @@ def scatter(
     plot_perfect: bool = False,
 ) -> Figure:
     """Create a 2D scatter plot.
-
+    #
     Points on the plot are circles with `alpha=0.3`.
-
+    #
     Parameters
     ----------
     `x` : `ArrayLike`
@@ -93,7 +93,7 @@ def scatter(
     `plot_perfect` : `bool`, default `False`
         Whether to plot an ideal trendline, assuming the dimensions of the data
         are fully covariant, i.e., $Y=X$. If plotted, this line is in gray.
-
+    #
     Returns
     -------
     `fig` : `matplotlib.figure.Figure`
@@ -121,7 +121,7 @@ def bar(
     axis_labels: tuple[str, str] | None = None,
 ) -> Figure:
     """Create a 2D bar plot, optionally with error bars.
-
+    #
     Parameters
     ----------
     `x` : `ArrayLike`
@@ -136,7 +136,7 @@ def bar(
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
         A labels for the plot's x and y axes.
-
+    #
     Returns
     -------
     `fig` : `matplotlib.figure.Figure`
@@ -170,7 +170,7 @@ def plot(
     axis_labels: tuple[str, str] | None = None,
 ) -> Figure:
     """Create a 2D line plot.
-
+    #
     Parameters
     ----------
     `x` : `ArrayLike`
@@ -182,7 +182,7 @@ def plot(
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
         A labels for the plot's x and y axes.
-
+    #
     Returns
     -------
     `fig` : `matplotlib.figure.Figure`

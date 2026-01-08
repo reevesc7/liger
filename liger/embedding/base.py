@@ -42,7 +42,7 @@ class BaseEmbedder:
         replacement: str,
     ) -> str | pd.Series:
         """Substitute a string within all strings.
-
+        #
         Parameters
         ----------
         `strings` : `str` or `MutableSequence[str] or pandas.Series`
@@ -51,7 +51,7 @@ class BaseEmbedder:
             The substring to replace in each `strings` string.
         `add_string` : `str`
             The substring to add instead for each `strings` string.
-
+        #
         Returns
         -------
         `strings` : `str` or `pandas.Series`
@@ -79,14 +79,14 @@ class BaseEmbedder:
         add_string: str,
     ) -> str | pd.Series:
         """Add a string to the start of all strings.
-
+        #
         Parameters
         ----------
         `strings` : `str` or `MutableSequence[str] or pandas.Series`
             The strings to be transformed.
         `add_string` : `str`
             The string to add to the beginning of each `strings` string.
-
+        #
         Returns
         -------
         `strings` : `str` or `pandas.Series`

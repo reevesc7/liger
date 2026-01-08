@@ -65,14 +65,14 @@ def get_logged_prompts(
 
 def response_strip(responses: pd.Series) -> pd.Series:
     """Convert full Smallville poignancy responses to ints.
-
+    #
     Parameters
     ----------
     `responses` : `pandas.Series`
         The "response" column returned by `OpenAISurveyor. generate_response(),
         .generate_responses()`, `.survey()`. Elements are either `str`
         or `list[str]`, depending on number of replicates.
-
+    #
     Returns
     -------
     `stripped_responses` : `pandas.Series`
