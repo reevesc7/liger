@@ -157,27 +157,35 @@ class TPOTManager:
         if self.data_file is None or self.feature_keys is None or self.score_keys is None:
             raise ValueError("Must specify a data file and feature and score keys in config")
         self.data_file = Path(self.data_file)
-        self.dataset = Dataset.from_csv(self.data_file, self.feature_keys, self.score_keys)
-        self.feature_transformers: list[str] = _manager_params.get("feature_transformers", [])
+        self.feature_transformers: list[str] | None = _manager_params.get("feature_transformers")
+        self.score_transformers: list[str] | None = _manager_params.get("score_transformers")
         self.feature_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
             "feature_transformers_kwargs",
             None,
         )
-        self.score_transformers: list[str] = _manager_params.get("score_transformers", [])
         self.score_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
             "score_transformers_kwargs",
             None,
         )
-        self.dataset.set_x_transformers(
+        self.dataset = Dataset.from_csv(
+            self.data_file,
+            self.feature_keys,
+            self.score_keys,
             self.feature_transformers,
-            self.feature_transformers_kwargs,
-        )
-        self.dataset.set_y_transformers(
             self.score_transformers,
+            self.feature_transformers_kwargs,
             self.score_transformers_kwargs,
         )
-        self.dataset.transform_x()
-        self.dataset.transform_y()
+        # self.dataset.set_x_transformers(
+        #     self.feature_transformers,
+        #     self.feature_transformers_kwargs,
+        # )
+        # self.dataset.set_y_transformers(
+        #     self.score_transformers,
+        #     self.score_transformers_kwargs,
+        # )
+        # self.dataset.transform_x()
+        # self.dataset.transform_y()
 
         self._config_search_space = _tpot_params["search_space"]
         self._config_scorers = _tpot_params["scorers"]
