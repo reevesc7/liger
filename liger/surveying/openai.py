@@ -18,7 +18,6 @@
 from typing import MutableSequence, overload
 from pathlib import Path
 import math
-import numpy as np
 import pandas as pd
 from openai import OpenAI
 import tiktoken
@@ -229,6 +228,7 @@ class OpenAISurveyor(BaseSurveyor):
         prompt: str,
         response_seed: str,
         allowed_tokens: set[str] | None = None,
+        floor_margin: float = 1.0,
     ) -> dict[str, float]:
         print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
         completion = self.client.chat.completions.create(
@@ -251,8 +251,9 @@ class OpenAISurveyor(BaseSurveyor):
         else:
             raise ValueError("No response was returned or response was unparseable")
         if allowed_tokens is not None:
+            floor_logprob = min(top_logprobs.values()) - floor_margin
             top_logprobs = {
-                token: top_logprobs.setdefault(token, -np.inf)
+                token: top_logprobs.setdefault(token, floor_logprob)
                 for token in allowed_tokens
             }
         return top_logprobs
@@ -263,6 +264,7 @@ class OpenAISurveyor(BaseSurveyor):
         prompts: str,
         response_seeds: str,
         allowed_tokens: set[str] | None = None,
+        floor_margin: float = 1.0,
     ) -> pd.Series: ...
     @overload
     def log_probs_survey(
@@ -270,12 +272,14 @@ class OpenAISurveyor(BaseSurveyor):
         prompts: MutableSequence[str] | pd.Series,
         response_seeds: str | list[str],
         allowed_tokens: set[str] | None = None,
+        floor_margin: float = 1.0,
     ) -> pd.DataFrame: ...
     def log_probs_survey(
         self,
         prompts: str | MutableSequence[str] | pd.Series,
         response_seeds: str | MutableSequence[str] | pd.Series,
         allowed_tokens: set[str] | None = None,
+        floor_margin: float = 1.0,
     ) -> pd.Series | pd.DataFrame:
         if isinstance(prompts, str):
             if not isinstance(response_seeds, str):
@@ -290,7 +294,7 @@ class OpenAISurveyor(BaseSurveyor):
         elif len(response_seeds) != len(prompts):
             raise ValueError("prompts and response_seeds must be the same size")
         responses = pd.DataFrame(
-            self._log_probs_one(prompt, response_seed, allowed_tokens)
+            self._log_probs_one(prompt, response_seed, allowed_tokens, floor_margin)
             for prompt, response_seed in zip(prompts, response_seeds)
         )
         responses.columns = self._col_names(responses.columns)
