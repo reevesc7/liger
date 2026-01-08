@@ -15,25 +15,41 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import overload, MutableSequence
-from typing_extensions import Self
+from typing import overload, Any, MutableSequence, Self
+from importlib import import_module
+import inspect
 from pathlib import Path
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
+from sklearn.preprocessing import FunctionTransformer
 
 
 class Dataset:
-    def __init__(self, x: pd.DataFrame, y: pd.DataFrame):
+    def __init__(
+        self,
+        x: pd.DataFrame,
+        y: pd.DataFrame,
+        x_transformers: list[Any] | None = None,
+        y_transformers: list[Any] | None = None,
+    ):
         self.x = x
         self.y = y
+        self.x_transformers = x_transformers
+        self.y_transformers = y_transformers
+        self._x_is_transformed = False
+        self._y_is_transformed = False
 
     def __repr__(self):
         return f"""Dataset:
 x:
 {self.x}
 y:
-{self.y}"""
+{self.y}
+x_transformer:
+{self.x_transformers}
+y_transformer:
+{self.y_transformers}"""
 
     @staticmethod
     def _to_set(input: str | MutableSequence[str] | set[str]) -> set[str]:
@@ -204,6 +220,79 @@ y:
         if n_points is None:
             return rng.random(n_dimensions)
         return tuple(rng.random(n_dimensions) for _ in range(n_points))
+
+    @staticmethod
+    def _init_transformer(transformer: str | Any, kwargs: dict[str, Any]) -> Any:
+        if isinstance(transformer, str):
+            split_transformer = transformer.rsplit(".", 1)
+            transformer = getattr(
+                import_module(split_transformer[0]),
+                split_transformer[1],
+            )
+        if isinstance(transformer, type):
+            return transformer(**kwargs).set_output(transform="pandas")
+        elif inspect.isfunction(transformer):
+            return FunctionTransformer(
+                transformer,
+                kw_args=kwargs,
+            ).set_output(transform="pandas")
+        return transformer
+
+    def set_x_transformers(
+        self,
+        transformers: list[str | Any | None],
+        kwargs: list[dict[str, Any]] | None = None,
+    ) -> None:
+        if kwargs is None:
+            kwargs = [{} for _ in range(len(transformers))]
+        self.x_transformers = [
+            self._init_transformer(transformer, kwargs)
+            for transformer, kwargs in zip(transformers, kwargs)
+        ]
+
+    def set_y_transformers(
+        self,
+        transformers: list[str | Any | None],
+        kwargs: list[dict[str, Any]] | None = None,
+    ) -> None:
+        if kwargs is None:
+            kwargs = [{} for _ in range(len(transformers))]
+        self.y_transformers = [
+            self._init_transformer(transformer, kwargs)
+            for transformer, kwargs in zip(transformers, kwargs)
+        ]
+
+    def transform_x(self, avoid_retransform: bool = True) -> None:
+        if self.x_transformers is None:
+            return
+        if all(transformer is None for transformer in self.x_transformers):
+            return
+        if self._x_is_transformed and avoid_retransform:
+            print("Warning: Dataset.x was transformed before; skipping transform(s)")
+            return
+        for transformer in self.x_transformers:
+            transformer.fit(self.x)
+        self.x = pd.concat([
+            transformer.transform(self.x)
+            for transformer in self.x_transformers
+        ], axis=1)
+        self._x_is_transformed = True
+
+    def transform_y(self, avoid_retransform: bool = True) -> None:
+        if self.y_transformers is None:
+            return
+        if all(transformer is None for transformer in self.y_transformers):
+            return
+        if self._y_is_transformed and avoid_retransform:
+            print("Warning: Dataset.y was transformed before; skipping transform(s)")
+            return
+        for transformer in self.y_transformers:
+            transformer.fit(self.y)
+        self.y = pd.concat([
+            transformer.transform(self.y)
+            for transformer in self.y_transformers
+        ], axis=1)
+        self._y_is_transformed = True
 
     def to_csv(self, filename: str | Path) -> None:
         """Save this dataset as a `csv` file.
