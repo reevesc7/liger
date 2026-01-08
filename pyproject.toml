@@ -17,12 +17,15 @@ dependencies = [
     "scikit-learn (>=1.4.2,<2.0.0)",
     "sentence-transformers (>=3.4.1,<4.0.0)",
     "tpot (>=1.0.0,<2.0.0)",
-    "tiktoken (>=0.9.0,<0.10.0)"
+    "tiktoken (>=0.9.0,<0.10.0)",
+    "scipy (>=1.16.3,<2.0.0)",
+    "torch (>=2.9.1,<3.0.0)"
 ]
 
 
 [project.scripts]
 lg-tpot = "liger.tpot.run_segment:main"
+
 
 [project.urls]
 Repository = "https://github.com/reevesc7/liger.git"
@@ -31,3 +34,13 @@ Repository = "https://github.com/reevesc7/liger.git"
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[[tool.poetry.source]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+priority = "explicit"
+
+
+[tool.poetry.dependencies]
+torch = {source = "pytorch-cpu"}
