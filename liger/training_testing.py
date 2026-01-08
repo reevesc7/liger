@@ -59,7 +59,6 @@ def kfold_predict(
 ) -> tuple[list[dict[int, Any]], list[float | list[float]]]:
     predicted: list[dict[int, Any]] = []
     fold_scores = np.zeros((kfold.get_n_splits(), len(scorers)))
-    # scorer_indices, objective_indices = _separate_objectives(scorers)
     for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x, data.y)):
         model_clone = clone(model)
         model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
@@ -72,15 +71,6 @@ def kfold_predict(
             scorer(model_clone, data.x.iloc[test_indices], data.y.iloc[test_indices])
             for scorer in scorers
         ]
-        # fold_scores[fold][scorer_indices] = [
-        #     scorers[index]._score_func(
-        #         data.y.iloc[test_indices],
-        #         list(predicted[-1].values()),
-        #         **scorers[index]._kwargs,
-        #     )
-        #     for index in scorer_indices
-        # ]
     scores = np.average(fold_scores, axis=0)
-    # scores[objective_indices] = [scorers[index](model) for index in objective_indices]
     return predicted, scores.tolist()
 
