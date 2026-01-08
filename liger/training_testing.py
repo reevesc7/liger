@@ -21,7 +21,6 @@ from importlib import import_module
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import KFold, StratifiedKFold
-from sklearn.metrics._scorer import _Scorer
 from .dataset import Dataset
 
 
@@ -34,20 +33,6 @@ def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
         split_scorer = param_scorer.rsplit(".", 1)
         scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
     return scorers
-
-
-def _separate_objectives(scorers: list[Any]) -> tuple[list[int], list[int]]:
-    scorer_indices = [
-        index
-        for index, element in enumerate(scorers)
-        if isinstance(element, _Scorer)
-    ]
-    objective_indices = [
-        index
-        for index in range(len(scorers))
-        if index not in scorer_indices
-    ]
-    return scorer_indices, objective_indices
 
 
 # Returns a model's predictions across all training instances of a KFold cross validation

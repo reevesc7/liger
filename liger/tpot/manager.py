@@ -542,7 +542,7 @@ class TPOTManager:
         kfold_predictions, kfold_scores = kfold_predict(
             self.tpot.fitted_pipeline_,
             kfold,
-            self.tpot.scorers,
+            self.tpot._scorers,
             self.dataset,
         )
         return kfold_predictions, kfold_scores
