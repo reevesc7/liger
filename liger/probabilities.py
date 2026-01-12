@@ -36,6 +36,9 @@ def softmax(
     temperature: float = 1.0,
 ) -> np.ndarray:
     logprobs = np.asarray(logprobs)
+    temperature = max(temperature, 0.0)
+    if temperature == 0.0:
+        return (logprobs == logprobs.max(axis=-1, keepdims=True)).astype(float)
     return special.softmax(logprobs / temperature, axis=-1)
 
 
