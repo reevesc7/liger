@@ -101,6 +101,14 @@ def retrieve_runs(cfg: Config) -> None:
     data = op.mass_json_load(paths=cfg.outputs_dirs, pattern=cfg.run_id_pattern)
     summary = {key: [] for key in (
         "id",
+        "config_file",
+        "data_file",
+        "feature_keys",
+        "target_keys",
+        "feature_transformers",
+        "target_transformers",
+        "feature_transformers_kwargs",
+        "target_transformers_kwargs",
         "random_state",
         "classification",
         "cv",
@@ -112,8 +120,6 @@ def retrieve_runs(cfg: Config) -> None:
         "early_stop",
         "complete_gens",
         "mean_gen_time",
-        "feature_keys",
-        "score_keys",
         "scorers",
         "scorers_weights",
         "score",
@@ -137,6 +143,14 @@ def retrieve_runs(cfg: Config) -> None:
 
         tpot_attributes = run_data.get("tpot_attributes")
         summary["id"].append(manager_parameters.get("id"))
+        summary["config_file"].append(manager_parameters.get("config_file"))
+        summary["data_file"].append(manager_parameters.get("data_file"))
+        summary["feature_keys"].append(manager_parameters.get("feature_keys"))
+        summary["target_keys"].append(manager_parameters.get("target_keys"))
+        summary["feature_transformers"].append(manager_parameters.get("feature_transformers"))
+        summary["target_transformers"].append(manager_parameters.get("target_transformers"))
+        summary["feature_transformers_kwargs"].append(manager_parameters.get("feature_transformers_kwargs"))
+        summary["target_transformers_kwargs"].append(manager_parameters.get("target_transformers_kwargs"))
         summary["random_state"].append(tpot_parameters.get("random_state"))
         summary["classification"].append(tpot_parameters.get("classification"))
         summary["cv"].append(tpot_parameters.get("cv"))
@@ -148,8 +162,6 @@ def retrieve_runs(cfg: Config) -> None:
         summary["early_stop"].append(tpot_parameters.get("early_stop"))
         summary["complete_gens"].append(manager_attributes.get("complete_gens"))
         summary["mean_gen_time"].append(mean_gen_time(manager_attributes))
-        summary["feature_keys"].append(manager_parameters.get("feature_keys"))
-        summary["score_keys"].append(manager_parameters.get("score_keys"))
         summary["scorers"].append(tpot_parameters.get("scorers"))
         summary["scorers_weights"].append(tpot_parameters.get("scorers_weights"))
         summary["score"].append(manager_attributes.get("gen_scores")[-1])
@@ -357,7 +369,7 @@ def training_n_mode_fig(
     return pl.bar(
         x=modes,
         y=ns["n"],
-        title=f"{dataset}: ChatGPT responses, agreement with mode by mode",
+        title=f"{dataset}: ChatGPT responses, number of responses by mode",
         axis_labels=("ChatGPT mode", "n"),
     )
 
