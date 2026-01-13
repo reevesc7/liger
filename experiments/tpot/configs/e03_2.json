@@ -4,8 +4,18 @@
         "feature_keys": [
             "text-embedding-3-small_--e"
         ],
-        "score_keys": [
-            "mean"
+        "target_keys": [
+            "logprob"
+        ],
+        "feature_transformers": [],
+        "target_transformers": [
+            "liger.probabilities.apply_mean_center"
+        ],
+        "feature_transformers_kwargs": [],
+        "target_transformers_kwargs": [
+            {
+                "axis": -1
+            }
         ],
         "target_gens": 100,
         "eval_random_states": [
