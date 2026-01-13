@@ -31,7 +31,6 @@ from ..dataset import Dataset
 from ..training_testing import init_scorers, kfold_predict
 from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
-from sklearn.metrics._scorer import _Scorer
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
 import dill
@@ -176,16 +175,6 @@ class TPOTManager:
             self.feature_transformers_kwargs,
             self.score_transformers_kwargs,
         )
-        # self.dataset.set_x_transformers(
-        #     self.feature_transformers,
-        #     self.feature_transformers_kwargs,
-        # )
-        # self.dataset.set_y_transformers(
-        #     self.score_transformers,
-        #     self.score_transformers_kwargs,
-        # )
-        # self.dataset.transform_x()
-        # self.dataset.transform_y()
 
         self._config_search_space = _tpot_params["search_space"]
         self._config_scorers = _tpot_params["scorers"]
@@ -331,9 +320,7 @@ class TPOTManager:
             return objec.tolist()
         if isinstance(objec, range):
             return list(objec)
-        if isinstance(objec, _Scorer):
-            return ".".join([objec._score_func.__module__, objec._score_func.__name__])
-        if isinstance(objec, FunctionType) and hasattr(objec, "__module__"):
+        if isinstance(objec, FunctionType):
             return ".".join([objec.__module__, objec.__name__])
         if isinstance(objec, (Pipeline, GraphPipeline)):
             return objec.__str__().split("\n")
