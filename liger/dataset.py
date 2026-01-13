@@ -32,8 +32,8 @@ class Dataset:
         y: pd.DataFrame,
         x_transformers: list[Any] | None = None,
         y_transformers: list[Any] | None = None,
-        x_transformers_kwargs: list[dict[str, Any]] | None = None,
-        y_transformers_kwargs: list[dict[str, Any]] | None = None,
+        x_transformers_kwargs: list[dict[str, Any] | None] | None = None,
+        y_transformers_kwargs: list[dict[str, Any] | None] | None = None,
     ):
         self.x = x
         self.y = y
@@ -41,10 +41,6 @@ class Dataset:
         self.y_transformers = self._init_transformers(y_transformers, y_transformers_kwargs)
         self.x = self._transform_data(x, self.x_transformers)
         self.y = self._transform_data(y, self.y_transformers)
-        # self.x_transformers = x_transformers
-        # self.y_transformers = y_transformers
-        # self._x_is_transformed = False
-        # self._y_is_transformed = False
 
     def __repr__(self):
         return f"""Dataset:
@@ -74,13 +70,15 @@ y_transformer:
         return pd.Index(col for col in cols if Dataset._patterns_in(col, patterns))
 
     @staticmethod
-    def _init_transformer(transformer: str | Any | None, kwargs: dict[str, Any]) -> Any:
+    def _init_transformer(transformer: str | Any | None, kwargs: dict[str, Any] | None) -> Any:
         if isinstance(transformer, str):
             split_transformer = transformer.rsplit(".", 1)
             transformer = getattr(
                 import_module(split_transformer[0]),
                 split_transformer[1],
             )
+        if kwargs is None:
+            kwargs = {}
         if isinstance(transformer, type):
             return transformer(**kwargs).set_output(transform="pandas")
         elif inspect.isfunction(transformer):
@@ -94,12 +92,14 @@ y_transformer:
     def _init_transformers(
         cls,
         transformers: list[str | Any] | None,
-        kwargs: list[dict[str, Any]] | None,
+        kwargs: list[dict[str, Any] | None] | None,
     ) -> list[Any] | None:
-        if transformers is None:
+        if transformers is None or len(transformers) == 0:
             return None
-        if kwargs is None:
+        if kwargs is None or len(kwargs) == 0:
             kwargs = [{} for _ in range(len(transformers))]
+        elif len(kwargs) != len(transformers):
+            raise ValueError(f"length of transformers is {len(transformers)}, but length of transformers kwargs is {len(kwargs)}")
         return [
             cls._init_transformer(transformer, kwargs)
             for transformer, kwargs in zip(transformers, kwargs)
@@ -124,8 +124,8 @@ y_transformer:
         score_patterns: str | MutableSequence[str] | set[str],
         x_transformers: list[Any] | None = None,
         y_transformers: list[Any] | None = None,
-        x_transformers_kwargs: list[dict[str, Any]] | None = None,
-        y_transformers_kwargs: list[dict[str, Any]] | None = None,
+        x_transformers_kwargs: list[dict[str, Any] | None] | None = None,
+        y_transformers_kwargs: list[dict[str, Any] | None] | None = None,
     ) -> Self:
         feature_patterns = cls._to_set(feature_patterns)
         score_patterns = cls._to_set(score_patterns)
@@ -146,8 +146,8 @@ y_transformer:
         score_patterns: str | MutableSequence[str] | set[str],
         x_transformers: list[Any] | None = None,
         y_transformers: list[Any] | None = None,
-        x_transformers_kwargs: list[dict[str, Any]] | None = None,
-        y_transformers_kwargs: list[dict[str, Any]] | None = None,
+        x_transformers_kwargs: list[dict[str, Any] | None] | None = None,
+        y_transformers_kwargs: list[dict[str, Any] | None] | None = None,
     ) -> Self:
         """
         Initialize a `Dataset` from a `csv` file.
