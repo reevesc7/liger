@@ -1,4 +1,4 @@
-from typing import Iterable, Sequence
+from typing import Any, Iterable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 import json
@@ -23,6 +23,7 @@ class Config:
     run_id_pattern: str
     summary_file: Path
     responses_file: Path
+    softmax_temperature: float
 
 
 def read_config(config_file: str | Path) -> Config:
@@ -38,6 +39,7 @@ def read_config(config_file: str | Path) -> Config:
         run_id_pattern=cfg["run_id_pattern"],
         summary_file=Path(cfg["dataset"], cfg["summary"]).with_suffix(".csv"),
         responses_file=Path(cfg["dataset"], cfg["responses"]).with_suffix(".csv"),
+        softmax_temperature=cfg["softmax_temperature"]
     )
 
 
@@ -80,8 +82,8 @@ def find_root(fitted_pipeline: str | Sequence[str]) -> str:
     raise ValueError(error_msg)
 
 
-def order_responses(folds: Sequence[dict[str, float]]) -> list[float]:
-    responses: dict[str, float] = {}
+def order_responses(folds: Sequence[dict[str, Any]]) -> list[Any]:
+    responses: dict[str, Any] = {}
     for fold in folds:
         responses.update(fold)
     return [responses[key] for key in sorted(responses.keys(), key=lambda k: int(k))]
@@ -89,9 +91,9 @@ def order_responses(folds: Sequence[dict[str, float]]) -> list[float]:
 
 def run_responses(
     id: str,
-    kfold_predictions: dict[str, Sequence[dict[str, float]]],
-) -> dict[str, list[float]]:
-    responses: dict[str, list[float]] = {}
+    kfold_predictions: dict[str, Sequence[dict[str, Any]]],
+) -> dict[str, list[Any]]:
+    responses: dict[str, list[Any]] = {}
     for rand_state, folds in kfold_predictions.items():
         responses[f"{id}_{rand_state}"] = order_responses(folds)
     return responses
@@ -447,7 +449,21 @@ def make_plots(cfg: Config):
     dataset = ds.Dataset.from_csv(
         cfg.dataset_file,
         "no_match!@#",
-        ["mean", "mode", "std_dev", "prob"],
+        "logprob",
+        y_transformers=[
+            "liger.probabilities.apply_softmax",
+            "liger.probabilities.apply_logprobs_mode",
+            "liger.probabilities.apply_logprobs_mean",
+            "liger.probabilities.apply_logprobs_variance",
+            "liger.probabilities.apply_logprobs_std_dev",
+        ],
+        y_transformers_kwargs=[
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+        ]
     )
     responses = pd.read_csv(cfg.responses_file)
     means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
