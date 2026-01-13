@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from typing import Sequence
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
@@ -67,6 +68,10 @@ def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
 
 def pmf_std_dev(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
     return np.sqrt(pmf_variance(x_vals, masses))
+
+def mean_center(x: ArrayLike, axis: int | Sequence[int] | None = None) -> np.ndarray:
+    x = np.asarray(x)
+    return x - np.mean(x, axis, keepdims=True)
 
 
 def apply_softmax(
@@ -126,4 +131,11 @@ def apply_logprobs_std_dev(
     masses = apply_softmax(logprobs, temperature, strip_prefix)
     x_vals = _format_x_vals(logprobs, strip_prefix)
     return pd.Series(pmf_std_dev(x_vals, masses), name="std_dev")
+
+
+def apply_mean_center(
+    x: pd.DataFrame,
+    axis: int | Sequence[int] | None = None,
+) -> pd.DataFrame:
+    return pd.DataFrame(mean_center(x, axis), index=x.index, columns=x.columns)
 
