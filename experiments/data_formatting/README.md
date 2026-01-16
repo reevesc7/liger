@@ -1,61 +1,16 @@
 # `liger/experiments/data_formatting`
 
-**Required Packages:** `liger`
+Scripts for formatting datasets for use with liger.
 
-A directory with scripts for formatting datasets for use with `liger`.
+## Extra dependencies
 
-Here are scripts for
-- parsing Smallville outputs into prompts,
-- embedding prompts,
-- surveying models for responses to prompts,
-- deriving functionals from model probability distribution responses,
-- and synthesizing all relevant fields into an aggregate dataset.
-
-## Setting up environment
-
-### 0. Requirements
-
-You will need a working
-[Anaconda](https://www.anaconda.com/download),
-[Miniconda](https://docs.anaconda.com/miniconda/),
-or [Miniforge](https://github.com/conda-forge/miniforge)
-installation.
-
-### 1. Create a Conda environment to work in:
-
-```
-conda create -n liger python=3.10
-```
-
-### 2. Activate Conda environment:
-
-```
-conda activate liger
-```
-
-### 3. Install requirements:
-
-While in the directory of the desired experiment,
-
-```
-pip install -r requirements.txt
-```
-
-### 4. Copy `example_config.py`:
-
-The file `config.py` is ignored by git,
-allowing users to modify it as needed for experiments.
-
-```
-cp example_config.py config.py
-```
-
-### 5. Modify configuration as needed:
-
-The behavior of the scripts in this directory are controlled by `config.py`.
-See below for an outline of how to modify the config.
+- `embedding`
+- `surveying`
 
 ## Formatting data
+
+The behavior of `format_data.py` is controlled by `config.json`.
+An `example_config.json` is included, but the file name `config.json` is ignored by git.
 
 ### Modifying configuration
 

@@ -1,42 +1,14 @@
 # `liger/experiments/tpot`
 
-**Required Packages:** `liger`
-
 A directory made to act as a working directory for the `liger` Python module.
 
-## Setting up environment
+## Extra dependencies
 
-### 0. Requirements
+- tpot
 
-You will need a working
-[Anaconda](https://www.anaconda.com/download),
-[Miniconda](https://docs.anaconda.com/miniconda/),
-or [Miniforge](https://github.com/conda-forge/miniforge)
-installation.
+## Testing an installation:
 
-### 1. Create a Conda environment to work in:
-
-```
-conda create -n liger python=3.10
-```
-
-### 2. Activate Conda environment:
-
-```
-conda activate liger
-```
-
-### 3. Install requirements:
-
-While in the directory of the desired experiment,
-
-```
-pip install -r requirements.txt
-```
-
-### 4. Test installation:
-
-With requirements installed, you can run a test.
+With `liger[tpot]` installed, you can run a test.
 
 ```
 bash test_bash.sh
@@ -75,9 +47,9 @@ Upon completion of the last generation, the following should be the case:
       including `"target_gens": 10` and `"complete_gens": <n complete gens>`,
       displaying that the run was set to complete 10 generations but may have carried out fewer.
       (this is because `"early_stop": 2` can terminate the run early,
-      after no improvement across the last 3 generations)
+      in case of no improvement across the last 3 generations)
     - You can see a record of each generation's score(s) in the `pipeline_data.json` file,
-      under `"gen_scores"` and confirm that the last 3 generations had the same score for each measure.
+      under `"gen_scores"` and confirm whether the last 3 generations had the same score for each measure.
 
 ## Slurm Configuration
 
@@ -122,7 +94,9 @@ There are several parameters which may be desirable to modify across experiments
 `"manager_parameters"`:
 - `"data_file"`
 - `"feature_keys"`
-- `"score_keys"`
+- `"target_keys"`
+- `"feature_transformers"` (and `"feature_transformers_kwargs"`)
+- `"target_transformers"` (and `"target_transformers_kwargs"`)
 - `"target_gens"`
 - `"eval_random_states"`
 - `"id"` *(generally left `null`)*

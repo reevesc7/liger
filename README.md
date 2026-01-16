@@ -2,35 +2,68 @@
 
 Likert General Regressor
 
-A set of helper functions for training and evaluating sklearn estimators on semantic analysis tasks.
+A set of utilites for training and evaluating estimators on semantic analysis tasks.
 
-## Installation
+## Introduction
 
-### Install Conda
+This repository houses an experimental workflow created to analyze the feasibility
+of using simple estimators to approximate subsets of LLM behaviors.
 
-[Instructions for installing Conda](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html)
+liger itself consists of utilities making up the core components of this workflow.
+The module can be applied across many projects looking to accomplish any combination of
+sentence embedding, LLM output analysis, (segmented) hyperparameter tuning, and
+data analysis and visualization thereof.
 
-### Create a Conda environment
+This repository also includes several scripts and configurations in the `experiments/`
+directory which interface with liger to complete the workflow used in the experiments
+documented in \<TBD\>.
+These scripts are not intended to be general-purpose utilities.
 
-In a terminal window, run the following command:
+## Extras
+
+liger has optional dependencies specified by multiple extras.
+Extras are required to use certain features:
+
+- `embedding`: Enables sentence embedding via SentenceTransformers and OpenAI
+- `surveying`: Enables querying OpenAI models for prompt responses
+- `tpot`: Enables running TPOT fitting with run segmentation and detailed outputs
+- `all`: Includes all extras above
+
+## Install liger only
+
+To install the liger source code, install from the GitHub repository.
+Use the following argument in a chosen package manager:
 
 ```
-conda create -n liger -y python=3.10
+"liger[<any desired extras>] @ git+https://github.com/reevesc7/liger.git@main"
 ```
 
-### Activate your Conda environment
-
-In a terminal window, run the following command:
+For example,
 
 ```
-conda activate liger
+pip install "liger[embedding,surveying] @ git+https://github.com/reevesc7/liger.git@main"
 ```
 
-### Install liger and dependencies
+```
+uv add "liger[all] @ git+https://github.com/reevesc7/liger.git@main"
+```
 
-In a terminal window, run the following command:
+## Install liger as a project with experiment scripts
+
+To work within a liger project environment, first clone the GitHub repository:
 
 ```
-pip install git+https://github.com/reevesc7/liger.git@main
+git clone https://github.com/reevesc7/liger.git
+```
+
+Then, in the project directory, install liger as editable with a chosen package manager.
+For example:
+
+```
+pip install -e .[all]
+```
+
+```
+uv sync --extra all
 ```
 
