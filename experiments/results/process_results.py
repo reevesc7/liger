@@ -198,9 +198,14 @@ def training_variances_fig(
 
 
 def _sq_mode_dist(row: pd.Series) -> float:
+    prob_vals = [
+        int(index[index.find("_") + 1:])
+        for index in row.index.array
+        if "prob_" in index
+    ]
     return sum(
         float(row[f"prob_{i}"]) * (i - float(row["mode"])) ** 2
-        for i in range(1,11)
+        for i in prob_vals
     )
 
 
@@ -301,7 +306,7 @@ def training_variances_mode_fig(
     data: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    modes = range(1,11)
+    modes = np.asarray(data["mode"].unique())
     data["std_dev"] = data["std_dev"].apply(lambda row: row ** 2)
     variance_stats = _mean_sem_of_2_grouped_by_1(data, modes)
     return pl.bar(
@@ -317,7 +322,7 @@ def training_sq_mode_dists_mode_fig(
     data: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    modes = range(1,11)
+    modes = np.asarray(data["mode"].unique())
     variance_stats = _mean_sem_of_2_grouped_by_1(pd.DataFrame(pd.concat((
         data["mode"],
         data.filter(like="o").apply(_sq_mode_dist, axis=1),
@@ -335,7 +340,7 @@ def training_means_mode_fig(
     data: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    modes = range(1,11)
+    modes = np.asarray(data["mode"].unique())
     mean_stats = _mean_sem_of_2_grouped_by_1(data, modes)
     return pl.bar(
         x=modes,
@@ -350,7 +355,7 @@ def training_mode_agreement_mode_fig(
     data: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    modes = range(1,11)
+    modes = np.asarray(data["mode"].unique())
     agreement = data.apply(lambda row: _agreement(row, "mode"), axis=1)
     agreement_stats = _mean_sem_of_2_grouped_by_1(pd.concat((data["mode"], agreement), axis=1), modes)
     return pl.bar(
@@ -366,7 +371,7 @@ def training_n_mode_fig(
     data: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    modes = range(1,11)
+    modes = np.asarray(data["mode"].unique())
     ns = data.groupby("mode").agg(n=("mode", "count")).reindex(modes).fillna(0.0)
     return pl.bar(
         x=modes,
