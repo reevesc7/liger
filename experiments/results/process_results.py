@@ -470,11 +470,6 @@ def make_plots(cfg: Config):
             {"temperature": cfg.softmax_temperature},
         ]
     )
-    responses = pd.read_csv(cfg.responses_file)
-    means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
-    std_devs = pd.concat([pd.Series(dataset.y["std_dev"])] * responses.shape[1], axis=1)
-    means.columns = responses.columns
-    std_devs.columns = responses.columns
     training_variances_fig(
         dataset.y["mean"],
         dataset.y["std_dev"],
@@ -521,6 +516,11 @@ def make_plots(cfg: Config):
         dataset.y.filter(like="mode"),
         cfg.dataset,
     ).savefig(cfg.results_dir / "14_training_mode_ns")
+    responses = pd.read_csv(cfg.responses_file)
+    means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
+    std_devs = pd.concat([pd.Series(dataset.y["std_dev"])] * responses.shape[1], axis=1)
+    means.columns = responses.columns
+    std_devs.columns = responses.columns
     responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_responses")
     abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "30_abs_errors")
     squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "31_squared_errors")
