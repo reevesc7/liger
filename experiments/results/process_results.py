@@ -263,10 +263,12 @@ def training_mode_fig(
 
 def _agreement(row: pd.Series, target: str, interval: int = 1) -> float:
     response = int(row[target])
-    return sum(float(row[f"prob_{i}"]) for i in range(
-        max(response - interval, 1),
-        min(response + interval + 1, 11),
-    ))
+    agreements: list[float] = []
+    for i in range(max(response - interval, 1), min(response + interval + 1, 11)):
+        agreement = row.get(f"prob_{i}", 0.0)
+        assert agreement is not None, "Series must have been empty... somehow"
+        agreements.append(float(agreement))
+    return sum(agreements)
 
 
 def training_mean_agreement_fig(
