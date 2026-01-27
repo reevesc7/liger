@@ -6,7 +6,7 @@ A set of utilites for training and evaluating estimators on semantic analysis ta
 
 ## Introduction
 
-This repository houses an experimental workflow created to analyze the feasibility
+This repository houses an experiment workflow created to analyze the feasibility
 of using simple estimators to approximate subsets of LLM behaviors.
 
 liger itself consists of utilities making up the core components of this workflow.
