@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 from dataclasses import dataclass, fields
 import json
@@ -67,6 +68,23 @@ class Config:
     survey: SurveyConfig
     ai_embedding_model: str
     st_embedding_model: str
+
+
+def init_argparser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="config file path",
+    )
+    return parser
+
+
+def parse_args(parser: argparse.ArgumentParser) -> Path:
+    args = parser.parse_args()
+    return Path(args.config)
 
 
 def read_config(config_file: str | Path) -> Config:
@@ -164,7 +182,9 @@ def get_embeddings_st(cfg: Config, data: Data) -> pd.DataFrame:
 
 
 def main():
-    cfg = read_config("config.json")
+    argparser = init_argparser()
+    cfg_file = parse_args(argparser)
+    cfg = read_config(cfg_file)
     data = Data()
     if cfg.include.prompts:
         data.prompts = get_prompts(cfg, data)

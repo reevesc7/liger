@@ -2,6 +2,7 @@
 *.csv
 *.png
 
-# Config file
-/config.json
+# Config
+*.json
+!/example_config.json
 

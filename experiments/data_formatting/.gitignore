@@ -6,10 +6,11 @@
 
 # Python files
 /*.py
-!format_data.py
-!prompt_editor.py
-!strip_responses.py
+!/format_data.py
+!/prompt_editor.py
+!/strip_responses.py
 
 # Config
-config.json
+*.json
+!/example_config.json
 

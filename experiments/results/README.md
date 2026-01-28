@@ -8,8 +8,8 @@ None
 
 ## Processing results
 
-The behavior of `process_results.py` is controlled by `config.json`.
-An `example_config.json` is included, but the file name `config.json` is ignored by git.
+The behavior of `process_results.py` is controlled by a `.json` config file.
+An `example_config.json` is included, but any other `.json` file is ignored by git.
 
 ### Modifying configuration
 

@@ -1,5 +1,6 @@
 from typing import Any, Iterable, Sequence
 from dataclasses import dataclass
+import argparse
 from pathlib import Path
 import json
 import re
@@ -24,6 +25,23 @@ class Config:
     summary_file: Path
     responses_file: Path
     softmax_temperature: float
+
+
+def init_argparser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="config file path",
+    )
+    return parser
+
+
+def parse_args(parser: argparse.ArgumentParser) -> Path:
+    args = parser.parse_args()
+    return Path(args.config)
 
 
 def read_config(config_file: str | Path) -> Config:
@@ -530,7 +548,9 @@ def make_plots(cfg: Config):
 
 
 def main():
-    cfg = read_config("config.json")
+    arparser = init_argparser()
+    cfg_file = parse_args(arparser)
+    cfg = read_config(cfg_file)
     if cfg.retrieve_runs:
         retrieve_runs(cfg)
     if cfg.make_plots:
