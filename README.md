@@ -9,7 +9,7 @@ A set of utilites for training and evaluating estimators on semantic analysis ta
 This repository houses an experiment workflow created to analyze the feasibility
 of using simple estimators to approximate subsets of LLM behaviors.
 
-liger itself consists of utilities making up the core components of this workflow.
+The liger package itself consists of utilities making up the core components of this workflow.
 The module can be applied across many projects looking to accomplish any combination of
 sentence embedding, LLM output analysis, (segmented) hyperparameter tuning, and
 data analysis and visualization thereof.
@@ -29,7 +29,7 @@ Extras are required to use certain features:
 - `tpot`: Enables running TPOT fitting with run segmentation and detailed outputs
 - `all`: Includes all extras above
 
-## Install liger only
+## Install only the liger package
 
 To install the liger source code, install from the GitHub repository.
 Use the following argument in a chosen package manager:
