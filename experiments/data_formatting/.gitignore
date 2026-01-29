@@ -12,5 +12,6 @@
 
 # Config
 *.json
-!/example_config.json
+!/example_formatting_config.json
+!/example_prompt_config.json
 

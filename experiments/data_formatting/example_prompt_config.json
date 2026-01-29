@@ -1,0 +1,27 @@
+{
+    "input_file": "smallville_417_maria/prompts.csv",
+    "output_file": "test_prompts/prompts.csv",
+    "keep_sections": {
+        "agent": true,
+        "poignancy": true,
+        "event": true,
+        "output_fmt": true
+    },
+    "edits": {
+        "remove_poignancy_agent": {
+            "enabled": false
+        },
+        "change_response_range": {
+            "enabled": true,
+            "lo": "1",
+            "hi": "7"
+        },
+        "remove_output_eg": {
+            "enabled": false
+        },
+        "change_output_eg": {
+            "enabled": true,
+            "value": "<integer>"
+        }
+    }
+}

@@ -1,13 +1,13 @@
 from typing import Self, TypeVar
+import argparse
+from pathlib import Path
 import re
 from dataclasses import dataclass
+import json
 import pandas as pd
 
 
-PROMPT_FILE = "smallville_417_maria/prompts.csv"
-NO_AGENT_POIGNANCY = True
-
-
+######## EXAMPLE OF A PROMPT ########
 # """
 # Here is a brief description of Maria Lopez. 
 # Name: Maria Lopez
@@ -28,9 +28,26 @@ NO_AGENT_POIGNANCY = True
 # Output the response to the prompt above in json. The output should ONLY contain ONE integer value on the scale of 1 to 10.
 # Example output json:
 # {"output": "5"}
+#####################################
 
 
 T = TypeVar("T")
+
+
+@dataclass(slots=True)
+class PromptSections:
+    agent: bool
+    poignancy: bool
+    event: bool
+    output_fmt: bool
+
+
+@dataclass(slots=True)
+class Config:
+    input_file: Path
+    output_file: Path
+    keep_sections: dict[str, bool]
+    edits: dict[str, dict]
 
 
 @dataclass(slots=True)
@@ -67,7 +84,7 @@ class Prompt:
     def remove_poignancy_agent(self) -> None:
         self.poignancy = re.sub(r" for .*?\.", ".", self.poignancy)
 
-    def change_response_range(self, lo: int, hi: int) -> None:
+    def change_response_range(self, lo: str, hi: str) -> None:
         rnge = self._some(re.search(r"\d+ to \d+", self.poignancy)).group(0)
         prev_lo, prev_hi = rnge.split(" ")[0::2]
         self.poignancy = re.sub(
@@ -81,7 +98,10 @@ class Prompt:
             re.sub(rf"(\D){prev_lo}(\D)", rf"\g<1>{lo}\2", self.output_fmt),
         )
 
-    def change_output_eg(self, value: int) -> None:
+    def remove_output_eg(self) -> None:
+        self.output_fmt = re.sub(r"(?s)Example.*", "", self.output_fmt)
+
+    def change_output_eg(self, value: str) -> None:
         self.output_fmt = re.sub(r"(\"output\": \")\d", rf"\g<1>{value}", self.output_fmt)
 
     def as_str(self) -> str:
@@ -102,6 +122,34 @@ class Prompt:
         return pd.Series(self.as_dict())
 
 
+def init_argparser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-c",
+        "--config",
+        type=str,
+        required=True,
+        help="config file path",
+    )
+    return parser
+
+
+def parse_args(parser: argparse.ArgumentParser) -> Path:
+    args = parser.parse_args()
+    return Path(args.config)
+
+
+def read_config(config_file: str | Path) -> Config:
+    with open(config_file, "r") as file:
+        cfg = json.load(file)
+    return Config(
+        input_file=Path(cfg["input_file"]),
+        output_file=Path(cfg["output_file"]),
+        keep_sections=cfg["keep_sections"],
+        edits=cfg["edits"],
+    )
+
+
 def reduce_to_unique(prompts: pd.DataFrame) -> dict[str, set[str]]:
     unique: dict[str, set[str]] = {}
     for col, col_data in prompts.iteritems():
@@ -114,21 +162,29 @@ def reduce_to_unique(prompts: pd.DataFrame) -> dict[str, set[str]]:
 #       a dict[str, set[str]]
 
 
-def edit_prompts(prompts: pd.DataFrame) -> pd.DataFrame:
-    # prompts.map(lambda p: Prompt(p).remove_poignancy_agent())
-    # prompts.map(lambda p: Prompt(p).clear(Prompt.agent))
-    # prompts.map(lambda p: Prompt(p).change_response_range(1, 7))
-    prompts.map(lambda p: Prompt(p).change_output_eg(3))
+def edit_prompts(cfg: Config, prompts: pd.DataFrame) -> pd.DataFrame:
+    for method, kwargs in cfg.edits.items():
+        if not kwargs.pop("enabled"):
+            continue
+        prompts.map(lambda p: getattr(p, method)(**kwargs))
+    for section, keep in cfg.keep_sections.items():
+        if keep:
+            continue
+        prompts.map(lambda p: Prompt(p).clear(getattr(Prompt, section)))
     return prompts
 
 
 def main():
-    prompts = pd.read_csv(PROMPT_FILE)
+    argparser = init_argparser()
+    cfg_file = parse_args(argparser)
+    cfg = read_config(cfg_file)
+    prompts = pd.read_csv(cfg.input_file)
     prompts_objs = pd.DataFrame(prompts["prompt"].apply(Prompt))
-    prompts_objs = edit_prompts(prompts_objs)
+    prompts_objs = edit_prompts(cfg, prompts_objs)
     prompts_new = prompts_objs["prompt"].apply(lambda p: p.as_str())
     print(prompts_new)
-    prompts_new.to_csv("smallville_417_maria/prompts_testing.csv", index=False)
+    cfg.output_file.parent.mkdir(parents=True, exist_ok=True)
+    prompts_new.to_csv(cfg.output_file, index=False)
 
 
 if __name__ == "__main__":

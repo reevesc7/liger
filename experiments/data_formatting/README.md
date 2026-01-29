@@ -9,8 +9,8 @@ Scripts for formatting datasets for use with liger.
 
 ## Formatting data
 
-The behavior of `format_data.py` is controlled by a `.json` config file.
-An `example_config.json` is included, but any other `.json` file is ignored by git.
+The behaviors of `format_data.py` and `prompt_editor.py` are controlled by `.json` config files.
+Example config files are included, but any other `.json` file is ignored by git.
 
 ### Modifying configuration
 
