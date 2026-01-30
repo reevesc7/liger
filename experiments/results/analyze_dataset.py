@@ -16,6 +16,7 @@ class Config:
     dataset: str
     dataset_file: Path
     softmax_temperature: float
+    agreement_intervals: list[int]
 
 
 def init_argparser() -> argparse.ArgumentParser:
@@ -43,7 +44,8 @@ def read_config(config_file: str | Path) -> Config:
         output_dir=Path(cfg["output_dir"]),
         dataset=dataset_file.stem,
         dataset_file=dataset_file,
-        softmax_temperature=cfg["softmax_temperature"]
+        softmax_temperature=cfg["softmax_temperature"],
+        agreement_intervals=cfg["agreement_intervals"],
     )
 
 
@@ -146,18 +148,16 @@ def _agreements(probs: pd.DataFrame, targets: pd.Series, interval: int = 1) -> p
 def training_mean_agreement_fig(
     means: pd.Series,
     probs: pd.DataFrame,
+    interval: int,
     dataset: str,
 ) -> Figure:
     """Plot the agreements of LLM response distributions, across means.
     """
     rounded_means = pd.Series(means.apply(lambda row: round(row)))
-    agreements = _agreements(probs, rounded_means, interval=1)
-    print(agreements)
-    print(means)
     return pl.scatter(
         x=means,
-        y=_agreements(probs, rounded_means, interval=1),
-        title=f"{dataset}: ChatGPT responses, agreement with mean by mean",
+        y=_agreements(probs, rounded_means, interval),
+        title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mean by mean",
         axis_labels=("mean", "agreement"),
         trend_orders=[],
         plot_perfect=False,
@@ -230,15 +230,16 @@ def training_means_mode_fig(
 def training_mode_agreement_mode_fig(
     modes: pd.Series,
     probs: pd.DataFrame,
+    interval: int,
     dataset: str,
 ) -> Figure:
-    agreements = _agreements(probs, modes, interval=1)
+    agreements = _agreements(probs, modes, interval)
     agreement_stats = _mean_sem_of_groups(agreements, modes)
     return pl.bar(
         x=agreement_stats.index,
         y=agreement_stats["mean"],
         error=agreement_stats["sem"],
-        title=f"{dataset}: ChatGPT responses, agreement with mode by mode",
+        title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mode by mode",
         axis_labels=("ChatGPT mode", "mean of means (SEM)"),
     )
 
@@ -248,7 +249,6 @@ def training_n_mode_fig(
     dataset: str,
 ) -> Figure:
     ns = modes.groupby(modes).count()
-    print(ns)
     return pl.bar(
         x=ns.index,
         y=ns,
@@ -298,11 +298,13 @@ def make_plots(cfg: Config):
     #     dataset.y["std_dev"],
     #     cfg.dataset,
     # ).savefig(cfg.output_dir / "02_training_confidences")
-    training_mean_agreement_fig(
-        pd.Series(dataset.y["mean"]),
-        dataset.y.filter(like="prob"),
-        cfg.dataset,
-    ).savefig(cfg.output_dir / "03_training_mean_agreements")
+    for interval in cfg.agreement_intervals:
+        training_mean_agreement_fig(
+            pd.Series(dataset.y["mean"]),
+            dataset.y.filter(like="prob"),
+            interval,
+            cfg.dataset,
+        ).savefig(cfg.output_dir / f"03_training_mean_agreements_{interval}")
     training_variances_mode_fig(
         dataset.y["mode"],
         dataset.y.loc[:, "variance"],
@@ -318,11 +320,13 @@ def make_plots(cfg: Config):
         dataset.y.loc[:, "mean"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "12_training_means_mode")
-    training_mode_agreement_mode_fig(
-        dataset.y.loc[:, "mode"],
-        dataset.y.filter(like="prob"),
-        cfg.dataset,
-    ).savefig(cfg.output_dir / "13_training_mode_agreements")
+    for interval in cfg.agreement_intervals:
+        training_mode_agreement_mode_fig(
+            dataset.y.loc[:, "mode"],
+            dataset.y.filter(like="prob"),
+            interval,
+            cfg.dataset,
+        ).savefig(cfg.output_dir / f"13_training_mode_agreements_{interval}")
     training_n_mode_fig(
         dataset.y.loc[:, "mode"],
         cfg.dataset,
