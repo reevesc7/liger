@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Sequence, overload
+from typing import Any, Iterable, Iterator, overload
 from pathlib import Path
 import json
 
@@ -26,9 +26,9 @@ def _json_load(filepath: Path) -> Any:
 
 
 def mass_json_load(
-    paths: Path | str | Sequence[Path | str],
-    pattern: str = "pipeline_data.json",
-) -> Any:
+    paths: Path | str | Iterable[Path | str],
+    pattern: str = "manager_data.json",
+) -> Iterator[Any]:
     if isinstance(paths, (Path, str)):
         paths = paths,
     for path in paths:
@@ -47,31 +47,12 @@ def mass_json_load(
 _sentinel = object()
 
 @overload
-def mass_dict_get(dicts: Sequence[dict[str, Any]], key: str) -> list[Any]: ...
+def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str) -> list[Any]: ...
 @overload
-def mass_dict_get(dicts: Sequence[dict[str, Any]], key: str, default: Any) -> list[Any]: ...
+def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str, default: Any) -> list[Any]: ...
 
-def mass_dict_get(dicts: Sequence[dict[str, Any]], key: str, default: Any = _sentinel) -> list[Any]:
+def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str, default: Any = _sentinel) -> list[Any]:
     if default is _sentinel:
         return [dictionary.get(key) for dictionary in dicts]
     return [dictionary.get(key, default) for dictionary in dicts]
-
-
-def is_run_finished(output: dict[str, Any]) -> bool:
-    kfold_scores = output["pipeline_attributes"]["kfold_scores"]
-    if isinstance(kfold_scores, dict):
-        return kfold_scores != {}
-    raise TypeError("\"kfold_scores\" in output is not of type dict")
-
-
-def list_unfinished_runs(
-    paths: Path | str | Sequence[Path | str],
-    filename_pattern: str = "pipeline_data.json",
-) -> list[str]:
-    return sorted([
-        output["pipeline_parameters"]["id"]
-        for output in mass_json_load(paths, filename_pattern)
-        if not is_run_finished(output)
-    ])
-
 
