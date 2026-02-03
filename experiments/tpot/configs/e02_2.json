@@ -1,5 +1,5 @@
 {
-    "pipeline_parameters": {
+    "manager_parameters": {
         "data_file": "data/smallville_417_maria_embprop.csv",
         "feature_keys": [
             "all-mpnet-base-v2_--e"
