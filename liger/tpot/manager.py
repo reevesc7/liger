@@ -175,6 +175,10 @@ class TPOTManager:
             self.feature_transformers_kwargs,
             self.target_transformers_kwargs,
         )
+        if any(dim==0 for dim in self.dataset.x.shape):
+            raise ValueError("No data in Dataset.x. perhaps \"feature_keys\" filter did not match any columns in the dataset file")
+        if any(dim==0 for dim in self.dataset.y.shape):
+            raise ValueError("No data in Dataset.y. perhaps \"target_keys\" filter did not match any columns in the dataset file")
 
         self._config_search_space = _tpot_params["search_space"]
         self._config_scorers = _tpot_params["scorers"]
