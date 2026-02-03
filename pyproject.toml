@@ -1,6 +1,6 @@
 [project]
 name = "liger"
-version = "0.13.0"
+version = "0.13.1"
 description = "Helper functions for the Likert General Regressor project"
 authors = [{ name = "Chris Reeves", email = "reeves.chris.allan@gmail.com" }]
 requires-python = ">=3.11,<3.14"
