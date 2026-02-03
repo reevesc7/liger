@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Sequence
+from typing import Any, Iterator, Sequence, overload
 from dataclasses import dataclass
 import argparse
 from pathlib import Path
@@ -6,25 +6,23 @@ import json
 import re
 import pandas as pd
 import numpy as np
-from numpy.typing import ArrayLike
 from matplotlib.figure import Figure
-import liger.output_processing as op
+import liger.tpot.output_processing as op
 from liger import plotting as pl
 from liger import dataset as ds
 
 
 @dataclass(slots=True)
 class Config:
+    tpot_dir: Path
+    tpot_output_dir: Path
+    output_dir: Path
     retrieve_runs: bool
     make_plots: bool
-    dataset: str
-    results_dir: Path
-    dataset_file: Path
-    outputs_dirs: list[Path]
-    run_id_pattern: str
-    summary_file: Path
-    responses_file: Path
-    softmax_temperature: float
+    run_id_filter: str
+    run_data_filters: list[Any]
+    summary_csv: Path
+    summary_json: Path
 
 
 def init_argparser() -> argparse.ArgumentParser:
@@ -47,22 +45,30 @@ def parse_args(parser: argparse.ArgumentParser) -> Path:
 def read_config(config_file: str | Path) -> Config:
     with open(config_file, "r") as file:
         cfg = json.load(file)
+    tpot_dir = Path(cfg["tpot_dir"])
     return Config(
+        tpot_dir=tpot_dir,
+        tpot_output_dir=tpot_dir / "outputs",
+        output_dir=Path(cfg["output_dir"]),
         retrieve_runs=cfg["retrieve_runs"],
         make_plots=cfg["make_plots"],
-        dataset=cfg["dataset"],
-        results_dir=Path(cfg["dataset"]),
-        dataset_file=Path(cfg["dataset_loc"], cfg["dataset"]).with_suffix(".csv"),
-        outputs_dirs=[Path(path, cfg["dataset"]) for path in cfg["outputs_locs"]],
-        run_id_pattern=cfg["run_id_pattern"],
-        summary_file=Path(cfg["dataset"], cfg["summary"]).with_suffix(".csv"),
-        responses_file=Path(cfg["dataset"], cfg["responses"]).with_suffix(".csv"),
-        softmax_temperature=cfg["softmax_temperature"]
+        run_id_filter=cfg["run_id_filter"],
+        run_data_filters=cfg["run_data_filters"],
+        summary_csv=Path(cfg["output_dir"], cfg["summary_stem"]).with_suffix(".csv"),
+        summary_json=Path(cfg["output_dir"], cfg["summary_stem"]).with_suffix(".json"),
     )
 
 
 def mean_gen_time(manager_attributes: dict) -> float:
     return sum(manager_attributes["segment_run_times"]) / manager_attributes["complete_gens"]
+
+
+@overload
+def scores_mean(scores: dict[str, list[float]]) -> list[float]: ...
+@overload
+def scores_mean(scores: dict[str, None]) -> None: ...
+def scores_mean(scores: dict[str, list[float]] | dict[str, None]) -> list[float] | None:
+    return np.array([score for score in scores.values()]).mean(axis=0).tolist()
 
 
 def _blacklist_search(items: Sequence[str], reverse: bool = False) -> str:
@@ -107,6 +113,7 @@ def order_responses(folds: Sequence[dict[str, Any]]) -> list[Any]:
     return [responses[key] for key in sorted(responses.keys(), key=lambda k: int(k))]
 
 
+# TODO: remove unused function or alter functionality
 def run_responses(
     id: str,
     kfold_predictions: dict[str, Sequence[dict[str, Any]]],
@@ -118,7 +125,6 @@ def run_responses(
 
 
 def retrieve_runs(cfg: Config) -> None:
-    data = op.mass_json_load(paths=cfg.outputs_dirs, pattern=cfg.run_id_pattern)
     summary = {key: [] for key in (
         "id",
         "config_file",
@@ -142,25 +148,19 @@ def retrieve_runs(cfg: Config) -> None:
         "mean_gen_time",
         "scorers",
         "scorers_weights",
-        "score",
+        "mean_score",
         "fitted_pipeline"
     )}
+    data = op.filtered_runs(
+        paths=cfg.tpot_output_dir,
+        id_filter=cfg.run_id_filter + "/manager_data.json",
+        data_filters=cfg.run_data_filters,
+    )
     responses = {}
     for run_data in data:
         manager_parameters = run_data.get("manager_parameters")
         tpot_parameters = run_data.get("tpot_parameters")
         manager_attributes = run_data.get("manager_attributes")
-
-        # TODO: remove deprecation check in v0.9.0+
-        if manager_parameters is None:
-            manager_parameters = run_data.get("pipeline_parameters")
-            if manager_parameters is not None:
-                print("WARNING: using \"pipeline_parameters\" is deprecated. Use \"manager_parameters\" instead.", flush=True)
-        if manager_attributes is None:
-            manager_attributes = run_data.get("pipeline_attributes")
-            if manager_attributes is not None:
-                print("WARNING: using \"pipeline_attributes\" is deprecated. Use \"manager_attributes\" instead.", flush=True)
-
         tpot_attributes = run_data.get("tpot_attributes")
         summary["id"].append(manager_parameters.get("id"))
         summary["config_file"].append(manager_parameters.get("config_file"))
@@ -184,221 +184,28 @@ def retrieve_runs(cfg: Config) -> None:
         summary["mean_gen_time"].append(mean_gen_time(manager_attributes))
         summary["scorers"].append(tpot_parameters.get("scorers"))
         summary["scorers_weights"].append(tpot_parameters.get("scorers_weights"))
-        summary["score"].append(manager_attributes.get("gen_scores")[-1])
+        summary["mean_score"].append(scores_mean(manager_attributes.get("kfold_scores")))
         summary["fitted_pipeline"].append(find_root(tpot_attributes.get("fitted_pipeline_")))
-        kfold_predictions = manager_attributes.get("kfold_predictions")
-        if kfold_predictions:
-            responses.update(run_responses(summary["id"][-1], kfold_predictions))
-    cfg.results_dir.mkdir(parents=True, exist_ok=True)
+        responses[manager_parameters.get("id")] = {
+            "data_file": manager_parameters.get("data_file"),
+            "target_keys": manager_parameters.get("target_keys"),
+            "target_transformers": manager_parameters.get("target_transformers"),
+            "target_transformers_kwargs": manager_parameters.get("target_transformers_kwargs"),
+            "kfold_scores": manager_attributes.get("kfold_scores"),
+            "kfold_predictions": manager_attributes.get("kfold_predictions"),
+        }
+        # kfold_predictions = manager_attributes.get("kfold_predictions")
+        # if kfold_predictions:
+        #     responses.update(run_responses(summary["id"][-1], kfold_predictions))
+    cfg.output_dir.mkdir(parents=True, exist_ok=True)
     summary = pd.DataFrame(summary)
-    print(summary)
-    summary.to_csv(cfg.summary_file, index=False)
-    responses = pd.DataFrame(responses)
-    print(responses)
-    responses.to_csv(cfg.responses_file, index=False)
-
-
-def training_variances_fig(
-    means: ArrayLike,
-    std_devs: ArrayLike,
-    dataset: str,
-) -> Figure:
-    """Plot the variances of LLM response distributions, across means.
-    """
-    return pl.scatter(
-        x=means,
-        y=np.asarray(std_devs) ** 2,
-        title=f"{dataset}: ChatGPT responses, variance by mean",
-        axis_labels=("mean", "variance"),
-        trend_orders=[],
-        plot_perfect=False,
-    )
-
-
-def _sq_mode_dist(row: pd.Series) -> float:
-    prob_vals = [
-        int(index[index.find("_") + 1:])
-        for index in row.index.array
-        if "prob_" in index
-    ]
-    return sum(
-        float(row[f"prob_{i}"]) * (i - float(row["mode"])) ** 2
-        for i in prob_vals
-    )
-
-
-def training_sq_mode_dists_fig(
-    means: ArrayLike,
-    modes: pd.Series,
-    probs: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    """Plot the expected squared distances to the mode of LLM response distributions, across means.
-    """
-    return pl.scatter(
-        x=means,
-        y=pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1),
-        title=f"{dataset}: ChatGPT responses, expected squared distance to the mode by mean",
-        axis_labels=("mean", "sq_mode_dist"),
-        trend_orders=[],
-        plot_perfect=False,
-    )
-
-
-def training_mode_fig(
-    means: ArrayLike,
-    modes: ArrayLike,
-    dataset: str,
-) -> Figure:
-    """Plot the modes of LLM response distributions, across means.
-    """
-    return pl.scatter(
-        x=means,
-        y=modes,
-        title=f"{dataset}: ChatGPT responses, mode by mean",
-        axis_labels=("mean", "mode"),
-        trend_orders=[],
-        plot_perfect=False,
-    )
-
-
-# def training_confidence_fig(
-#     means: ArrayLike,
-#     std_devs: ArrayLike,
-#     dataset: str,
-# ) -> Figure:
-#     """Plot the confidences of LLM response distributions, across means.
-#     """
-#     return pl.scatter(
-#         x=means,
-#         y=np.full(std_devs.shape, 1) - np.asarray(std_devs) ** 2 / 20.25,
-#         title=f"{dataset}: ChatGPT responses, confidence by mean",
-#         axis_labels=("mean", "confidence"),
-#         trend_orders=[],
-#         plot_perfect=False,
-#     )
-
-
-def _agreement(row: pd.Series, target: str, interval: int = 1) -> float:
-    response = int(row[target])
-    agreements: list[float] = []
-    for i in range(max(response - interval, 1), min(response + interval + 1, 11)):
-        agreement = row.get(f"prob_{i}", 0.0)
-        assert agreement is not None, "Series must have been empty... somehow"
-        agreements.append(float(agreement))
-    return sum(agreements)
-
-
-def training_mean_agreement_fig(
-    means: pd.Series,
-    probs: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    """Plot the agreements of LLM response distributions, across means.
-    """
-    targets = means.apply(lambda row: round(row))
-    return pl.scatter(
-        x=means,
-        y=pd.concat((targets, probs), axis=1).apply(lambda row: _agreement(row, "mean"), axis=1),
-        title=f"{dataset}: ChatGPT responses, agreement with mean by mean",
-        axis_labels=("mean", "agreement"),
-        trend_orders=[],
-        plot_perfect=False,
-    )
-
-
-def _sem(row: pd.Series) -> pd.Series:
-    return pd.Series(
-        (row["mean"], row["std_dev"] / row["n"] ** 0.5),
-        index=["mean", "sem"],
-    )
-
-
-def _mean_sem_of_2_grouped_by_1(data: pd.DataFrame, groups: Iterable) -> pd.DataFrame:
-    return pd.DataFrame(data.groupby(data.columns[0]).agg(
-        mean=(data.columns[1], "mean"),
-        std_dev=(data.columns[1], "std"),
-        n=(data.columns[1], "count"),
-    ).apply(_sem, axis=1).reindex(groups).fillna(0.0))
-
-
-def training_variances_mode_fig(
-    data: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    modes = np.asarray(data["mode"].unique())
-    data["std_dev"] = data["std_dev"].apply(lambda row: row ** 2)
-    variance_stats = _mean_sem_of_2_grouped_by_1(data, modes)
-    return pl.bar(
-        x=modes,
-        y=variance_stats["mean"],
-        error=variance_stats["sem"],
-        title=f"{dataset}: ChatGPT responses, variance by mode",
-        axis_labels=("ChatGPT mode", "mean of variances (SEM)"),
-    )
-
-
-def training_sq_mode_dists_mode_fig(
-    data: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    modes = np.asarray(data["mode"].unique())
-    variance_stats = _mean_sem_of_2_grouped_by_1(pd.DataFrame(pd.concat((
-        data["mode"],
-        data.filter(like="o").apply(_sq_mode_dist, axis=1),
-    ), axis=1)), modes)
-    return pl.bar(
-        x=modes,
-        y=variance_stats["mean"],
-        error=variance_stats["sem"],
-        title=f"{dataset}: ChatGPT responses, expected squared distance to mode by mode",
-        axis_labels=("ChatGPT mode", "mean of expected squared distance to mode (SEM)"),
-    )
-
-
-def training_means_mode_fig(
-    data: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    modes = np.asarray(data["mode"].unique())
-    mean_stats = _mean_sem_of_2_grouped_by_1(data, modes)
-    return pl.bar(
-        x=modes,
-        y=mean_stats["mean"],
-        error=mean_stats["sem"],
-        title=f"{dataset}: ChatGPT responses, mean by mode",
-        axis_labels=("ChatGPT mode", "mean of means (SEM)"),
-    )
-
-
-def training_mode_agreement_mode_fig(
-    data: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    modes = np.asarray(data["mode"].unique())
-    agreement = data.apply(lambda row: _agreement(row, "mode"), axis=1)
-    agreement_stats = _mean_sem_of_2_grouped_by_1(pd.concat((data["mode"], agreement), axis=1), modes)
-    return pl.bar(
-        x=modes,
-        y=agreement_stats["mean"],
-        error=agreement_stats["sem"],
-        title=f"{dataset}: ChatGPT responses, agreement with mode by mode",
-        axis_labels=("ChatGPT mode", "mean of means (SEM)"),
-    )
-
-
-def training_n_mode_fig(
-    data: pd.DataFrame,
-    dataset: str,
-) -> Figure:
-    modes = np.asarray(data["mode"].unique())
-    ns = data.groupby("mode").agg(n=("mode", "count")).reindex(modes).fillna(0.0)
-    return pl.bar(
-        x=modes,
-        y=ns["n"],
-        title=f"{dataset}: ChatGPT responses, number of responses by mode",
-        axis_labels=("ChatGPT mode", "n"),
-    )
+    # print(summary)
+    summary.to_csv(cfg.summary_csv, index=False)
+    # responses = pd.DataFrame(responses)
+    # print(responses)
+    # responses.to_csv(cfg.summary_json, index=False)
+    with open(cfg.summary_json, "w") as f:
+        json.dump(responses, f, indent=4)
 
 
 def responses_fig(
@@ -471,6 +278,7 @@ def zscores_fig(
 
 
 def make_plots(cfg: Config):
+    # TODO: Plot only errors per response, using the scorer(s) from training.
     dataset = ds.Dataset.from_csv(
         cfg.dataset_file,
         "no_match!@#",
@@ -490,61 +298,15 @@ def make_plots(cfg: Config):
             {"temperature": cfg.softmax_temperature},
         ]
     )
-    training_variances_fig(
-        dataset.y["mean"],
-        dataset.y["std_dev"],
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "00_training_variances")
-    training_sq_mode_dists_fig(
-        dataset.y["mean"],
-        pd.Series(dataset.y["mode"]),
-        dataset.y.filter(like="prob"),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "01_training_sq_mode_dists")
-    training_mode_fig(
-        dataset.y["mean"],
-        dataset.y["mode"],
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "02_training_modes")
-    # training_confidence_fig(
-    #     dataset.y["mean"],
-    #     dataset.y["std_dev"],
-    #     cfg.dataset,
-    # ).savefig(cfg.results_dir / "02_training_confidences")
-    training_mean_agreement_fig(
-        pd.Series(dataset.y["mean"]),
-        dataset.y.filter(like="prob"),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "03_training_mean_agreements")
-    training_variances_mode_fig(
-        dataset.y.filter(("mode", "std_dev")),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "10_training_variances_mode")
-    training_sq_mode_dists_mode_fig(
-        dataset.y.filter(like="o"),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "11_training_sq_mode_dists_mode")
-    training_means_mode_fig(
-        dataset.y.filter(("mode", "mean")),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "12_training_means_mode")
-    training_mode_agreement_mode_fig(
-        dataset.y.filter(like="o"),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "13_training_mode_agreements")
-    training_n_mode_fig(
-        dataset.y.filter(like="mode"),
-        cfg.dataset,
-    ).savefig(cfg.results_dir / "14_training_mode_ns")
     responses = pd.read_csv(cfg.responses_file)
     means = pd.concat([pd.Series(dataset.y["mean"])] * responses.shape[1], axis=1)
     std_devs = pd.concat([pd.Series(dataset.y["std_dev"])] * responses.shape[1], axis=1)
     means.columns = responses.columns
     std_devs.columns = responses.columns
-    responses_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "20_responses")
-    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "30_abs_errors")
-    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.results_dir / "31_squared_errors")
-    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.results_dir / "32_zscores")
+    responses_fig(responses, means, cfg.dataset).savefig(cfg.output_dir / "20_responses")
+    abs_errors_fig(responses, means, cfg.dataset).savefig(cfg.output_dir / "30_abs_errors")
+    squared_errors_fig(responses, means, cfg.dataset).savefig(cfg.output_dir / "31_squared_errors")
+    zscores_fig(responses, means, std_devs, cfg.dataset).savefig(cfg.output_dir / "32_zscores")
 
 
 def main():
