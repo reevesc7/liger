@@ -68,7 +68,7 @@ def score_test(y_true: ArrayLike, y_pred: ArrayLike) -> np.floating:
 def _row_wasserstein(
     pmf_true: ArrayLike,
     pmf_pred: ArrayLike,
-    x_vals: Sequence[float],
+    norm: bool = False,
 ) -> float:
     pmf_true = np.asarray(pmf_true)
     pmf_pred = np.asarray(pmf_pred)
@@ -76,33 +76,37 @@ def _row_wasserstein(
         raise ValueError(f"Expected 1D array-like inputs, but pmf_true is shape {pmf_true.shape}")
     if pmf_pred.ndim != 1:
         raise ValueError(f"Expected 1D array-like inputs, but pmf_pred is shape {pmf_pred.shape}")
+    if norm:
+        x_vals = [support / (pmf_true.size - 1) for support in range(pmf_true.size)]
+    else:
+        x_vals = range(pmf_true.size)
     return wasserstein_distance(x_vals, x_vals, pmf_true, pmf_pred)
 
 
 def score_wasserstein(
     y_true: ArrayLike,
     y_pred: ArrayLike,
-    x_vals: Sequence,
+    norm: bool = False
 ) -> np.floating:
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     distances = np.full(y_true.shape[0], 0.0)
     for i in range(len(distances)):
-        distances[i] = _row_wasserstein(y_true[i], y_pred[i], x_vals)
+        distances[i] = _row_wasserstein(y_true[i], y_pred[i], norm)
     return np.mean(distances)
 
 
 def score_softmax_wasserstein(
     y_true: ArrayLike,
     y_pred: ArrayLike,
-    x_vals: Sequence,
+    norm: bool = False,
     temperature: float = 1.0,
 ) -> np.floating:
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
     pmf_true = prb.softmax(y_true, temperature)
     pmf_pred = prb.softmax(y_pred, temperature)
-    return score_wasserstein(pmf_true, pmf_pred, x_vals)
+    return score_wasserstein(pmf_true, pmf_pred, norm)
 
 
 # Define scorers
@@ -125,16 +129,29 @@ neg_wasserstein = make_scorer(
     score_wasserstein,
     response_method="predict",
     greater_is_better=False,
-    **{
-        "x_vals": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-    },
 )
 neg_softmax_wasserstein = make_scorer(
     score_softmax_wasserstein,
     response_method="predict",
     greater_is_better=False,
     **{
-        "x_vals": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+        "temperature": 1.0,
+    },
+)
+neg_norm_wasserstein = make_scorer(
+    score_wasserstein,
+    response_method="predict",
+    greater_is_better=False,
+    **{
+        "norm": True,
+    },
+)
+neg_softmax_norm_wasserstein = make_scorer(
+    score_softmax_wasserstein,
+    response_method="predict",
+    greater_is_better=False,
+    **{
+        "norm": True,
         "temperature": 1.0,
     },
 )
