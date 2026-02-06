@@ -54,7 +54,9 @@ y_transformer:
 {self.y_transformers}"""
 
     @staticmethod
-    def _to_set(input: str | MutableSequence[str] | set[str]) -> set[str]:
+    def _to_set(input: str | MutableSequence[str] | set[str] | None) -> set[str] | None:
+        if input is None:
+            return None
         if isinstance(input, str):
             return {input,}
         if isinstance(input, MutableSequence):
@@ -62,11 +64,15 @@ y_transformer:
         return input
 
     @staticmethod
-    def _patterns_in(string: str, patterns: set[str]) -> bool:
+    def _patterns_in(string: str, patterns: set[str] | None) -> bool:
+        if patterns is None:
+            return False
         return any(pattern in string for pattern in patterns)
 
     @staticmethod
-    def _filter_cols(cols: pd.Index, patterns: set[str]) -> pd.Index:
+    def _filter_cols(cols: pd.Index, patterns: set[str] | None) -> pd.Index:
+        if patterns is None:
+            return pd.Index([])
         return pd.Index(col for col in cols if Dataset._patterns_in(col, patterns))
 
     @staticmethod
@@ -120,18 +126,52 @@ y_transformer:
     def from_df(
         cls,
         df: pd.DataFrame,
-        feature_patterns: str | MutableSequence[str] | set[str],
-        score_patterns: str | MutableSequence[str] | set[str],
+        x_patterns: str | MutableSequence[str] | set[str] | None = None,
+        y_patterns: str | MutableSequence[str] | set[str] | None = None,
         x_transformers: list[Any] | None = None,
         y_transformers: list[Any] | None = None,
         x_transformers_kwargs: list[dict[str, Any] | None] | None = None,
         y_transformers_kwargs: list[dict[str, Any] | None] | None = None,
     ) -> Self:
-        feature_patterns = cls._to_set(feature_patterns)
-        score_patterns = cls._to_set(score_patterns)
+        """
+        Initialize a `Dataset` from a `pandas.DataFrame`.
+        #
+        Parameters
+        ----------
+        `df` : `pandas.DataFrame`
+            The DataFrame with the desired data.
+        `x_patterns` : `str | MutableSequence[str] | set[str]`, optional
+            The pattern(s) to search for in column names to use for x data.
+        `y_patterns` : `str | MutableSequence[str] | set[str]`, optional
+            The pattern(s) to search for in column names to use for y data.
+        `x_transformers` : `list[Any]`, optional
+            Function(s) to apply to the x data.
+            Outputs from multiple functions will be concatenated column-wise.
+        `y_transformers` : `list[Any]`, optional
+            Function(s) to apply to the y data.
+            Outputs from multiple functions will be concatenated column-wise.
+        `x_transformers_kwargs` : `list[dict[str, Any | None]`, optional
+            Keyword arguments to pass to x transformers.
+        `y_transformers_kwargs` : `list[dict[str, Any | None]`, optional
+            Keyword arguments to pass to y transformers.
+        #
+        Returns
+        -------
+        `dataset` : `Dataset`
+            A dataset with data matching the csv file contents,
+            potentially filtered (see above).
+        """
+        x_patterns = cls._to_set(x_patterns)
+        y_patterns = cls._to_set(y_patterns)
+        x = df.filter(cls._filter_cols(df.columns, x_patterns))
+        if x_patterns is not None and x.empty:
+            raise ValueError("No data in x")
+        y = df.filter(cls._filter_cols(df.columns, y_patterns))
+        if y_patterns is not None and y.empty:
+            raise ValueError("No data in y")
         return cls(
-            df.filter(cls._filter_cols(df.columns, feature_patterns)),
-            df.filter(cls._filter_cols(df.columns, score_patterns)),
+            x,
+            y,
             x_transformers,
             y_transformers,
             x_transformers_kwargs,
@@ -142,8 +182,8 @@ y_transformer:
     def from_csv(
         cls,
         file_path: str | Path,
-        feature_patterns: str | MutableSequence[str] | set[str],
-        score_patterns: str | MutableSequence[str] | set[str],
+        x_patterns: str | MutableSequence[str] | set[str] | None = None,
+        y_patterns: str | MutableSequence[str] | set[str] | None = None,
         x_transformers: list[Any] | None = None,
         y_transformers: list[Any] | None = None,
         x_transformers_kwargs: list[dict[str, Any] | None] | None = None,
@@ -156,14 +196,24 @@ y_transformer:
         ----------
         `file_path` : `str`
             The path of the `csv` file to read.
-        `feature_pattern` `str` or `MutableSequence[str]` or `set[str]`
-            The pattern(s) to search for in column names to use for features.
-            NOTE: If both `feature_pattern` and `score_pattern` are provided,
+        `x_patterns` : `str | MutableSequence[str] | set[str]`, optional
+            The pattern(s) to search for in column names to use for x data.
+            NOTE: If both `x_patterns` and `y_patterns` are provided,
             only columns matching them will be loaded into memory.
-        `score_pattern` `str` or `MutableSequence[str]` or `set[str]`
-            The pattern(s) to search for in column names to use for scores.
-            NOTE: If both `feature_pattern` and `score_pattern` are provided,
+        `y_patterns` : `str | MutableSequence[str] | set[str]`, optional
+            The pattern(s) to search for in column names to use for y data.
+            NOTE: If both `x_patterns` and `y_patterns` are provided,
             only columns matching them will be loaded into memory.
+        `x_transformers` : `list[Any]`, optional
+            Function(s) to apply to the x data.
+            Outputs from multiple functions will be concatenated column-wise.
+        `y_transformers` : `list[Any]`, optional
+            Function(s) to apply to the y data.
+            Outputs from multiple functions will be concatenated column-wise.
+        `x_transformers_kwargs` : `list[dict[str, Any | None]`, optional
+            Keyword arguments to pass to x transformers.
+        `y_transformers_kwargs` : `list[dict[str, Any | None]`, optional
+            Keyword arguments to pass to y transformers.
         #
         Returns
         -------
@@ -172,11 +222,17 @@ y_transformer:
             potentially filtered (see above).
         """
         file_path = Path(file_path)
-        feature_patterns = cls._to_set(feature_patterns)
-        score_patterns = cls._to_set(score_patterns)
+        x_patterns = cls._to_set(x_patterns)
+        y_patterns = cls._to_set(y_patterns)
+        x = pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, x_patterns))
+        if x_patterns is not None and x.empty:
+            raise ValueError("No data in x")
+        y = pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, y_patterns))
+        if y_patterns is not None and y.empty:
+            raise ValueError("No data in y")
         return cls(
-            pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, feature_patterns)),
-            pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, score_patterns)),
+            x,
+            y,
             x_transformers,
             y_transformers,
             x_transformers_kwargs,
@@ -217,7 +273,7 @@ y_transformer:
         random_state: int | None = None,
     ) -> Self:
         """Generate a dataset of random points on the line segment between two given
-        points, with scores corresponding to the distance of each point along that
+        points, with targets corresponding to the distance of each point along that
         line segment and noise applied to each point.
         #
         Parameters
