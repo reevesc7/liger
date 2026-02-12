@@ -18,6 +18,7 @@
 from typing import Any
 from types import FunctionType
 from importlib import import_module
+from statistics import mean
 import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import KFold, StratifiedKFold
@@ -41,9 +42,10 @@ def kfold_predict(
     kfold: KFold | StratifiedKFold,
     scorers: list[Any],
     data: Dataset
-) -> tuple[list[dict[int, Any]], list[float | list[float]]]:
+) -> tuple[list[dict[int, Any]], list[float], list[list[dict[int, float]]]]:
     predicted: list[dict[int, Any]] = []
-    fold_scores = np.zeros((kfold.get_n_splits(), len(scorers)))
+    scores = np.zeros((kfold.get_n_splits(), len(scorers)))
+    samples_scores: list[list[dict[int, float]]] = []
     for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x, data.y)):
         model_clone = clone(model)
         model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
@@ -52,10 +54,15 @@ def kfold_predict(
             for prediction in model_clone.predict(data.x.iloc[test_indices]).tolist()
         ]
         predicted.append(dict(zip(test_indices.tolist(), fold_predicted)))
-        fold_scores[fold] = [
-            scorer(model_clone, data.x.iloc[test_indices], data.y.iloc[test_indices])
-            for scorer in scorers
-        ]
-    scores = np.average(fold_scores, axis=0)
-    return predicted, scores.tolist()
+        samples_scores.append([{
+            int(test_index): scorer(
+                model_clone,
+                data.x.iloc[test_index].to_frame().T,
+                data.y.iloc[test_index].to_frame().T,
+            )
+            for test_index in test_indices
+        } for scorer in scorers])
+        scores[fold] = [mean(scorer_scores.values()) for scorer_scores in samples_scores[-1]]
+    scores = np.average(scores, axis=0).tolist()
+    return predicted, scores, samples_scores
 

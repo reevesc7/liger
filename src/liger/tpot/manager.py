@@ -116,6 +116,7 @@ class TPOTManager:
         "segment_run_times",
         "slurm_ids",
         "kfold_scores",
+        "kfold_samples_scores",
         "kfold_predictions",
     }
     TPOT_ATTR_KEYS = {
@@ -206,6 +207,7 @@ class TPOTManager:
         self.slurm_ids: list[int | None] = _manager_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
         self.kfold_scores: dict = _manager_attrs.get("kfold_scores", {})
+        self.kfold_samples_scores: dict = _manager_attrs.get("kfold_samples_scores", {})
         self.kfold_predictions: dict = _manager_attrs.get("kfold_predictions", {})
 
         self.output_dir = self.OUTPUT / self.data_file.stem / str(self.id)
@@ -521,22 +523,26 @@ class TPOTManager:
     def evaluate(self) -> None:
         # training_score = self.tpot.score(self.dataset.x, self.dataset.y)
         for eval_random_state in self.eval_random_states:
-            kfold_predictions, kfold_scores = self.tpot_test(eval_random_state)
+            kfold_predictions, kfold_scores, kfold_samples_scores = self.tpot_test(eval_random_state)
             self.kfold_scores[eval_random_state] = kfold_scores
+            self.kfold_samples_scores[eval_random_state] = kfold_samples_scores
             self.kfold_predictions[eval_random_state] = kfold_predictions
 
-    def tpot_test(self, eval_random_state: int) -> tuple[list[dict[int, Any]], list[Any]]:
+    def tpot_test(
+        self,
+        eval_random_state: int,
+    ) -> tuple[list[dict[int, Any]], list[list[float]], list[list[dict[int, float]]]]:
         #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
         #kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
         kfold = deepcopy(self.tpot.cv_gen)
         kfold.random_state = eval_random_state
-        kfold_predictions, kfold_scores = kfold_predict(
+        kfold_predictions, kfold_scores, kfold_samples_scores = kfold_predict(
             self.tpot.fitted_pipeline_,
             kfold,
             self.tpot._scorers,
             self.dataset,
         )
-        return kfold_predictions, kfold_scores
+        return kfold_predictions, kfold_scores, kfold_samples_scores
 
 
 class LiveOutputCapture:
