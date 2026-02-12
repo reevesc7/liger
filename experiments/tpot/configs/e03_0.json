@@ -30,7 +30,7 @@
     },
     "tpot_parameters": {
         "scorers": [
-            "neg_mean_squared_error",
+            "liger.objectives.neg_softmax_norm_wasserstein",
             "tpot.objectives.complexity.complexity_scorer"
         ],
         "scorers_weights": [
