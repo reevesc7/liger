@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Sequence
 from sklearn.metrics import make_scorer
 import numpy as np
 from numpy.typing import ArrayLike
