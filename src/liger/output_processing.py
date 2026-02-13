@@ -27,7 +27,7 @@ def _json_load(filepath: Path) -> Any:
 
 def mass_json_load(
     paths: Path | str | Iterable[Path | str],
-    pattern: str = "manager_data.json",
+    pattern: str,
 ) -> Iterator[Any]:
     if isinstance(paths, (Path, str)):
         paths = paths,
