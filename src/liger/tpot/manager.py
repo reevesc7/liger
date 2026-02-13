@@ -243,13 +243,7 @@ class TPOTManager:
     def from_checkpoint(cls, checkpoint: str | Path, slurm_id: int | None) -> Self:
         checkpoint = Path(checkpoint)
 
-        #TODO: remove deprecation warning in v0.9.0+
-        try:
-            manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / cls.MANAGER_DATA)
-        except:
-            manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / "pipeline_data.json")
-            print("WARNING: \"pipeline_data.json\" is deprecated. Use \"manager_data.json\" instead.")
-
+        manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / cls.MANAGER_DATA)
         return cls(**{
             "manager_parameters": manager_params,
             "tpot_parameters": tpot_params,
@@ -280,13 +274,6 @@ class TPOTManager:
         with open(config_path) as f:
             config = dict(json.load(f))
         manager_parameters = config.get("manager_parameters", {})
-
-        #TODO: remove deprecation check in v0.9.0+
-        if not manager_parameters:
-            manager_parameters = config.get("pipeline_parameters", {})
-            if manager_parameters:
-                print("WARNING: using \"pipeline_parameters\" is deprecated. Use \"manager_parameters\" instead.", flush=True)
-
         tpot_parameters = config.get("tpot_parameters", {})
         manager_attributes = config.get("manager_attributes", {})
         if not isinstance(manager_parameters, dict):
