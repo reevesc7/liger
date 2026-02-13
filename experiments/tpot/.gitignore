@@ -13,6 +13,6 @@
 /slurmout/
 *-*.out
 
-# Personal pipeline tests
-/cr_*
-/configs/cr_*.json
+# Personal scripts and configs
+/local_*
+/configs/local_*.json
