@@ -45,8 +45,10 @@ class TPOTManager:
     FITTED_PIPELINE = Path("fitted_pipeline.pkl")
     DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
     MANAGER_PARAM_KEYS = {
+        "id",
         "config_file",
         "data_file",
+        "output_dir",
         "feature_keys",
         "target_keys",
         "feature_transformers",
@@ -55,7 +57,6 @@ class TPOTManager:
         "target_transformers_kwargs",
         "target_gens",
         "eval_random_states",
-        "id",
         "export_fitted_pipeline",
         "clean_population_file",
     }
@@ -151,12 +152,21 @@ class TPOTManager:
         if self.config_file is None:
             self.config_file = _manager_params.get("config_file")
 
-        self.data_file: str | Path | None = _manager_params.get("data_file", None)
+        self.id = self.use_first(
+            id,
+            _manager_params.get("id"),
+            self.start_time.strftime(self.DATETIME_FMT),
+        )
+        self.data_file: str | Path | None = _manager_params.get("data_file")
+        if self.data_file is None:
+            raise ValueError("Must specify a data file in config")
+        self.data_file = Path(self.data_file)
+        self._config_output_dir = _manager_params.get("output_dir", self.data_file.stem)
+        self.output_dir = self.OUTPUT / self._config_output_dir / str(self.id)
         self.feature_keys: list[str] | None = _manager_params.get("feature_keys", None)
         self.target_keys: list[str] | None = _manager_params.get("target_keys", None)
-        if self.data_file is None or self.feature_keys is None or self.target_keys is None:
-            raise ValueError("Must specify a data file and feature and target keys in config")
-        self.data_file = Path(self.data_file)
+        if self.feature_keys is None or self.target_keys is None:
+            raise ValueError("Must specify feature and target keys in config")
         self.feature_transformers: list[str] | None = _manager_params.get("feature_transformers")
         self.target_transformers: list[str] | None = _manager_params.get("target_transformers")
         self.feature_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
@@ -180,6 +190,10 @@ class TPOTManager:
             raise ValueError("No data in Dataset.x. perhaps \"feature_keys\" filter did not match any columns in the dataset file")
         if any(dim==0 for dim in self.dataset.y.shape):
             raise ValueError("No data in Dataset.y. perhaps \"target_keys\" filter did not match any columns in the dataset file")
+        self.target_gens: int = _manager_params.get("target_gens", 10)
+        self.eval_random_states: list[int] = _manager_params.get("eval_random_states", [0])
+        self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
+        self.clean_population_file = _manager_params.get("clean_population_file", False)
 
         self._config_search_space = _tpot_params["search_space"]
         self._config_scorers = _tpot_params["scorers"]
@@ -188,16 +202,6 @@ class TPOTManager:
             _tpot_params.get("random_state"),
             randint(0, 2 ** 32 - 1),
         )
-
-        self.target_gens: int = _manager_params.get("target_gens", 10)
-        self.eval_random_states: list[int] = _manager_params.get("eval_random_states", [0])
-        self.id = self.use_first(
-            id,
-            _manager_params.get("id"),
-            self.start_time.strftime(self.DATETIME_FMT),
-        )
-        self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
-        self.clean_population_file = _manager_params.get("clean_population_file", False)
 
         self.complete_gens: int = _manager_attrs.get("complete_gens", 0)
         self.gen_scores: list[list[float]] = _manager_attrs.get("gen_scores", [])
@@ -209,8 +213,6 @@ class TPOTManager:
         self.kfold_scores: dict = _manager_attrs.get("kfold_scores", {})
         self.kfold_samples_scores: dict = _manager_attrs.get("kfold_samples_scores", {})
         self.kfold_predictions: dict = _manager_attrs.get("kfold_predictions", {})
-
-        self.output_dir = self.OUTPUT / self.data_file.stem / str(self.id)
 
         self.tpot = TPOTEstimator(
             search_space=create_search_space(
@@ -346,6 +348,7 @@ class TPOTManager:
             for key, value in self.__dict__.items()
             if key in self.MANAGER_PARAM_KEYS
         }
+        manager_parameters["output_dir"] = self._config_output_dir
         tpot_parameters = {
             key: value
             for key, value in self.tpot.__dict__.items()
@@ -531,7 +534,7 @@ class TPOTManager:
     def tpot_test(
         self,
         eval_random_state: int,
-    ) -> tuple[list[dict[int, Any]], list[list[float]], list[list[dict[int, float]]]]:
+    ) -> tuple[list[dict[int, Any]], list[float], list[list[dict[int, float]]]]:
         #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
         #kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
         kfold = deepcopy(self.tpot.cv_gen)
