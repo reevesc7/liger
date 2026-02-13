@@ -434,7 +434,7 @@ class TPOTManager:
 
     def in_progress(self):
         """Set up in-progress signals.
-
+        #
         If in-progress signals already exist, use them to recover
         state from the last time this training was run.
         A temporary population file is created before any training
@@ -467,7 +467,7 @@ class TPOTManager:
 
     def not_in_progress(self) -> None:
         """Clear in-progress signals.
-
+        #
         Remove the temporary population file and in-progress file.
         If training was cut off mid-segment, this method will not
         run, and new segments will initialize with the same state
@@ -480,7 +480,7 @@ class TPOTManager:
 
     def detect_early_stop(self) -> bool:
         """Detect whether the early stop condition has been met.
-
+        #
         Takes into account the `TPOTEstimator`'s `early_stop` and
         `early_stop_tol` attributes.
         Triggers if there has not been improvement ACROSS `early_stop` generations;
@@ -500,7 +500,7 @@ class TPOTManager:
 
     def export_pipeline(self) -> None:
         """Creates a pickle file of the best performing pipeline.
-
+        #
         The file is made in the output directory.
         Pickling pipelines relies on the `dill` module, so loading
         from a fitted pipeline pickle file requires `dill`.
@@ -537,7 +537,7 @@ class TPOTManager:
 
 class LiveOutputCapture:
     """A stand-in for `sys.stdout` which records the text it writes.
-
+    #
     Recorded text can be retrieved with the `get_output()` method.
     """
     def __init__(self):
