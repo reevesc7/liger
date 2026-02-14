@@ -191,7 +191,15 @@ class TPOTManager:
         if any(dim==0 for dim in self.dataset.y.shape):
             raise ValueError("No data in Dataset.y. perhaps \"target_keys\" filter did not match any columns in the dataset file")
         self.target_gens: int = _manager_params.get("target_gens", 10)
-        self.eval_random_states: list[int] = _manager_params.get("eval_random_states", [0])
+        _eval_random_states: int | list[int] = _manager_params.get("eval_random_states", 1)
+        if isinstance(_eval_random_states, int):
+            _eval_random_states = max(1, _eval_random_states)
+            self.eval_random_states: list[int] = [
+                randint(0, 2 ** 32 - 1)
+                for _ in range(_eval_random_states)
+            ]
+        else:
+            self.eval_random_states: list[int] = _eval_random_states
         self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
         self.clean_population_file = _manager_params.get("clean_population_file", False)
 
