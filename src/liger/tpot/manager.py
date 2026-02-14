@@ -28,7 +28,7 @@ from typing_extensions import Self
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
-from ..training_testing import init_scorers, kfold_predict
+from ..training_testing import init_scorers, kfold_scores, KFoldScores
 from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.pipeline import Pipeline
@@ -512,27 +512,30 @@ class TPOTManager:
 
     def evaluate(self) -> None:
         # training_score = self.tpot.score(self.dataset.x, self.dataset.y)
-        for eval_random_state in self.eval_random_states:
-            kfold_predictions, kfold_scores, kfold_samples_scores = self.tpot_test(eval_random_state)
-            self.kfold_scores[eval_random_state] = kfold_scores
-            self.kfold_samples_scores[eval_random_state] = kfold_samples_scores
-            self.kfold_predictions[eval_random_state] = kfold_predictions
+        for scorer in self._config_scorers:
+            self.kfold_scores[scorer] = {}
+            self.kfold_samples_scores[scorer] = {}
+        for rs in self.eval_random_states:
+            kfold_scores = self.tpot_test(rs)
+            for scorer_index, scorer in enumerate(self._config_scorers):
+                self.kfold_scores[scorer][rs] = kfold_scores.fold_scores[scorer_index]
+                self.kfold_samples_scores[scorer][rs] = kfold_scores.samples_scores[scorer_index]
+            self.kfold_predictions[rs] = kfold_scores.predictions
 
     def tpot_test(
         self,
         eval_random_state: int,
-    ) -> tuple[list[dict[int, Any]], list[float], list[list[dict[int, float]]]]:
-        #set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
-        #kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
+    ) -> KFoldScores:
+        # set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
+        # kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
         kfold = deepcopy(self.tpot.cv_gen)
         kfold.random_state = eval_random_state
-        kfold_predictions, kfold_scores, kfold_samples_scores = kfold_predict(
+        return kfold_scores(
             self.tpot.fitted_pipeline_,
             kfold,
             self.tpot._scorers,
             self.dataset,
         )
-        return kfold_predictions, kfold_scores, kfold_samples_scores
 
 
 class LiveOutputCapture:

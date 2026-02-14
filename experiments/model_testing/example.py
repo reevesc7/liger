@@ -42,7 +42,7 @@ def get_model(model_path: str):
 def liger_kfold(model, kfold: KFold, scorers: list, dataset: Dataset) -> None:
     """The liger KFold process, which gives scores for each scorer fed in.
     """
-    _, kfold_scores = tt.kfold_predict(model, kfold, scorers, dataset)
+    _, kfold_scores = tt.kfold_scores(model, kfold, scorers, dataset)
     print("KFold score(s):", {SCORER_NAMES[i]: kfold_scores[i] for i in range(len(SCORER_NAMES))})
 
 

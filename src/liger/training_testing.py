@@ -17,12 +17,19 @@
 
 from typing import Any
 from types import FunctionType
+from dataclasses import dataclass
 from importlib import import_module
 from statistics import mean
-import numpy as np
 from sklearn.base import clone
 from sklearn.model_selection import KFold, StratifiedKFold
 from .dataset import Dataset
+
+
+@dataclass(slots=True)
+class KFoldScores:
+    predictions: list[dict[int, Any]]
+    samples_scores: list[list[dict[int, float]]]
+    fold_scores: list[list[float]]
 
 
 def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
@@ -37,16 +44,16 @@ def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
 
 
 # Returns a model's predictions across all training instances of a KFold cross validation
-def kfold_predict(
+def kfold_scores(
     model,
     kfold: KFold | StratifiedKFold,
     scorers: list[Any],
     data: Dataset
-) -> tuple[list[dict[int, Any]], list[float], list[list[dict[int, float]]]]:
+) -> KFoldScores:
     predicted: list[dict[int, Any]] = []
-    scores = np.zeros((kfold.get_n_splits(), len(scorers)))
-    samples_scores: list[list[dict[int, float]]] = []
-    for fold, [train_indices, test_indices] in enumerate(kfold.split(data.x, data.y)):
+    fold_scores: list[list[float]] = [[] for _ in range(len(scorers))]
+    samples_scores: list[list[dict[int, float]]] = [[] for _ in range(len(scorers))]
+    for [train_indices, test_indices] in kfold.split(data.x, data.y):
         model_clone = clone(model)
         model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
         fold_predicted = [
@@ -54,15 +61,16 @@ def kfold_predict(
             for prediction in model_clone.predict(data.x.iloc[test_indices]).tolist()
         ]
         predicted.append(dict(zip(test_indices.tolist(), fold_predicted)))
-        samples_scores.append([{
-            int(test_index): scorer(
-                model_clone,
-                data.x.iloc[test_index].to_frame().T,
-                data.y.iloc[test_index].to_frame().T,
-            )
-            for test_index in test_indices
-        } for scorer in scorers])
-        scores[fold] = [mean(scorer_scores.values()) for scorer_scores in samples_scores[-1]]
-    scores = np.average(scores, axis=0).tolist()
-    return predicted, scores, samples_scores
+        for scorer_index, scorer in enumerate(scorers):
+            samples_scorer_scores = {
+                int(test_index): scorer(
+                    model_clone,
+                    data.x.iloc[test_index].to_frame().T,
+                    data.y.iloc[test_index].to_frame().T,
+                )
+                for test_index in test_indices
+            }
+            samples_scores[scorer_index].append(samples_scorer_scores)
+            fold_scores[scorer_index].append(mean(samples_scorer_scores.values()))
+    return KFoldScores(predicted, samples_scores, fold_scores)
 
