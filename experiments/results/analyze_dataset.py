@@ -49,6 +49,28 @@ def read_config(config_file: str | Path) -> Config:
     )
 
 
+def load_dataset(cfg: Config) -> ds.Dataset:
+    return ds.Dataset.from_csv(
+        cfg.dataset_file,
+        None,
+        "logprob",
+        y_transformers=[
+            "liger.probabilities.apply_softmax",
+            "liger.probabilities.apply_logprobs_mode",
+            "liger.probabilities.apply_logprobs_mean",
+            "liger.probabilities.apply_logprobs_variance",
+            "liger.probabilities.apply_logprobs_std_dev",
+        ],
+        y_transformers_kwargs=[
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+            {"temperature": cfg.softmax_temperature},
+        ]
+    )
+
+
 def training_variances_fig(
     means: ArrayLike,
     variances: ArrayLike,
@@ -57,8 +79,7 @@ def training_variances_fig(
     """Plot the variances of LLM response distributions, across means.
     """
     return pl.scatter(
-        x=means,
-        y=np.asarray(variances),
+        data=[np.array((means, variances))],
         title=f"{dataset}: ChatGPT responses, variance by mean",
         axis_labels=("mean", "variance"),
         trend_orders=[],
@@ -87,8 +108,10 @@ def training_sq_mode_dists_fig(
     """Plot the expected squared distances to the mode of LLM response distributions, across means.
     """
     return pl.scatter(
-        x=means,
-        y=pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1),
+        data=[np.array((
+            means,
+            pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1),
+        ))],
         title=f"{dataset}: ChatGPT responses, expected squared distance to the mode by mean",
         axis_labels=("mean", "sq_mode_dist"),
         trend_orders=[],
@@ -104,8 +127,7 @@ def training_mode_fig(
     """Plot the modes of LLM response distributions, across means.
     """
     return pl.scatter(
-        x=means,
-        y=modes,
+        data=[np.array((means, modes))],
         title=f"{dataset}: ChatGPT responses, mode by mean",
         axis_labels=("mean", "mode"),
         trend_orders=[],
@@ -155,8 +177,7 @@ def training_mean_agreement_fig(
     """
     rounded_means = pd.Series(means.apply(lambda row: round(row)))
     return pl.scatter(
-        x=means,
-        y=_agreements(probs, rounded_means, interval),
+        data=[np.array((means, _agreements(probs, rounded_means, interval)))],
         title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mean by mean",
         axis_labels=("mean", "agreement"),
         trend_orders=[],
@@ -188,9 +209,11 @@ def training_variances_mode_fig(
 ) -> Figure:
     variance_stats = _mean_sem_of_groups(variances, modes)
     return pl.bar(
-        x=variance_stats.index,
-        y=variance_stats["mean"],
-        error=variance_stats["sem"],
+        data=[np.array((
+            variance_stats.index,
+            variance_stats["mean"],
+            variance_stats["sem"],
+        ))],
         title=f"{dataset}: ChatGPT responses, variance by mode",
         axis_labels=("ChatGPT mode", "mean of variances (SEM)"),
     )
@@ -204,9 +227,11 @@ def training_sq_mode_dists_mode_fig(
     mode_dists = pd.Series(pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1))
     mode_dist_stats = _mean_sem_of_groups(mode_dists, modes)
     return pl.bar(
-        x=mode_dist_stats.index,
-        y=mode_dist_stats["mean"],
-        error=mode_dist_stats["sem"],
+        data=[np.array((
+            mode_dist_stats.index,
+            mode_dist_stats["mean"],
+            mode_dist_stats["sem"],
+        ))],
         title=f"{dataset}: ChatGPT responses, expected squared distance to mode by mode",
         axis_labels=("ChatGPT mode", "mean of expected squared distance to mode (SEM)"),
     )
@@ -219,9 +244,11 @@ def training_means_mode_fig(
 ) -> Figure:
     mean_stats = _mean_sem_of_groups(means, modes)
     return pl.bar(
-        x=mean_stats.index,
-        y=mean_stats["mean"],
-        error=mean_stats["sem"],
+        data=[np.array((
+            mean_stats.index,
+            mean_stats["mean"],
+            mean_stats["sem"],
+        ))],
         title=f"{dataset}: ChatGPT responses, mean by mode",
         axis_labels=("ChatGPT mode", "mean of means (SEM)"),
     )
@@ -236,9 +263,11 @@ def training_mode_agreement_mode_fig(
     agreements = _agreements(probs, modes, interval)
     agreement_stats = _mean_sem_of_groups(agreements, modes)
     return pl.bar(
-        x=agreement_stats.index,
-        y=agreement_stats["mean"],
-        error=agreement_stats["sem"],
+        data=[np.array((
+            agreement_stats.index,
+            agreement_stats["mean"],
+            agreement_stats["sem"],
+        ))],
         title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mode by mode",
         axis_labels=("ChatGPT mode", "mean of means (SEM)"),
     )
@@ -250,33 +279,13 @@ def training_n_mode_fig(
 ) -> Figure:
     ns = modes.groupby(modes).count()
     return pl.bar(
-        x=ns.index,
-        y=ns,
+        data=[np.array((ns.index, ns))],
         title=f"{dataset}: ChatGPT responses, number of responses by mode",
         axis_labels=("ChatGPT mode", "n"),
     )
 
 
-def make_plots(cfg: Config):
-    dataset = ds.Dataset.from_csv(
-        cfg.dataset_file,
-        "no_match!@#",
-        "logprob",
-        y_transformers=[
-            "liger.probabilities.apply_softmax",
-            "liger.probabilities.apply_logprobs_mode",
-            "liger.probabilities.apply_logprobs_mean",
-            "liger.probabilities.apply_logprobs_variance",
-            "liger.probabilities.apply_logprobs_std_dev",
-        ],
-        y_transformers_kwargs=[
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-        ]
-    )
+def make_plots(cfg: Config, dataset: ds.Dataset):
     training_variances_fig(
         dataset.y["mean"],
         dataset.y["variance"],
@@ -338,7 +347,8 @@ def main():
     cfg_file = parse_args(arparser)
     cfg = read_config(cfg_file)
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
-    make_plots(cfg)
+    dataset = load_dataset(cfg)
+    make_plots(cfg, dataset)
 
 
 if __name__ == "__main__":

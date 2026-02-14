@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Sequence
+from typing import Iterable, Sequence
 import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt
@@ -27,13 +27,10 @@ def show() -> None:
     plt.show()
 
 
-def _ensure_same_shape(arrays: Sequence[np.ndarray]) -> None:
-    if len(arrays) == 0:
-        return
-    shape_1 = arrays[0].shape
-    for array in arrays[1:]:
-        if array.shape != shape_1:
-            raise ValueError("Inconsistent dimensionality in data")
+def _n_fields(dataset: np.ndarray) -> int:
+    if not dataset.ndim == 2:
+        raise ValueError(f"Expected 2D array, but got {dataset.shape} shaped array")
+    return dataset.shape[0]
 
 
 def _set_titles(ax: Axes, title: str | None, axis_labels: tuple[str, str] | None) -> None:
@@ -65,8 +62,7 @@ def _single_scatter(
 
 
 def scatter(
-    x: ArrayLike,
-    y: ArrayLike,
+    data: Iterable[ArrayLike],
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
     trend_orders: list[int] = [],
@@ -100,23 +96,18 @@ def scatter(
         The figure plotting the data with any trendlines drawn. Show any current
         figures with `liger.plotting.show()`, and save it with `fig.savefig()`.
     """
-    x = np.asarray(x)
-    y = np.asarray(y)
-    _ensure_same_shape((x, y))
     fig, ax = plt.subplots()
     _set_titles(ax, title, axis_labels)
-    if len(x.shape) == 1:
-        _single_scatter(ax, x, y, trend_orders, plot_perfect)
-        return fig
-    for dataset in range(x.shape[0]):
-        _single_scatter(ax, x[dataset], y[dataset], trend_orders, plot_perfect)
+    for dataset in data:
+        dataset = np.asarray(dataset)
+        if _n_fields(dataset) != 2:
+            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
+        _single_scatter(ax, dataset[0], dataset[1], trend_orders, plot_perfect)
     return fig
 
 
 def bar(
-    x: ArrayLike,
-    y: ArrayLike,
-    error: ArrayLike | None = None,
+    data: Iterable[ArrayLike],
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
 ) -> Figure:
@@ -143,29 +134,22 @@ def bar(
         The figure plotting the data. Show any current figures with
         `liger.plotting.show()`, and save it with `fig.savefig()`.
     """
-    x = np.asarray(x)
-    y = np.asarray(y)
-    if error is not None:
-        error = np.asarray(error)
-        _ensure_same_shape((x, y, error))
-    else:
-        _ensure_same_shape((x, y))
     fig, ax = plt.subplots()
     _set_titles(ax, title, axis_labels)
-    if len(x.shape) == 1:
-        ax.bar(x, y, yerr=error)
-        return fig
-    for dataset in range(x.shape[0]):
-        if error is not None:
-            ax.bar(x[dataset], y[dataset], yerr=error[dataset])
+    for dataset in data:
+        dataset = np.asarray(dataset)
+        n_fields = _n_fields(dataset)
+        if n_fields == 2:
+            ax.bar(dataset[0], dataset[1])
+        elif n_fields == 3:
+            ax.bar(dataset[0], dataset[1], yerr=dataset[2])
         else:
-            ax.bar(x[dataset], y[dataset])
+            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
     return fig
 
 
 def plot(
-    x: ArrayLike,
-    y: ArrayLike,
+    data: Iterable[ArrayLike],
     title: str | None = None,
     axis_labels: tuple[str, str] | None = None,
 ) -> Figure:
@@ -189,15 +173,12 @@ def plot(
         The figure plotting the data. Show any current
         figures with `liger.plotting.show()`, and save it with `fig.savefig()`.
     """
-    x = np.asarray(x)
-    y = np.asarray(y)
-    _ensure_same_shape((x, y))
     fig, ax = plt.subplots()
     _set_titles(ax, title, axis_labels)
-    if len(x.shape) == 1:
-        ax.plot(x, y)
-        return fig
-    for dataset in range(x.shape[0]):
-        ax.plot(x[dataset], y[dataset])
+    for dataset in data:
+        dataset = np.asarray(dataset)
+        if _n_fields(dataset) != 2:
+            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
+        ax.plot(dataset[0], dataset[1])
     return fig
 
