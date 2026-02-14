@@ -1,6 +1,8 @@
 {
     "manager_parameters": {
+        "id": null,
         "data_file": "data/smallville_417_maria_embprop.csv",
+        "output_dir": "e02",
         "feature_keys": [
             "all-mpnet-base-v2_-pe"
         ],
