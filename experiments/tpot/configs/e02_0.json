@@ -20,13 +20,7 @@
             }
         ],
         "target_gens": 100,
-        "eval_random_states": [
-            0,
-            1,
-            2,
-            3
-        ],
-        "id": null,
+        "eval_random_states": 4,
         "export_fitted_pipeline": false,
         "clean_population_file": true
     },
