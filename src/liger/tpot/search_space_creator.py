@@ -73,8 +73,16 @@ def _make_lg_transformed_target_regressor(
         for key, value in tf_node.space.items()
     }
     return tpss.nodes.EstimatorNode(
-        method = lsk.LgTransformedTargetRegressor,
-        space = ConfigurationSpace(space=models | rg_params | tf_params),
+        method=lsk.LgTransformedTargetRegressor,
+        space=ConfigurationSpace(space=models | rg_params | tf_params),
+    )
+
+
+def _make_lg_passthrough(
+) -> tpss.SearchSpace:
+    return tpss.nodes.EstimatorNode(
+        method=lsk.LgPassthrough,
+        space=ConfigurationSpace(),
     )
 
 
@@ -117,6 +125,8 @@ def items_to_search_space(
             search_space = tpss.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
         case "LgTransformedTargetRegressor":
             search_space = _make_lg_transformed_target_regressor(node_kwargs, random_state)
+        case "LgPassthrough":
+            search_space = _make_lg_passthrough()
         case _:
             raise ValueError(f"{node_type} does not match a TPOT pipeline or node type (WrapperPipeline not included)")
     return search_space

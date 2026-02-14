@@ -16,7 +16,7 @@
 
 
 from typing import Self
-from sklearn.base import BaseEstimator, RegressorMixin
+from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
 from sklearn.compose import TransformedTargetRegressor
 
 
@@ -58,4 +58,25 @@ class LgTransformedTargetRegressor(RegressorMixin, BaseEstimator):
 
     def predict(self, X):
         return self.tt_regressor.predict(X)
+
+
+class LgPassthrough(TransformerMixin, BaseEstimator):
+    """Patched version of TPOT's Passthrough class.
+    #
+    All code has been copied directly from the `tpot/tpot/builtin_modules/passthrough.py`
+    file of the `EpistasisLab/tpot` repository, with a minor tweaks.
+    #
+    A transformer that does nothing. It just passes the input array as is.
+    """
+
+    def fit(self, X=None, y=None):
+        """Nothing to fit, just sets a fitted flag and returns self.
+        """
+        self.is_fit_ = True
+        return self
+
+    def transform(self, X):
+        """Returns the input array as-is.
+        """
+        return X
 
