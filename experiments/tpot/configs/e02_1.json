@@ -69,15 +69,7 @@
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "LinearSVR"
-                    },
-                    {
-                        "node_type": "EstimatorNode",
                         "class_name": "SGDRegressor"
-                    },
-                    {
-                        "node_type": "EstimatorNode",
-                        "class_name": "SVR"
                     }
                 ]
             },
@@ -89,29 +81,7 @@
                         "class_name": "all_transformers"
                     },
                     {
-                        "node_type": "EstimatorNode",
-                        "class_name": "Passthrough"
-                    }
-                ]
-            },
-            "leaf_search_space": {
-                "node_type": "ChoicePipeline",
-                "search_spaces": [
-                    {
-                        "node_type": "EstimatorNode",
-                        "class_name": "SelectFwe"
-                    },
-                    {
-                        "node_type": "EstimatorNode",
-                        "class_name": "SelectPercentile"
-                    },
-                    {
-                        "node_type": "EstimatorNode",
-                        "class_name": "VarianceThreshold"
-                    },
-                    {
-                        "node_type": "EstimatorNode",
-                        "class_name": "Passthrough"
+                        "node_type": "LgPassthrough"
                     }
                 ]
             }
