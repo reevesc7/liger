@@ -335,6 +335,8 @@ class TPOTManager:
                 for key, value in objec.__dict__.items()
                 if not key.startswith("_") and not key.endswith("_")
             }
+        if np.issubdtype(np.dtype(objec), np.integer):
+            return int(objec)
         raise TypeError(f"Could not convert type {type(objec)} to json format")
 
     def get_manager_data(self) -> dict:
