@@ -15,8 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from types import FunctionType
-from typing import Any, TextIO
+from typing import Any, Callable, TextIO
 import sys
 from pathlib import Path
 from copy import deepcopy
@@ -33,6 +32,7 @@ from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
+from networkx.classes import DiGraph
 import dill
 
 
@@ -310,6 +310,20 @@ class TPOTManager:
         return param_cv
 
     @staticmethod
+    def callable_to_string(callable: Callable) -> str:
+        module = getattr(callable, "__module__", None)
+        qualname = getattr(callable, "__qualname__", None)
+        name = getattr(callable, "__name__", None)
+        if not(module is None or qualname is None):
+            return f"{module}.{qualname}"
+        elif not(module is None or name is None):
+            return f"{module}.{name}"
+        elif name is not None:
+            return name
+        else:
+            return repr(callable)
+
+    @staticmethod
     def json_everything(objec: Any) -> Any:
         if isinstance(objec, pd.Series):
             return {index: value for index, value in enumerate(objec.to_list())}
@@ -323,20 +337,22 @@ class TPOTManager:
             return objec.tolist()
         if isinstance(objec, range):
             return list(objec)
-        if isinstance(objec, FunctionType):
-            return ".".join([objec.__module__, objec.__name__])
         if isinstance(objec, (Pipeline, GraphPipeline)):
-            return objec.__str__().split("\n")
+            return objec.get_params()
         if isinstance(objec, Path):
             return str(objec)
+        if isinstance(objec, DiGraph):
+            return {key: value for key, value in objec.nodes.items()}
         if hasattr(objec, "__dict__"):
             return {
                 key: value
                 for key, value in objec.__dict__.items()
                 if not key.startswith("_") and not key.endswith("_")
             }
-        if np.issubdtype(np.dtype(objec), np.integer):
-            return int(objec)
+        if isinstance(objec, np.generic):
+            return objec.item()
+        if isinstance(objec, Callable):
+            return TPOTManager.callable_to_string(objec)
         raise TypeError(f"Could not convert type {type(objec)} to json format")
 
     def get_manager_data(self) -> dict:
@@ -408,11 +424,14 @@ class TPOTManager:
         self.in_progress()
         print("\nRUN ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        #if self.complete_gens >= self.target_gens or self.detect_early_stop():
-        #    self.not_in_progress()
-        #    print("\nRUN TERMINATION CONDITIONS ALREADY MET")
-        #    print("\nRUN COMPLETE")
-        #    return
+        # Commented to allow generating fitted_pipeline.pkl after run finishes.
+        # With it uncommented, it would still be possible to alter the manager_data.json
+        # by raising target_gens and setting generations to 1 to generate a fitted_pipeline.pkl.
+        # if self.complete_gens >= self.target_gens or self.detect_early_stop():
+        #     self.not_in_progress()
+        #     print("\nRUN TERMINATION CONDITIONS ALREADY MET")
+        #     print("\nRUN COMPLETE")
+        #     return
         self.tpot.fit(self.dataset.x, self.dataset.y)
         output = capture.get_output()
         output_lines = output.split("\n")
