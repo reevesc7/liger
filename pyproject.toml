@@ -1,8 +1,8 @@
 [project]
 name = "liger"
-version = "0.13.3"
 description = "Helper functions for the Likert General Regressor project"
 authors = [{ name = "Chris Reeves", email = "reeves.chris.allan@gmail.com" }]
+dynamic = ["version"]
 requires-python = ">=3.11,<3.14"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
@@ -51,5 +51,12 @@ url = "https://download.pytorch.org/whl/cpu"
 explicit = true
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+version_scheme = "no-guess-dev"
+search_parent_directories = true
