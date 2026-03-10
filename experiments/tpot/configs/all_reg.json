@@ -26,11 +26,11 @@
                         "search_spaces": [
                             {
                                 "node_type": "EstimatorNode",
-                                "class_name": "all_transformers"
+                                "method": "all_transformers"
                             },
                             {
                                 "node_type": "EstimatorNode",
-                                "class_name": "Passthrough"
+                                "method": "Passthrough"
                             }
                         ]
                     },
@@ -41,7 +41,7 @@
                     "search_spaces": [
                         {
                             "node_type": "EstimatorNode",
-                            "class_name": "regressors"
+                            "method": "regressors"
                         }
                     ]
                 }

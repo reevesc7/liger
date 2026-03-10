@@ -129,7 +129,7 @@ def items_to_search_space(
             search_space = tpss.pipelines.GraphSearchPipeline(**node_kwargs)
         case "EstimatorNode":
             search_space = tpcfg.get_search_space(
-                name=node_parameters["class_name"],
+                name=node_parameters["method"],
                 n_samples=n_samples,
                 n_features=n_features,
                 random_state=random_state,
@@ -138,7 +138,7 @@ def items_to_search_space(
                 tpss.nodes.EstimatorNode,
                 tpss.pipelines.ChoicePipeline,
             )):
-                raise ValueError(f"{node_parameters["class_name"]} could not be converted into an EstimatorNode or ChoicePipeline")
+                raise ValueError(f"{node_parameters["method"]} could not be converted into an EstimatorNode or ChoicePipeline")
         case "GeneticFeatureSelectorNode":
             search_space = tpss.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
         case "LgTransformedTargetRegressor":

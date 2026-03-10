@@ -30,18 +30,18 @@
                             "search_spaces": [
                                 {
                                     "node_type": "EstimatorNode",
-                                    "class_name": "all_transformers"
+                                    "method": "all_transformers"
                                 },
                                 {
                                     "node_type": "EstimatorNode",
-                                    "class_name": "selectors_regression"
+                                    "method": "selectors_regression"
                                 },
                                 {
                                     "node_type": "GeneticFeatureSelectorNode"
                                 },
                                 {
                                     "node_type": "EstimatorNode",
-                                    "class_name": "Passthrough"
+                                    "method": "Passthrough"
                                 }
                             ]
                         },
@@ -54,7 +54,7 @@
                     "search_spaces": [
                         {
                             "node_type": "EstimatorNode",
-                            "class_name": "KNeighborsRegressor"
+                            "method": "KNeighborsRegressor"
                         }
                     ]
                 }

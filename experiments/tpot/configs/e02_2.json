@@ -53,51 +53,51 @@
                 "search_spaces": [
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "ElasticNet"
+                        "method": "ElasticNet"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "Lasso"
+                        "method": "Lasso"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "Lars"
+                        "method": "Lars"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "LassoLars"
+                        "method": "LassoLars"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "Ridge"
+                        "method": "Ridge"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "RidgeCV"
+                        "method": "RidgeCV"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "BaggingRegressor"
+                        "method": "BaggingRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "ExtraTreesRegressor"
+                        "method": "ExtraTreesRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "RandomForestRegressor"
+                        "method": "RandomForestRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "DecisionTreeRegressor"
+                        "method": "DecisionTreeRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "KNeighborsRegressor"
+                        "method": "KNeighborsRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "MLPRegressor"
+                        "method": "MLPRegressor"
                     }
                 ]
             },
@@ -106,7 +106,7 @@
                 "search_spaces": [
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "all_transformers"
+                        "method": "all_transformers"
                     },
                     {
                         "node_type": "LgPassthrough"

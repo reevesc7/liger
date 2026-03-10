@@ -24,39 +24,39 @@
                 "search_spaces": [
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "LGBMRegressor"
+                        "method": "LGBMRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "ARDRegression"
+                        "method": "ARDRegression"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "HistGradientBoostingRegressor"
+                        "method": "HistGradientBoostingRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "KNeighborsRegressor"
+                        "method": "KNeighborsRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "LinearSVR"
+                        "method": "LinearSVR"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "MLPRegressor"
+                        "method": "MLPRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "RandomForestRegressor"
+                        "method": "RandomForestRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "SGDRegressor"
+                        "method": "SGDRegressor"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "SVR"
+                        "method": "SVR"
                     }
                 ]
             },
@@ -65,11 +65,11 @@
                 "search_spaces": [
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "all_transformers"
+                        "method": "all_transformers"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "Passthrough"
+                        "method": "Passthrough"
                     }
                 ]
             },
@@ -78,14 +78,14 @@
                 "search_spaces": [
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "selectors"
+                        "method": "selectors"
                     },
                     {
                         "node_type": "GeneticFeatureSelectorNode"
                     },
                     {
                         "node_type": "EstimatorNode",
-                        "class_name": "Passthrough"
+                        "method": "Passthrough"
                     }
                 ]
             }
