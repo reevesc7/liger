@@ -22,6 +22,11 @@ from scipy.stats import wasserstein_distance
 from liger import probabilities as prb
 
 
+def score_dummy(*args, **kwargs) -> float:
+    _ = args, kwargs
+    return 0.0
+
+
 def score_msle_2d(y_true: ArrayLike, y_pred: ArrayLike) -> np.floating:
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
@@ -109,6 +114,11 @@ def score_softmax_wasserstein(
 
 
 # Define scorers
+dummy = make_scorer(
+    score_dummy,
+    response_method="predict",
+    greater_is_better=False,
+)
 neg_msle_2d = make_scorer(
     score_msle_2d,
     response_method="predict",
