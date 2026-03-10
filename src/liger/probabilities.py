@@ -22,14 +22,8 @@ import pandas as pd
 from scipy import special
 
 
-def _strip_prefix(
-    columns: pd.Index,
-    prefix: str,
-) -> pd.Index:
-    return pd.Index([
-        str(col).removeprefix(prefix)
-        for col in columns
-    ])
+def passthrough(x_vals: ArrayLike) -> np.ndarray:
+    return np.asarray(x_vals)
 
 
 def softmax(
@@ -72,6 +66,22 @@ def pmf_std_dev(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
 def mean_center(x: ArrayLike, axis: int | Sequence[int] | None = None) -> np.ndarray:
     x = np.asarray(x)
     return x - np.mean(x, axis, keepdims=True)
+
+
+def apply_passthrough(
+    logprobs: pd.DataFrame,
+) -> pd.DataFrame:
+    return logprobs
+
+
+def _strip_prefix(
+    columns: pd.Index,
+    prefix: str,
+) -> pd.Index:
+    return pd.Index([
+        str(col).removeprefix(prefix)
+        for col in columns
+    ])
 
 
 def apply_softmax(
