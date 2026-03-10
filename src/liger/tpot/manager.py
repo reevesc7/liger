@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Callable, TextIO
+from typing import Any, Callable, Self, TextIO
 import sys
 from pathlib import Path
 from copy import deepcopy
@@ -23,7 +23,7 @@ import shutil
 import json
 from random import randint
 from datetime import datetime, timezone
-from typing_extensions import Self
+import warnings
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
@@ -34,6 +34,12 @@ from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
 from networkx.classes import DiGraph
 import dill
+
+
+warnings.filterwarnings(
+    "ignore",
+    message="The hashes produced for directed graphs changed in version v3.5",
+)
 
 
 class TPOTManager:
