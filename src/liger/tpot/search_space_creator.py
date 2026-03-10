@@ -25,12 +25,14 @@ from liger import sklearn as lsk
 
 def create_search_space(
     param_search_space: Any,
+    n_samples: int,
     n_features: int,
     random_state: int | None = None
 ) -> tpss.SearchSpace:
     search_space = items_to_search_space(
         param_search_space["node_type"],
         {key: value for key, value in param_search_space.items() if key != "node_type"},
+        n_samples,
         n_features,
         random_state,
     )
@@ -39,12 +41,18 @@ def create_search_space(
 
 def create_search_spaces(
     param_search_spaces: Any,
+    n_samples: int,
     n_features: int,
     random_state: int | None = None
 ) -> list[tpss.SearchSpace]:
     search_spaces = []
     for param_search_space in param_search_spaces:
-        search_spaces.append(create_search_space(param_search_space, n_features, random_state))
+        search_spaces.append(create_search_space(
+            param_search_space,
+            n_samples,
+            n_features,
+            random_state,
+        ))
     return search_spaces
 
 
@@ -89,16 +97,21 @@ def _make_lg_passthrough(
 def items_to_search_space(
     node_type: str,
     node_parameters: Any,
+    n_samples: int,
     n_features: int,
     random_state: int | None = None
 ) -> tpss.SearchSpace:
     node_kwargs = {}
     for key, value in node_parameters.items():
         if key == "search_spaces":
-            node_kwargs[key] = create_search_spaces(value, n_features, random_state)
+            node_kwargs[key] = create_search_spaces(value, n_samples, n_features, random_state)
         elif "search_space" in key:
-            node_kwargs[key] = create_search_space(value, n_features, random_state)
-    node_kwargs.update({key: value for key, value in node_parameters.items() if "search_space" not in key})
+            node_kwargs[key] = create_search_space(value, n_samples, n_features, random_state)
+    node_kwargs.update({
+        key: value
+        for key, value in node_parameters.items()
+        if "search_space" not in key
+    })
     match node_type:
         case "ChoicePipeline":
             search_space = tpss.pipelines.ChoicePipeline(**node_kwargs)
@@ -115,7 +128,12 @@ def items_to_search_space(
         case "GraphSearchPipeline":
             search_space = tpss.pipelines.GraphSearchPipeline(**node_kwargs)
         case "EstimatorNode":
-            search_space = tpcfg.get_search_space(node_parameters["class_name"], random_state=random_state)
+            search_space = tpcfg.get_search_space(
+                name=node_parameters["class_name"],
+                n_samples=n_samples,
+                n_features=n_features,
+                random_state=random_state,
+            )
             if not isinstance(search_space, (
                 tpss.nodes.EstimatorNode,
                 tpss.pipelines.ChoicePipeline,

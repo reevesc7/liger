@@ -231,6 +231,7 @@ class TPOTManager:
         self.tpot = TPOTEstimator(
             search_space=create_search_space(
                 self._config_search_space,
+                self.dataset.x.shape[0],
                 self.dataset.x.shape[1],
                 _tpot_random_state
             ),
