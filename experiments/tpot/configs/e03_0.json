@@ -1,0 +1,156 @@
+{
+    "manager_parameters": {
+        "id": null,
+        "data_file": "data/smallville_417_maria_embprop.csv",
+        "output_dir": "e03",
+        "feature_keys": [
+            "all-mpnet-base-v2_--e"
+        ],
+        "target_keys": [
+            "logprob"
+        ],
+        "feature_transformers": [],
+        "target_transformers": [],
+        "feature_transformers_kwargs": [],
+        "target_transformers_kwargs": [],
+        "target_gens": 100,
+        "eval_random_states": 4,
+        "export_fitted_pipeline": false,
+        "clean_population_file": true
+    },
+    "tpot_parameters": {
+        "search_space": {
+            "node_type": "GraphSearchPipeline",
+            "root_search_space": {
+                "node_type": "ChoicePipeline",
+                "search_spaces": [
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "ElasticNet"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Lasso"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Lars"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "LassoLars"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Ridge"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "RidgeCV"
+                    },
+                    {
+                        "node_type": "WrapperPipeline",
+                        "method": "BaggingRegressor",
+                        "estimator_search_space": {
+                            "node_type": "EstimatorNode",
+                            "method": "KNeighborsRegressor"
+                        }
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "KNeighborsRegressor"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "MLPRegressor"
+                    }
+                ]
+            },
+            "inner_search_space": {
+                "node_type": "ChoicePipeline",
+                "search_spaces": [
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "PCA"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "FastICA"
+                    },
+                    {
+                        "node_type": "LgEstimatorNode",
+                        "method": "TruncatedSVD"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "FeatureAgglomeration"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Nystroem"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "RBFSampler"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Binarizer"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "QuantileTransformer"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "PowerTransformer"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "MinMaxScaler"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "RobustScaler"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "StandardScaler"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "MaxAbsScaler"
+                    },
+                    {
+                        "node_type": "EstimatorNode",
+                        "method": "Normalizer"
+                    },
+                    {
+                        "node_type": "LgEstimatorNode",
+                        "method": "Passthrough"
+                    }
+                ]
+            }
+        },
+        "scorers": [
+            "liger.objectives.neg_softmax_norm_wasserstein"
+        ],
+        "scorers_weights": [
+            1
+        ],
+        "classification": false,
+        "cv": 3,
+        "bigger_is_better": true,
+        "population_size": 100,
+        "generations": 10,
+        "max_time_mins": 120,
+        "max_eval_time_mins": 10,
+        "early_stop": 6,
+        "scorers_early_stop_tol": 0.001,
+        "other_objectives_early_stop_tol": 0.001,
+        "n_jobs": 4,
+        "warm_start": true,
+        "verbose": 4,
+        "random_state": null
+    }
+}
