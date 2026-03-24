@@ -16,8 +16,10 @@
 
 
 from typing import Any
+from sklearn.decomposition import TruncatedSVD
 from tpot import search_spaces as tpss
 from tpot import config as tpcfg
+from tpot.builtin_modules import EstimatorTransformer
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters.hyperparameter import Hyperparameter
 from liger import sklearn as lsk
@@ -56,21 +58,128 @@ def create_search_spaces(
     return search_spaces
 
 
+def _unroll_node_parameters(
+    node_parameters: dict[str, Any],
+    n_samples: int,
+    n_features: int,
+    random_state: int | None = None
+) -> dict[str, Any]:
+    node_kwargs = {}
+    for key, value in node_parameters.items():
+        if key == "search_spaces":
+            node_kwargs[key] = create_search_spaces(value, n_samples, n_features, random_state)
+        elif "search_space" in key:
+            node_kwargs[key] = create_search_space(value, n_samples, n_features, random_state)
+    node_kwargs.update({
+        key: value
+        for key, value in node_parameters.items()
+        if "search_space" not in key
+    })
+    return node_kwargs
+
+
+def _configure_estimator_node(
+    method_name: str,
+    search_space: tpss.nodes.EstimatorNode,
+) -> tpss.nodes.EstimatorNode:
+    match method_name:
+        case "BaggingRegressor":
+            search_space.space = ConfigurationSpace({
+                key: value
+                for key, value in search_space.space.items()
+                if key != "oob_score"
+            })
+        case "Nystroem":
+            search_space.space = ConfigurationSpace({
+                key: value if key != "kernel" else [
+                    "rbf",
+                    "cosine",
+                    "laplacian",
+                    "polynomial",
+                    "poly",
+                    "linear",
+                    "sigmoid",
+                ]
+                for key, value in search_space.space.items()
+            })
+    return search_space
+
+
+def _make_estimator_node(
+    method_name: str,
+    n_samples: int,
+    n_features: int,
+    random_state: int | None = None,
+) -> tpss.nodes.EstimatorNode | tpss.pipelines.ChoicePipeline:
+    search_space = tpcfg.get_search_space(
+        name=method_name,
+        n_samples=n_samples,
+        n_features=n_features,
+        random_state=random_state,
+    )
+    if isinstance(search_space, tpss.pipelines.ChoicePipeline):
+        return search_space
+    if isinstance(search_space, tpss.nodes.EstimatorNode):
+        search_space = _configure_estimator_node(method_name, search_space)
+        return search_space
+    raise ValueError(f"{method_name} "
+        "could not be converted into an EstimatorNode or ChoicePipeline")
+
+
+def _make_wrapper_pipeline(
+    node_parameters: dict[str, Any],
+    n_samples: int,
+    n_features: int,
+    random_state: int | None = None,
+) -> tpss.pipelines.WrapperPipeline:
+    method_name = node_parameters.pop("method")
+    if method_name == "EstimatorTransformer":
+        method = EstimatorTransformer
+        space = ConfigurationSpace({"passthrough": [False, True]})
+    else:
+        estimator_config_space = _make_estimator_node(
+            method_name,
+            n_samples,
+            n_features,
+            random_state,
+        )
+        if not isinstance(estimator_config_space, tpss.nodes.EstimatorNode):
+            raise ValueError(f"{method_name} "
+                "must represent a single estimator class")
+        method = estimator_config_space.method
+        space = estimator_config_space.space
+    return tpss.pipelines.WrapperPipeline(method, space, **node_parameters)
+
+
 def _append_to_hyperparameter_name(hyperparameter: Hyperparameter, add: str) -> Hyperparameter:
     hyperparameter.name = add + hyperparameter.name
     return hyperparameter
 
 
 def _make_lg_transformed_target_regressor(
-    node_parameters: dict[str, str],
+    node_parameters: dict[str, Any],
+    n_samples: int,
+    n_features: int,
     random_state: int | None = None,
-) -> tpss.SearchSpace:
-    rg_node = tpcfg.get_search_space(node_parameters["regressor"], random_state=random_state)
-    tf_node = tpcfg.get_search_space(node_parameters["transformer"], random_state=random_state)
+) -> tpss.nodes.EstimatorNode:
+    rg_node = tpcfg.get_search_space(
+        node_parameters["regressor"],
+        n_samples=n_samples,
+        n_features=n_features,
+        random_state=random_state,
+    )
+    tf_node = tpcfg.get_search_space(
+        node_parameters["transformer"],
+        n_samples=n_samples,
+        n_features=n_features,
+        random_state=random_state,
+    )
     if not isinstance(rg_node, tpss.nodes.EstimatorNode):
-        raise ValueError(f"{node_parameters["regressor"]} could not be converted into an EstimatorNode")
+        raise ValueError(f"{node_parameters["regressor"]} "
+            "could not be converted to an EstimatorNode")
     if not isinstance(tf_node, tpss.nodes.EstimatorNode):
-        raise ValueError(f"{node_parameters["transformer"]} could not be converted into an EstimatorNode")
+        raise ValueError(f"{node_parameters["transformer"]} "
+            "could not be converted to an EstimatorNode")
     models = {"regressor": rg_node.method, "transformer": tf_node.method}
     rg_params = {
         "regressor_" + key: _append_to_hyperparameter_name(value, "regressor_")
@@ -86,66 +195,106 @@ def _make_lg_transformed_target_regressor(
     )
 
 
-def _make_lg_passthrough(
-) -> tpss.SearchSpace:
+def _make_lg_truncated_svd(
+    n_samples: int,
+    n_features: int,
+    random_state: int | None = None,
+) -> tpss.nodes.EstimatorNode:
+    max_components = min(n_samples, n_features)
+    space = {
+        "n_components": (1, min(max_components - 1, 200)),
+        "algorithm": ["arpack", "randomized"],
+        "n_iter": (2, 8),
+        "n_oversamples": (1, 30),
+    }
+    if random_state is not None:
+        space["random_state"] = random_state
+    return tpss.nodes.EstimatorNode(
+        method=TruncatedSVD,
+        space=ConfigurationSpace(space=space),
+    )
+
+
+def _make_lg_passthrough() -> tpss.nodes.EstimatorNode:
     return tpss.nodes.EstimatorNode(
         method=lsk.LgPassthrough,
         space=ConfigurationSpace(),
     )
 
 
+def _make_lg_estimator_node(
+    method_name: str,
+    node_parameters: dict[str, Any],
+    n_samples: int,
+    n_features: int,
+    random_state: int | None = None,
+) -> tpss.nodes.EstimatorNode:
+    match method_name:
+        case "TransformedTargetRegressor":
+            return _make_lg_transformed_target_regressor(
+                node_parameters,
+                n_samples,
+                n_features,
+                random_state,
+            )
+        case "TruncatedSVD":
+            return _make_lg_truncated_svd(
+                n_samples,
+                n_features,
+                random_state,
+            )
+        case "Passthrough":
+            return _make_lg_passthrough()
+        case _:
+            raise ValueError(f"{method_name} does not match a liger estimator type")
+
+
 def items_to_search_space(
     node_type: str,
-    node_parameters: Any,
+    node_parameters: dict[str, Any],
     n_samples: int,
     n_features: int,
     random_state: int | None = None
 ) -> tpss.SearchSpace:
-    node_kwargs = {}
-    for key, value in node_parameters.items():
-        if key == "search_spaces":
-            node_kwargs[key] = create_search_spaces(value, n_samples, n_features, random_state)
-        elif "search_space" in key:
-            node_kwargs[key] = create_search_space(value, n_samples, n_features, random_state)
-    node_kwargs.update({
-        key: value
-        for key, value in node_parameters.items()
-        if "search_space" not in key
-    })
+    node_kwargs = _unroll_node_parameters(node_parameters, n_samples, n_features, random_state)
     match node_type:
         case "ChoicePipeline":
-            search_space = tpss.pipelines.ChoicePipeline(**node_kwargs)
+            return tpss.pipelines.ChoicePipeline(**node_kwargs)
         case "SequentialPipeline":
-            search_space = tpss.pipelines.SequentialPipeline(**node_kwargs)
+            return tpss.pipelines.SequentialPipeline(**node_kwargs)
         case "DynamicLinearPipeline":
-            search_space = tpss.pipelines.DynamicLinearPipeline(**node_kwargs)
+            return tpss.pipelines.DynamicLinearPipeline(**node_kwargs)
         case "UnionPipeline":
-            search_space = tpss.pipelines.UnionPipeline(**node_kwargs)
+            return tpss.pipelines.UnionPipeline(**node_kwargs)
         case "DynamicUnionPipeline":
-            search_space = tpss.pipelines.DynamicUnionPipeline(**node_kwargs)
+            return tpss.pipelines.DynamicUnionPipeline(**node_kwargs)
         case "TreePipeline":
-            search_space = tpss.pipelines.TreePipeline(**node_kwargs)
+            return tpss.pipelines.TreePipeline(**node_kwargs)
         case "GraphSearchPipeline":
-            search_space = tpss.pipelines.GraphSearchPipeline(**node_kwargs)
-        case "EstimatorNode":
-            search_space = tpcfg.get_search_space(
-                name=node_parameters["method"],
-                n_samples=n_samples,
-                n_features=n_features,
-                random_state=random_state,
+            return tpss.pipelines.GraphSearchPipeline(**node_kwargs)
+        case "WrapperPipeline":
+            return _make_wrapper_pipeline(
+                node_kwargs,
+                n_samples,
+                n_features,
+                random_state,
             )
-            if not isinstance(search_space, (
-                tpss.nodes.EstimatorNode,
-                tpss.pipelines.ChoicePipeline,
-            )):
-                raise ValueError(f"{node_parameters["method"]} could not be converted into an EstimatorNode or ChoicePipeline")
+        case "EstimatorNode":
+            return _make_estimator_node(
+                node_parameters["method"],
+                n_samples,
+                n_features,
+                random_state,
+            )
         case "GeneticFeatureSelectorNode":
-            search_space = tpss.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
-        case "LgTransformedTargetRegressor":
-            search_space = _make_lg_transformed_target_regressor(node_kwargs, random_state)
-        case "LgPassthrough":
-            search_space = _make_lg_passthrough()
-        case _:
-            raise ValueError(f"{node_type} does not match a TPOT pipeline or node type (WrapperPipeline not included)")
-    return search_space
+            return tpss.nodes.GeneticFeatureSelectorNode(n_features, **node_kwargs)
+        case "LgEstimatorNode":
+            return _make_lg_estimator_node(
+                node_parameters["method"],
+                node_kwargs,
+                n_samples,
+                n_features,
+                random_state,
+            )
+    raise ValueError(f"{node_type} does not match a TPOT pipeline or node type")
 
