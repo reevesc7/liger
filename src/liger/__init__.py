@@ -15,8 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from importlib.metadata import version
+from importlib.metadata import version, PackageNotFoundError
 
 
-__version__ = version("liger")
+try:
+    __version__ = version("liger")
+except PackageNotFoundError as e:
+    print("WARNING:", e)
+    __version__ = "0.0.0"
 
