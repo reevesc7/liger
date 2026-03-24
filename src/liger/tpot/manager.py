@@ -368,17 +368,22 @@ class TPOTManager:
         if isinstance(objec, range):
             return list(objec)
         if isinstance(objec, (Pipeline, GraphPipeline)):
-            return objec.get_params()
+            method = f"{type(objec).__module__}.{type(objec).__name__}"
+            return {
+                "method": method,
+                "params": objec.get_params(deep=False),
+            }
         if isinstance(objec, Path):
             return str(objec)
         if isinstance(objec, DiGraph):
             return {key: value for key, value in objec.nodes.items()}
         if hasattr(objec, "__dict__"):
-            return {
+            method = f"{type(objec).__module__}.{type(objec).__name__}"
+            return {"method": method, "params": {
                 key: value
                 for key, value in objec.__dict__.items()
                 if not key.startswith("_") and not key.endswith("_")
-            }
+            }}
         if isinstance(objec, np.generic):
             return objec.item()
         if isinstance(objec, Callable):
