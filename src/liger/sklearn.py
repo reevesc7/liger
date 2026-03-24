@@ -70,13 +70,17 @@ class LgPassthrough(TransformerMixin, BaseEstimator):
     """
 
     def fit(self, X=None, y=None):
-        """Nothing to fit, just sets a fitted flag and returns self.
+        """Nothing to fit, returns self.
         """
-        self.is_fit_ = True
         return self
 
     def transform(self, X):
         """Returns the input array as-is.
         """
         return X
+
+    def __sklearn_tags__(self):
+        tags = super().__sklearn_tags__()
+        tags.requires_fit = False
+        return tags
 
