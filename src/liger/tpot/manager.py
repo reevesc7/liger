@@ -66,7 +66,7 @@ class TPOTManager:
     TEMP_POPULATION_PKL = Path("temp-population.pkl")
     FITTED_PIPELINE = Path("fitted_pipeline.pkl")
     DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
-    MANAGER_PARAM_KEYS = {
+    MANAGER_PARAM_KEYS = [
         "id",
         "config_file",
         "data_file",
@@ -81,8 +81,10 @@ class TPOTManager:
         "eval_random_states",
         "export_fitted_pipeline",
         "clean_population_file",
-    }
-    TPOT_PARAM_KEYS = {
+    ]
+    TPOT_PARAM_KEYS = [
+        "search_space",
+        "scorers",
         "scorers_weights",
         "classification",
         "cv",
@@ -131,22 +133,23 @@ class TPOTManager:
         "verbose",
         "scatter",
         "random_state",
-    }
-    MANAGER_ATTR_KEYS = {
+    ]
+    MANAGER_ATTR_KEYS = [
         "complete_gens",
         "gen_scores",
         "segment_start_times",
         "segment_run_times",
         "slurm_ids",
         "kfold_scores",
+        "other_objective_scores",
         "kfold_samples_scores",
         "kfold_predictions",
-    }
-    TPOT_ATTR_KEYS = {
+    ]
+    TPOT_ATTR_KEYS = [
         "fitted_pipeline_",
         "evaluated_individuals",
         "pareto_front",
-    }
+    ]
 
 
     def __init__(
@@ -227,6 +230,7 @@ class TPOTManager:
 
         self._config_search_space = _tpot_params["search_space"]
         self._config_scorers = _tpot_params["scorers"]
+        self._config_other_objectives = _tpot_params.get("other_objective_functions", [])
         _tpot_random_state: int = self.use_first(
             tpot_random_state,
             _tpot_params.get("random_state"),
@@ -241,6 +245,7 @@ class TPOTManager:
         self.slurm_ids: list[int | None] = _manager_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
         self.kfold_scores: dict = _manager_attrs.get("kfold_scores", {})
+        self.other_objective_scores: dict = _manager_attrs.get("other_objective_scores", {})
         self.kfold_samples_scores: dict = _manager_attrs.get("kfold_samples_scores", {})
         self.kfold_predictions: dict = _manager_attrs.get("kfold_predictions", {})
 
@@ -382,27 +387,24 @@ class TPOTManager:
 
     def get_manager_data(self) -> dict:
         manager_parameters = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.MANAGER_PARAM_KEYS
+            key: self.__dict__.get(key, None)
+            for key in self.MANAGER_PARAM_KEYS
         }
         manager_parameters["output_dir"] = self._config_output_dir
         tpot_parameters = {
-            key: value
-            for key, value in self.tpot.__dict__.items()
-            if key in self.TPOT_PARAM_KEYS
+            key: self.tpot.__dict__.get(key, None)
+            for key in self.TPOT_PARAM_KEYS
         }
         tpot_parameters["search_space"] = self._config_search_space
         tpot_parameters["scorers"] = self._config_scorers
+        tpot_parameters["other_objective_functions"] = self._config_other_objectives
         manager_attributes = {
-            key: value
-            for key, value in self.__dict__.items()
-            if key in self.MANAGER_ATTR_KEYS
+            key: self.__dict__.get(key, None)
+            for key in self.MANAGER_ATTR_KEYS
         }
         tpot_attributes = {
-            key: value
-            for key, value in self.tpot.__dict__.items()
-            if key in self.TPOT_ATTR_KEYS
+            key: self.tpot.__dict__.get(key, None)
+            for key in self.TPOT_ATTR_KEYS
         }
         return {
             "manager_parameters": manager_parameters,
@@ -575,6 +577,12 @@ class TPOTManager:
                 self.kfold_scores[scorer][rs] = kfold_scores.fold_scores[scorer_index]
                 self.kfold_samples_scores[scorer][rs] = kfold_scores.samples_scores[scorer_index]
             self.kfold_predictions[rs] = kfold_scores.predictions
+        other_scores = other_objective_scores(
+            self.tpot.fitted_pipeline_,
+            self.tpot.other_objective_functions,
+        )
+        for objective_index, objective in enumerate(self._config_other_objectives):
+            self.other_objective_scores[objective] = other_scores[objective_index]
 
     def tpot_test(
         self,
