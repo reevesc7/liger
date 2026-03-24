@@ -38,7 +38,7 @@
         "bigger_is_better": true,
         "population_size": 100,
         "generations": 10,
-        "early_stop": 10,
+        "early_stop": 3,
         "scorers_early_stop_tol": 0.001,
         "max_time_mins": 120,
         "max_eval_time_mins": 10,
