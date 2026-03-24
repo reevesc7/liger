@@ -32,15 +32,15 @@ class KFoldScores:
     fold_scores: list[list[float]]
 
 
-def init_scorers(param_scorers: list[str]) -> list[str | FunctionType]:
-    scorers: list[str | FunctionType] = []
-    for param_scorer in param_scorers:
-        if "." not in param_scorer:
-            scorers.append(param_scorer)
+def init_objects(param_objects: list[str]) -> list[str | FunctionType]:
+    objects: list[str | FunctionType] = []
+    for param_object in param_objects:
+        if "." not in param_object:
+            objects.append(param_object)
             continue
-        split_scorer = param_scorer.rsplit(".", 1)
-        scorers.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
-    return scorers
+        split_scorer = param_object.rsplit(".", 1)
+        objects.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
+    return objects
 
 
 # Returns a model's predictions across all training instances of a KFold cross validation
@@ -73,4 +73,8 @@ def kfold_scores(
             samples_scores[scorer_index].append(samples_scorer_scores)
             fold_scores[scorer_index].append(mean(samples_scorer_scores.values()))
     return KFoldScores(predicted, samples_scores, fold_scores)
+
+
+def other_objective_scores(model, other_objectives: list[Any]) -> list[Any]:
+    return [objective(model) for objective in other_objectives]
 

@@ -43,7 +43,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
-from ..training_testing import init_scorers, kfold_scores, KFoldScores
+from ..training_testing import init_objects, kfold_scores, KFoldScores, other_objective_scores
 from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.pipeline import Pipeline
@@ -251,18 +251,20 @@ class TPOTManager:
                 self.dataset.x.shape[1],
                 _tpot_random_state
             ),
-            scorers=init_scorers(self._config_scorers),
+            scorers=init_objects(self._config_scorers),
             cv=self.get_cv(
                 _tpot_params.get("cv"),
                 _tpot_params["classification"],
                 self.dataset.y
             ),
+            other_objective_functions=init_objects(self._config_other_objectives),
             periodic_checkpoint_folder=self.output_dir,
             random_state=_tpot_random_state,
             **{key: value for key, value in _tpot_params.items() if key not in [
                 "search_space",
                 "scorers",
                 "cv",
+                "other_objective_functions",
                 "survival_selector",
                 "parent_selector",
                 "periodic_checkpoint_folder",
@@ -602,13 +604,13 @@ class LiveOutputCapture:
     def write(self, text: str) -> int:
         """Record the written text before writing it, as normal.
         """
-        self.captured_text.append(text)  # Store the output
-        return self.original_stdout.write(text)  # Still print it to the console
+        self.captured_text.append(text)
+        return self.original_stdout.write(text)
 
     def flush(self) -> None:
         """Flush print buffer, as normal.
         """
-        self.original_stdout.flush()  # Ensure flushing still works
+        self.original_stdout.flush()
 
     def get_output(self) -> str:
         """Retreive all recorded text as a string.

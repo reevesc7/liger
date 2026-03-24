@@ -61,7 +61,7 @@ def normal_kfold(model, kfold: KFold, dataset: Dataset) -> None:
 def main():
     model = get_model(MODEL_PATH)
     dataset = Dataset.from_csv(DATASET_PATH, FEATURE_KEYS, SCORE_KEYS)
-    scorers = [get_scorer(name) for name in tt.init_scorers(SCORER_NAMES)]
+    scorers = [get_scorer(name) for name in tt.init_objects(SCORER_NAMES)]
     kfold = KFold(N_SPLITS)
     liger_kfold(model, kfold, scorers, dataset)
     #normal_kfold(model, kfold, dataset)
