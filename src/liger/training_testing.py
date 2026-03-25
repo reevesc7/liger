@@ -15,8 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any
-from types import FunctionType
+from typing import Any, Callable
 from dataclasses import dataclass
 from importlib import import_module
 from statistics import mean
@@ -32,8 +31,8 @@ class KFoldScores:
     fold_scores: list[list[float]]
 
 
-def init_objects(param_objects: list[str]) -> list[str | FunctionType]:
-    objects: list[str | FunctionType] = []
+def init_objects(param_objects: list[str]) -> list[str | Callable]:
+    objects: list[str | Callable] = []
     for param_object in param_objects:
         if "." not in param_object:
             objects.append(param_object)

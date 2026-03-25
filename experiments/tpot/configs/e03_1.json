@@ -16,7 +16,7 @@
         "target_gens": 100,
         "eval_random_states": 4,
         "export_fitted_pipeline": false,
-        "clean_population_file": true
+        "clean_population_file": false
     },
     "tpot_parameters": {
         "search_space": {
