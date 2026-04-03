@@ -34,7 +34,6 @@ if importlib.util.find_spec("pkg_resources") is None:
 from typing import Any, Callable, Self, TextIO
 import sys
 from pathlib import Path
-from copy import deepcopy
 import shutil
 import json
 from random import randint
@@ -43,7 +42,7 @@ import warnings
 import numpy as np
 import pandas as pd
 from ..dataset import Dataset
-from ..training_testing import init_objects, kfold_scores, KFoldScores, other_objective_scores
+from ..training_testing import init_objects
 from .search_space_creator import create_search_space
 from tpot import TPOTEstimator
 from sklearn.pipeline import Pipeline
@@ -140,15 +139,6 @@ class TPOTManager:
         "segment_start_times",
         "segment_run_times",
         "slurm_ids",
-        "kfold_scores",
-        "other_objective_scores",
-        "kfold_samples_scores",
-        "kfold_predictions",
-    ]
-    TPOT_ATTR_KEYS = [
-        "fitted_pipeline_",
-        "evaluated_individuals",
-        "pareto_front",
     ]
 
 
@@ -244,10 +234,6 @@ class TPOTManager:
         self.segment_run_times: list[float] = _manager_attrs.get("segment_run_times", [])
         self.slurm_ids: list[int | None] = _manager_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
-        self.kfold_scores: dict = _manager_attrs.get("kfold_scores", {})
-        self.other_objective_scores: dict = _manager_attrs.get("other_objective_scores", {})
-        self.kfold_samples_scores: dict = _manager_attrs.get("kfold_samples_scores", {})
-        self.kfold_predictions: dict = _manager_attrs.get("kfold_predictions", {})
 
         self.tpot = TPOTEstimator(
             search_space=create_search_space(
@@ -475,7 +461,6 @@ class TPOTManager:
         self.segment_run_times.append(self.run_time)
         if self.complete_gens >= self.target_gens or self.detect_early_stop():
             self.export_pipeline()
-            self.evaluate()
             self.save_data()
             self.cleanup()
             self.not_in_progress()
