@@ -295,8 +295,8 @@ class TPOTManager:
         if config_path is None:
             return ({}, {}, {})
         config_path = Path(config_path)
-        with open(config_path) as f:
-            config = dict(json.load(f))
+        with open(config_path) as file:
+            config = dict(json.load(file))
         manager_parameters = config.get("manager_parameters", {})
         tpot_parameters = config.get("tpot_parameters", {})
         manager_attributes = config.get("manager_attributes", {})
@@ -342,7 +342,7 @@ class TPOTManager:
     @staticmethod
     def json_everything(objec: Any) -> Any:
         if isinstance(objec, pd.Series):
-            return {index: value for index, value in enumerate(objec.to_list())}
+            return {index: value for index, value in zip(objec.index, objec.to_list())}
         if isinstance(objec, pd.DataFrame):
             return {
                 col: TPOTManager.json_everything(objec[col])
@@ -504,8 +504,8 @@ class TPOTManager:
             )
         else:
             print("NO PRE-EXISTING POPULATION FILE FOUND - GENERATING POPULATION")
-        with open(self.IN_PROGRESS / (str(self.id) + ".txt"), "w") as f:
-            f.writelines([
+        with open(self.IN_PROGRESS / (str(self.id) + ".txt"), "w") as file:
+            file.writelines([
                 "Start: UTC " + str(datetime.now(timezone.utc)),
                 "\nGeneration: " + str(self.complete_gens + 1),
                 "\nSLURM JOB ID: " + str(self.slurm_ids[-1]),
@@ -553,42 +553,8 @@ class TPOTManager:
         """
         if not self.export_fitted_pipeline:
             return
-        with open(self.output_dir / self.FITTED_PIPELINE, "wb") as f:
-            dill.dump(self.tpot.fitted_pipeline_, f)
-
-    def evaluate(self) -> None:
-        # training_score = self.tpot.score(self.dataset.x, self.dataset.y)
-        for scorer in self._config_scorers:
-            self.kfold_scores[scorer] = {}
-            self.kfold_samples_scores[scorer] = {}
-        for rs in self.eval_random_states:
-            kfold_scores = self.tpot_test(rs)
-            for scorer_index, scorer in enumerate(self._config_scorers):
-                self.kfold_scores[scorer][rs] = kfold_scores.fold_scores[scorer_index]
-                self.kfold_samples_scores[scorer][rs] = kfold_scores.samples_scores[scorer_index]
-            self.kfold_predictions[rs] = kfold_scores.predictions
-        other_scores = other_objective_scores(
-            self.tpot.fitted_pipeline_,
-            self.tpot.other_objective_functions,
-        )
-        for objective_index, objective in enumerate(self._config_other_objectives):
-            self.other_objective_scores[objective] = other_scores[objective_index]
-
-    def tpot_test(
-        self,
-        eval_random_state: int,
-    ) -> KFoldScores:
-        # set_param_recursive(self.tpot.fitted_pipeline_.steps, 'random_state', eval_random_state)
-        # kfold = KFold(n_splits=self.tpot.cv, shuffle=True, random_state=eval_random_state)
-        kfold = deepcopy(self.tpot.cv_gen)
-        kfold.random_state = eval_random_state
-        return kfold_scores(
-            self.tpot.fitted_pipeline_,
-            kfold,
-            self.tpot._scorers,
-            self.dataset,
-        )
-
+        with open(self.output_dir / self.FITTED_PIPELINE, "wb") as file:
+            dill.dump(self.tpot.fitted_pipeline_, file)
 
 class LiveOutputCapture:
     """A stand-in for `sys.stdout` which records the text it writes.
