@@ -299,7 +299,7 @@ class TPOTManager:
         if config_path is None:
             return ({}, {}, {})
         config_path = Path(config_path)
-        with open(config_path) as file:
+        with open(config_path, "r") as file:
             config = dict(json.load(file))
         manager_parameters = config.get("manager_parameters", {})
         tpot_parameters = config.get("tpot_parameters", {})
