@@ -188,11 +188,11 @@ class TPOTManager:
             raise ValueError("Must specify feature and target keys in config")
         self.feature_transformers: list[str] | None = _manager_params.get("feature_transformers")
         self.target_transformers: list[str] | None = _manager_params.get("target_transformers")
-        self.feature_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
+        self.feature_transformers_kwargs: list[dict[str, Any] | None] | None = _manager_params.get(
             "feature_transformers_kwargs",
             None,
         )
-        self.target_transformers_kwargs: list[dict[str, Any]] | None = _manager_params.get(
+        self.target_transformers_kwargs: list[dict[str, Any] | None] | None = _manager_params.get(
             "target_transformers_kwargs",
             None,
         )
@@ -239,6 +239,19 @@ class TPOTManager:
         self.slurm_ids: list[int | None] = _manager_attrs.get("slurm_ids", [])
         self.slurm_ids.append(slurm_id)
 
+        unmodified_params: dict[str, Any] = {
+            key: value
+            for key, value in _tpot_params.items() if key not in [
+                "search_space",
+                "scorers",
+                "cv",
+                "other_objective_functions",
+                "survival_selector",
+                "parent_selector",
+                "periodic_checkpoint_folder",
+                "random_state",
+            ]
+        }
         self.tpot = TPOTEstimator(
             search_space=create_search_space(
                 self._config_search_space,
@@ -255,16 +268,7 @@ class TPOTManager:
             other_objective_functions=init_objects(self._config_other_objectives),
             periodic_checkpoint_folder=self.output_dir,
             random_state=_tpot_random_state,
-            **{key: value for key, value in _tpot_params.items() if key not in [
-                "search_space",
-                "scorers",
-                "cv",
-                "other_objective_functions",
-                "survival_selector",
-                "parent_selector",
-                "periodic_checkpoint_folder",
-                "random_state",
-            ]},
+            **unmodified_params,
         )
 
     @classmethod
@@ -295,7 +299,9 @@ class TPOTManager:
         return None
 
     @staticmethod
-    def load_config(config_path: str | Path | None) -> tuple[dict, dict, dict]:
+    def load_config(
+            config_path: str | Path | None,
+    ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         if config_path is None:
             return ({}, {}, {})
         config_path = Path(config_path)
