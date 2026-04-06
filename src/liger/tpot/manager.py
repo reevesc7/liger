@@ -397,10 +397,12 @@ class TPOTManager:
             key: self.__dict__.get(key, None)
             for key in self.MANAGER_ATTR_KEYS
         }
-        tpot_attributes = {
-            key: self.tpot.__dict__.get(key, None)
-            for key in self.TPOT_ATTR_KEYS
-        }
+        tpot_attributes = {}
+        if self.tpot.evaluated_individuals is not None:
+            tpot_attributes["fitted_pipeline_id"] = self.tpot.evaluated_individuals[self.tpot.objective_names[0]].idxmax()
+            tpot_attributes["evaluated_individuals"] = self.tpot.evaluated_individuals.drop([
+                "Individual",
+            ], axis=1)
         return {
             "manager_parameters": manager_parameters,
             "tpot_parameters": tpot_parameters,
