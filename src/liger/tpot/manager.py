@@ -44,7 +44,7 @@ import pandas as pd
 from ..dataset import Dataset
 from ..training_testing import init_objects
 from .search_space_creator import create_search_space
-from tpot import TPOTEstimator
+from tpot import TPOTEstimator, Population
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
 from networkx.classes import DiGraph
@@ -54,6 +54,10 @@ import dill
 warnings.filterwarnings(
     "ignore",
     message="The hashes produced for directed graphs changed in version v3.5",
+)
+warnings.filterwarnings(
+    "ignore",
+    message="The behavior of DataFrame concatenation with empty or all-NA entries is deprecated.",
 )
 
 
@@ -406,8 +410,13 @@ class TPOTManager:
 
     def save_data(self) -> None:
         manager_data = self.get_manager_data()
-        with open(self.output_dir / self.MANAGER_DATA, "w") as f:
-            json.dump(manager_data, f, indent=4, default=self.json_everything)
+        with open(self.output_dir / self.MANAGER_DATA, "w") as file:
+            json.dump(manager_data, file, indent=4, default=self.json_everything)
+        with open(self.output_dir / "population.pkl", "rb") as file:
+            pop: Population = dill.load(file)
+        pop.evaluated_individuals["Generation"] = pop.evaluated_individuals["Generation"].astype("Int64")
+        with open(self.output_dir / "population.pkl", "wb") as file:
+            dill.dump(pop, file)
 
     def cleanup(self) -> None:
         if self.clean_population_file and (self.output_dir / self.POPULATION_PKL).is_file():
