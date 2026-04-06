@@ -453,14 +453,11 @@ class TPOTManager:
         self.in_progress()
         print("\nRUN ID:", self.id, flush=True)
         print("TPOT RANDOM STATE:", self.tpot.random_state, flush=True)
-        # Commented to allow generating fitted_pipeline.pkl after run finishes.
-        # With it uncommented, it would still be possible to alter the manager_data.json
-        # by raising target_gens and setting generations to 1 to generate a fitted_pipeline.pkl.
-        # if self.complete_gens >= self.target_gens or self.detect_early_stop():
-        #     self.not_in_progress()
-        #     print("\nRUN TERMINATION CONDITIONS ALREADY MET")
-        #     print("\nRUN COMPLETE")
-        #     return
+        if self.complete_gens >= self.target_gens or self.detect_early_stop():
+            self.not_in_progress()
+            print("\nRUN TERMINATION CONDITIONS ALREADY MET")
+            print("\nRUN COMPLETE")
+            return
         self.tpot.fit(self.dataset.x, self.dataset.y)
         output = capture.get_output()
         output_lines = output.split("\n")
