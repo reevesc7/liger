@@ -74,11 +74,8 @@ def scatter(
     #
     Parameters
     ----------
-    `x` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
-    `y` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
-        Must be the same shape as `x`.
+    `data` : `Iterable[ArrayLike]`
+        An iterable of array-like datasets of shape (2, n), containing x- and y-values.
     `title` : `str`, optional
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
@@ -101,7 +98,7 @@ def scatter(
     for dataset in data:
         dataset = np.asarray(dataset)
         if _n_fields(dataset) != 2:
-            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
+            raise ValueError(f"Expected array of shape (2, n), got {dataset.shape}")
         _single_scatter(ax, dataset[0], dataset[1], trend_orders, plot_perfect)
     return fig
 
@@ -115,14 +112,9 @@ def bar(
     #
     Parameters
     ----------
-    `x` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
-    `y` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
-        Must be the same shape as `x`.
-    `error` : `ArrayLike` | None, optional
-        A 1- or 2-dimensional array-like, of error magnitudes from one or more datasets.
-        Must be the same shape as `x`.
+    `data` : `Iterable[ArrayLike]`
+        An iterable of array-like datasets of shape (2, n), containing x- and y-values
+        of shape (3, n), additionally containing error bar values.
     `title` : `str`, optional
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
@@ -144,7 +136,7 @@ def bar(
         elif n_fields == 3:
             ax.bar(dataset[0], dataset[1], yerr=dataset[2])
         else:
-            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
+            raise ValueError(f"Expected array of shape (2, n) or (3, n), got {dataset.shape}")
     return fig
 
 
@@ -157,11 +149,8 @@ def plot(
     #
     Parameters
     ----------
-    `x` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of x-values from one or more datasets.
-    `y` : `ArrayLike`
-        A 1- or 2-dimensional array-like, of y-values from one or more datasets.
-        Must be the same shape as `x`.
+    `data` : `Iterable[ArrayLike]`
+        An iterable of array-like datasets of shape (2, n), containing x- and y-values.
     `title` : `str`, optional
         A title for the plot.
     `axis_labels` : `tuple[str]`, optional
@@ -178,7 +167,7 @@ def plot(
     for dataset in data:
         dataset = np.asarray(dataset)
         if _n_fields(dataset) != 2:
-            raise ValueError(f"Expected array of shape (2,n), got {dataset.shape}")
+            raise ValueError(f"Expected array of shape (2, n), got {dataset.shape}")
         ax.plot(dataset[0], dataset[1])
     return fig
 
