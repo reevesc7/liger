@@ -20,6 +20,51 @@ from pathlib import Path
 import json
 
 
+class JSONCache:
+    def __init__(
+        self,
+        paths: Path | str | Iterable[Path | str],
+        patterns: str | Iterable[str],
+    ) -> None:
+        if isinstance(paths, (Path, str)):
+            paths = paths,
+        if isinstance(patterns, str):
+            patterns = patterns,
+        filepaths: set[Path] = set()
+        for path in paths:
+            path = Path(path)
+            if not path.exists():
+                print(f"Warning: {path} does not exist")
+                continue
+            filepaths.update(self._filepaths_matching_patterns(path, patterns))
+        self.filepaths = sorted(filepaths)
+        self._cache: dict[Path, Any] = {}
+
+    @staticmethod
+    def _filepaths_matching_patterns(path: Path, patterns: Iterable[str]) -> set[Path]:
+        if path.is_file() and any(path.match(pattern) for pattern in patterns):
+            return {path}
+        return {
+            fpath
+            for pattern in patterns
+            for fpath in sorted(path.rglob(pattern))
+            if fpath.is_file()
+        }
+
+    def get_file_data(self, filepath: Path | str) -> Any:
+        filepath = Path(filepath)
+        if filepath not in self._cache:
+            if filepath not in self.filepaths:
+                self.filepaths.append(filepath)
+            with open(filepath, "r") as file:
+                self._cache[filepath] = json.load(file)
+        return self._cache[filepath]
+
+    def __iter__(self) -> Iterator[tuple[Path, Any]]:
+        for filepath in self.filepaths:
+            yield filepath, self.get_file_data(filepath)
+
+
 def _json_load(filepath: Path) -> Any:
     with open(filepath, "r") as file:
         return json.load(file)
