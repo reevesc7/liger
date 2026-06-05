@@ -28,19 +28,19 @@ def main():
     if args.id is not None:
         checkpoint = TPOTManager.find_checkpoint(args.id)
     if checkpoint is not None:
-        pipeline = TPOTManager.from_checkpoint(checkpoint, args.slurmid)
+        manager = TPOTManager.from_checkpoint(checkpoint, args.slurmid)
     else:
         if args.config is None:
             raise ValueError("Config file must be specified for new runs!")
-        pipeline = TPOTManager(
+        manager = TPOTManager(
             config_file=args.config,
             tpot_random_state=args.tpotrs,
-            manager_parameters=args.pipeparam,
+            manager_parameters=args.managerparam,
             tpot_parameters=args.tpotparam,
             slurm_id=args.slurmid,
             id=args.id,
         )
-    pipeline.run_segment()
+    manager.run_segment()
 
 
 def str_or_none(arg: Any | None) -> str | None:
@@ -94,12 +94,12 @@ def get_args() -> Namespace:
         help="ID of the job - used for all output files",
     )
     parser.add_argument(
-        "-p",
-        "--pipeparam",
+        "-m",
+        "--managerparam",
         type=dict_or_none,
         required=False,
         default='{}',
-        help="JSON formatted dict of any parameters to pass to pipeline",
+        help="JSON formatted dict of any parameters to pass to TPOTManager",
     )
     parser.add_argument(
         "-t",
