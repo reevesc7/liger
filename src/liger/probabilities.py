@@ -54,7 +54,7 @@ def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
     x_vals = np.asarray(x_vals)
     masses = np.asarray(masses)
     return np.average(
-        (x_vals - pmf_mean(x_vals, masses)[..., np.newaxis]) ** 2,
+        (x_vals.T - pmf_mean(x_vals, masses)).T ** 2,
         axis=-1,
         weights=masses,
     )
