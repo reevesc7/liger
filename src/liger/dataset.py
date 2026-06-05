@@ -76,7 +76,7 @@ y_transformer:
         return pd.Index(col for col in cols if Dataset._patterns_in(col, patterns))
 
     @staticmethod
-    def _init_transformer(transformer: str | Any | None, kwargs: dict[str, Any] | None) -> Any:
+    def _init_transformer(transformer: Any, kwargs: dict[str, Any] | None) -> Any:
         if isinstance(transformer, str):
             split_transformer = transformer.rsplit(".", 1)
             transformer = getattr(
@@ -97,7 +97,7 @@ y_transformer:
     @classmethod
     def _init_transformers(
         cls,
-        transformers: list[str | Any] | None,
+        transformers: list[Any] | None,
         kwargs: list[dict[str, Any] | None] | None,
     ) -> list[Any] | None:
         if transformers is None or len(transformers) == 0:
@@ -112,8 +112,14 @@ y_transformer:
         ]
 
     @staticmethod
-    def _transform_data(data: pd.DataFrame, transformers: list[Any] | None) -> pd.DataFrame:
-        if transformers is None or len(transformers) == 0 or all(tf is None for tf in transformers):
+    def _transform_data(
+            data: pd.DataFrame,
+            transformers: list[Any] | None,
+    ) -> pd.DataFrame:
+        if transformers is None or len(transformers) == 0 or all(
+            tf is None
+            for tf in transformers
+        ):
             return data
         for transformer in transformers:
             transformer.fit(data)

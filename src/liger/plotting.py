@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Iterable, Sequence
+from typing import Iterable
 import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt

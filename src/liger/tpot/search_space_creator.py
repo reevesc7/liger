@@ -175,10 +175,10 @@ def _make_lg_transformed_target_regressor(
         random_state=random_state,
     )
     if not isinstance(rg_node, tpss.nodes.EstimatorNode):
-        raise ValueError(f"{node_parameters["regressor"]} "
+        raise ValueError(f"{node_parameters['regressor']} "
             "could not be converted to an EstimatorNode")
     if not isinstance(tf_node, tpss.nodes.EstimatorNode):
-        raise ValueError(f"{node_parameters["transformer"]} "
+        raise ValueError(f"{node_parameters['transformer']} "
             "could not be converted to an EstimatorNode")
     models = {"regressor": rg_node.method, "transformer": tf_node.method}
     rg_params = {

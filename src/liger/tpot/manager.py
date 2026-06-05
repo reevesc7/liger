@@ -190,19 +190,25 @@ class TPOTManager:
             self.target_transformers_kwargs,
         )
         if any(dim==0 for dim in self.dataset.x.shape):
-            raise ValueError("No data in Dataset.x. perhaps \"feature_keys\" filter did not match any columns in the dataset file")
+            raise ValueError(
+                "No data in Dataset.x. Perhaps \"feature_keys\" filter did not "
+                "match any columns in the dataset file"
+            )
         if any(dim==0 for dim in self.dataset.y.shape):
-            raise ValueError("No data in Dataset.y. perhaps \"target_keys\" filter did not match any columns in the dataset file")
+            raise ValueError(
+                "No data in Dataset.y. Perhaps \"target_keys\" filter did not "
+                "match any columns in the dataset file"
+            )
         self.target_gens: int = _manager_params.get("target_gens", 10)
         _eval_random_states: int | list[int] = _manager_params.get("eval_random_states", 1)
         if isinstance(_eval_random_states, int):
             _eval_random_states = max(1, _eval_random_states)
-            self.eval_random_states: list[int] = [
+            self.eval_random_states = [
                 randint(0, 2 ** 32 - 1)
                 for _ in range(_eval_random_states)
             ]
         else:
-            self.eval_random_states: list[int] = _eval_random_states
+            self.eval_random_states = _eval_random_states
         self.export_fitted_pipeline = _manager_params.get("export_fitted_pipeline", True)
         self.clean_population_file = _manager_params.get("clean_population_file", False)
 
@@ -424,16 +430,16 @@ class TPOTManager:
             gen_start = gen_indices[gen]
             gen_end = gen_indices[gen + 1]
             self.gen_scores.append([
-                float(l.split(": ")[-1])
-                for l in output_lines[gen_start:gen_end]
-                if "score: " in l
+                float(line.split(": ")[-1])
+                for line in output_lines[gen_start:gen_end]
+                if "score: " in line
             ])
 
     def update_complete_gens(self, output_lines: list[str]) -> None:
         self.complete_gens = int([
-            l
-            for l in output_lines
-            if "Generation:  " in l
+            line
+            for line in output_lines
+            if "Generation:  " in line
         ][-1].split(":  ")[-1].removesuffix(".0"))
 
     def run_segment(self) -> None:
