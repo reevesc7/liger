@@ -73,7 +73,7 @@ class DemographicsAnalyzer(TPOTOuputAnalyzer):
     def _decomp_pipeline(
         individual: pd.Series,
     ) -> list[dict[str, str]]:
-        # NOTE: currently only handles GraphPipeline
+        # TODO: add handling of pipelines other than GraphPipeline
         if individual["Instance"]["method"] != "tpot.graphsklearn.GraphPipeline":
             print(f"Individual {individual.name} is not a GraphPipeline or was stored improperly")
             return []

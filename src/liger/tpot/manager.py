@@ -162,14 +162,14 @@ class TPOTManager:
         )
         self.data_file: str | Path | None = _manager_params.get("data_file")
         if self.data_file is None:
-            raise ValueError("Must specify a data file in config")
+            raise ValueError("Data file path is unspecified")
         self.data_file = Path(self.data_file)
         self._config_output_dir = _manager_params.get("output_dir", self.data_file.stem)
         self.output_dir = self.OUTPUT / self._config_output_dir / str(self.id)
         self.feature_keys: list[str] | None = _manager_params.get("feature_keys", None)
         self.target_keys: list[str] | None = _manager_params.get("target_keys", None)
         if self.feature_keys is None or self.target_keys is None:
-            raise ValueError("Must specify feature and target keys in config")
+            raise ValueError("Feature keys or target keys are unspecified")
         self.feature_transformers: list[str] | None = _manager_params.get("feature_transformers")
         self.target_transformers: list[str] | None = _manager_params.get("target_transformers")
         self.feature_transformers_kwargs: list[dict[str, Any] | None] | None = _manager_params.get(
@@ -290,7 +290,7 @@ class TPOTManager:
 
     @staticmethod
     def load_config(
-            config_path: str | Path | None,
+        config_path: str | Path | None,
     ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
         if config_path is None:
             return ({}, {}, {})
@@ -410,10 +410,10 @@ class TPOTManager:
         manager_data = self.get_manager_data()
         with open(self.output_dir / self.MANAGER_DATA, "w") as file:
             json.dump(manager_data, file, indent=4, default=self.json_everything)
-        with open(self.output_dir / "population.pkl", "rb") as file:
+        with open(self.output_dir / self.POPULATION_PKL, "rb") as file:
             pop: Population = dill.load(file)
         pop.evaluated_individuals["Generation"] = pop.evaluated_individuals["Generation"].astype("Int64")
-        with open(self.output_dir / "population.pkl", "wb") as file:
+        with open(self.output_dir / self.POPULATION_PKL, "wb") as file:
             dill.dump(pop, file)
 
     def cleanup(self) -> None:

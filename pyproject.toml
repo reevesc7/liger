@@ -3,8 +3,8 @@ name = "liger"
 description = "Helper functions for the Likert General Regressor project"
 authors = [{ name = "Chris Reeves", email = "reeves.chris.allan@gmail.com" }]
 dynamic = ["version"]
-requires-python = ">=3.11,<3.14"
 readme = "README.md"
+requires-python = ">=3.11,<3.14"
 license = { text = "GPL-3.0-or-later" }
 dependencies = [
     "matplotlib (>=3.10.0,<4.0.0)",
