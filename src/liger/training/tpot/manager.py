@@ -25,9 +25,9 @@ from datetime import datetime, timezone
 import warnings
 import numpy as np
 import pandas as pd
-from ..dataset import Dataset
-from ..training_testing import init_objects
-from .search_space_creator import create_search_space
+from liger.dataset import Dataset
+from liger.training_testing import init_objects
+from liger.training.tpot.serde.search_space import create_search_space
 from tpot import TPOTEstimator, Population
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
