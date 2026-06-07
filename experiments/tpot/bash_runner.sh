@@ -51,7 +51,7 @@ output=$(echo "$all_output" | tail -n 1)
 if [[ "$output" == *"RUN INCOMPLETE"* ]]; then
     echo "RUNNING NEXT GENERATION..."
     outputid=${output##* }
-    bash $0 -i "$outputid"
+    exec bash $0 -i "$outputid"
 elif [[ "$output" == "RUN COMPLETE" ]]; then
     echo "ENDING RECURSION"
 else
