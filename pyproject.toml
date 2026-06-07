@@ -38,7 +38,7 @@ all = [
 Repository = "https://github.com/reevesc7/liger.git"
 
 [project.scripts]
-lg-tpot = "liger.tpot.run_segment:main"
+lg-tpot = "liger.cli.tpot.run_segment:main"
 
 [tool.uv.sources]
 torch = [

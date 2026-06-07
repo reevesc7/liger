@@ -18,7 +18,7 @@
 from typing import Any
 from argparse import ArgumentParser, Namespace
 import json
-from liger.tpot.manager import TPOTManager
+from liger.training.tpot.manager import TPOTManager
 
 
 def main():

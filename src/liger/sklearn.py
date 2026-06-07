@@ -63,13 +63,13 @@ class LgTransformedTargetRegressor(RegressorMixin, BaseEstimator):
 class LgPassthrough(TransformerMixin, BaseEstimator):
     """Patched version of TPOT's Passthrough class.
     #
-    All code has been copied directly from the `tpot/tpot/builtin_modules/passthrough.py`
-    file of the `EpistasisLab/tpot` repository, with a minor tweaks.
+    All code has been copied from the `tpot/tpot/builtin_modules/passthrough.py`
+    file of the `EpistasisLab/tpot` repository, with minor tweaks.
     #
     A transformer that does nothing. It just passes the input array as is.
     """
 
-    def fit(self, X=None, y=None):
+    def fit(self, _X=None, _y=None):
         """Nothing to fit, returns self.
         """
         return self
