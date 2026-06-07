@@ -16,8 +16,8 @@ while getopts "c:r:i:p:t:" opt; do
         i)
             id="$OPTARG"
             ;;
-        p)
-            pipeparam=$OPTARG
+        m)
+            managerparam=$OPTARG
             ;;
         t)
             tpotparam=$OPTARG
@@ -27,7 +27,7 @@ while getopts "c:r:i:p:t:" opt; do
     -c <config file>
     -r <TPOT random state>
     -i <run id>
-    -p <pipeline parameters>
+    -m <TPOTManager parameters>
     -t <TPOT parameters>"
             exit 1
             ;;
@@ -43,7 +43,7 @@ all_output=$(lg-tpot \
     --config="$config" \
     --tpotrs="$tpotrs" \
     --id="$id" \
-    --pipeparam=$pipeparam \
+    --managerparam=$managerparam \
     --tpotparam=$tpotparam)
 echo "$all_output"
 output=$(echo "$all_output" | tail -n 1)

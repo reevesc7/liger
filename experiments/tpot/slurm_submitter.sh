@@ -20,8 +20,8 @@ while getopts "c:s:e:i:n:" opt; do
         n)
             njobs="$OPTARG"
             ;;
-        p)
-            pipeparam=$OPTARG
+        m)
+            managerparam=$OPTARG
             ;;
         t)
             tpotparam=$OPTARG
@@ -34,7 +34,7 @@ while getopts "c:s:e:i:n:" opt; do
     -e <end TPOT random state
     -i <run id>
     -n <n jobs>
-    -p <pipeline parameters>
+    -m <TPOTManager parameters>
     -t <TPOT parameters>"
             exit 1
             ;;
@@ -49,11 +49,11 @@ fi
 if [[ -n $start_tpotrs && -n $end_tpotrs ]]; then
     for (( tpotrs=$start_tpotrs; tpotrs<$end_tpotrs; tpotrs++ )) do
         echo "SUBMITTING PIPELINE WITH TPOTRS = $tpotrs"
-        sbatch --export=CONFIG=$config,TPOTRS=$tpotrs,ID=$id,PIPEPARAM=$pipeparam,TPOTPARAM=$tpotparam,SCRIPT=$script "$script"
+        sbatch --export=CONFIG=$config,TPOTRS=$tpotrs,ID=$id,PIPEPARAM=$managerparam,TPOTPARAM=$tpotparam,SCRIPT=$script "$script"
     done
 elif [[ -n $njobs ]]; then
     for (( n=0; n<$njobs; n++ )) do
-        sbatch --export=CONFIG=$config,ID=$id,PIPEPARAM=$pipeparam,TPOTPARAM=$tpotparam,SCRIPT=$script "$script"
+        sbatch --export=CONFIG=$config,ID=$id,PIPEPARAM=$managerparam,TPOTPARAM=$tpotparam,SCRIPT=$script "$script"
     done
 else
     echo "Either -s <start TPOT random state> AND -e <end TPOT random state> must be set OR -n <n jobs> must be set"
