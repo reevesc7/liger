@@ -264,14 +264,7 @@ class TPOTManager:
     @classmethod
     def from_checkpoint(cls, checkpoint: str | Path, slurm_id: int | None) -> Self:
         checkpoint = Path(checkpoint)
-
-        manager_params, tpot_params, manager_attrs = cls.load_config(checkpoint / cls.MANAGER_DATA)
-        return cls(**{
-            "manager_parameters": manager_params,
-            "tpot_parameters": tpot_params,
-            "manager_attributes": manager_attrs,
-            "slurm_id": slurm_id,
-        })
+        return cls(config_file=checkpoint / cls.MANAGER_DATA, slurm_id=slurm_id)
 
     @staticmethod
     def use_first(*args) -> Any:
