@@ -16,6 +16,7 @@
 
 
 from typing import Iterable
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib import pyplot as plt
@@ -23,7 +24,21 @@ from matplotlib.figure import Figure
 from matplotlib.axes import Axes
 
 
+def trendlines(
+    x: ArrayLike,
+    y: ArrayLike,
+    trend_orders: Iterable[int],
+) -> list[np.poly1d]:
+    x = np.asarray(x)
+    y = np.asarray(y)
+    return [np.poly1d(np.polyfit(x, y, order)) for order in trend_orders]
+
+
 def show() -> None:
+    warnings.warn(
+        "Use matplotlib.pyplot.show() instead",
+        DeprecationWarning,
+    )
     plt.show()
 
 
@@ -68,6 +83,10 @@ def scatter(
     trend_orders: list[int] = [],
     plot_perfect: bool = False,
 ) -> Figure:
+    warnings.warn(
+        "Use matplotlib.axes.Axes.scatter() instead",
+        DeprecationWarning,
+    )
     """Create a 2D scatter plot.
     #
     Points on the plot are circles with `alpha=0.3`.
@@ -126,6 +145,10 @@ def bar(
         The figure plotting the data. Show any current figures with
         `liger.plotting.show()`, and save it with `fig.savefig()`.
     """
+    warnings.warn(
+        "Use matplotlib.axes.Axes.bar() instead",
+        DeprecationWarning,
+    )
     fig, ax = plt.subplots()
     _set_titles(ax, title, axis_labels)
     for dataset in data:
@@ -137,37 +160,5 @@ def bar(
             ax.bar(dataset[0], dataset[1], yerr=dataset[2])
         else:
             raise ValueError(f"Expected array of shape (2, n) or (3, n), got {dataset.shape}")
-    return fig
-
-
-def plot(
-    data: Iterable[ArrayLike],
-    title: str | None = None,
-    axis_labels: tuple[str, str] | None = None,
-) -> Figure:
-    """Create a 2D line plot.
-    #
-    Parameters
-    ----------
-    `data` : `Iterable[ArrayLike]`
-        An iterable of array-like datasets of shape (2, n), containing x- and y-values.
-    `title` : `str`, optional
-        A title for the plot.
-    `axis_labels` : `tuple[str]`, optional
-        A labels for the plot's x and y axes.
-    #
-    Returns
-    -------
-    `fig` : `matplotlib.figure.Figure`
-        The figure plotting the data. Show any current
-        figures with `liger.plotting.show()`, and save it with `fig.savefig()`.
-    """
-    fig, ax = plt.subplots()
-    _set_titles(ax, title, axis_labels)
-    for dataset in data:
-        dataset = np.asarray(dataset)
-        if _n_fields(dataset) != 2:
-            raise ValueError(f"Expected array of shape (2, n), got {dataset.shape}")
-        ax.plot(dataset[0], dataset[1])
     return fig
 
