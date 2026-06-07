@@ -254,8 +254,10 @@ def retrieve_runs(cfg: Config) -> None:
             "mean_gen_time": _mean_gen_time(manager_attributes),
             "scorers": tpot_parameters.get("scorers"),
             "scorers_weights": tpot_parameters.get("scorers_weights"),
+            "other_objective_functions": tpot_parameters.get("other_objective_functions"),
+            "other_objective_functions_weights": tpot_parameters.get("other_objective_functions_weights"),
             "mean_score": _scores_mean(manager_attributes.get("kfold_scores", {})),
-            "fitted_pipeline": find_root(tpot_attributes.get("fitted_pipeline_")),
+            # "fitted_pipeline": find_root(tpot_attributes.get("fitted_pipeline_")),
         })
         # summary["id"].append(manager_parameters.get("id"))
         # summary["config_file"].append(manager_parameters.get("config_file"))
@@ -290,54 +292,56 @@ def retrieve_runs(cfg: Config) -> None:
             "kfold_samples_scores": manager_attributes.get("kfold_samples_scores"),
             "kfold_predictions": manager_attributes.get("kfold_predictions"),
         }
-        indivs = tpot_attributes["evaluated_individuals"]
-        roots = []
-        nodes = []
-        connections = []
-        branches = []
-        for gen, graph in zip(indivs["Generation"].values(), indivs["Instance"].values()):
-            graph_sum = decomp_graph_pipeline(int(gen), graph)
-            roots.extend(graph_sum.root)
-            nodes.extend(graph_sum.nodes)
-            connections.extend(graph_sum.connections)
-            branches.extend(graph_sum.branches)
-        pop_roots.append(pd.DataFrame(roots))
-        pop_nodes.append(pd.DataFrame(nodes))
-        pop_connections.append(pd.DataFrame(connections))
-        pop_branches.append(pd.DataFrame(branches))
-        top_graph = decomp_graph_pipeline(0, tpot_attributes["fitted_pipeline_"])
-        top_roots.append(pd.DataFrame(top_graph.root))
-        top_nodes.append(pd.DataFrame(top_graph.nodes))
-        top_connections.append(pd.DataFrame(top_graph.connections))
-        top_branches.append(pd.DataFrame(top_graph.branches))
-        # kfold_predictions = manager_attributes.get("kfold_predictions")
-        # if kfold_predictions:
-        #     responses.update(run_responses(summary["id"][-1], kfold_predictions))
-    cfg.output_dir.mkdir(parents=True, exist_ok=True)
-    pop_roots = pd.concat(pop_roots)
-    pop_nodes = pd.concat(pop_nodes)
-    pop_connections = pd.concat(pop_connections)
-    pop_branches = pd.concat(pop_branches)
-    pop_root_ns = df_subgroup_proportions(pop_roots, "generation", "node")
-    pop_node_ns = df_subgroup_proportions(pop_nodes, "generation", "node")
-    pop_connection_ns = df_subgroup_proportions(pop_connections, "generation", "receiver", "sender")
-    pop_branch_ns = df_subgroup_proportions(pop_branches, "generation", "node")
-    pop_root_ns.to_csv(cfg.output_dir / "pop_roots.csv", index=False)
-    pop_node_ns.to_csv(cfg.output_dir / "pop_nodes.csv", index=False)
-    pop_connection_ns.to_csv(cfg.output_dir / "pop_connections.csv", index=False)
-    pop_branch_ns.to_csv(cfg.output_dir / "pop_branches.csv", index=False)
-    top_roots = pd.concat(top_roots)
-    top_nodes = pd.concat(top_nodes)
-    top_connections = pd.concat(top_connections)
-    top_branches = pd.concat(top_branches)
-    top_root_ns = df_subgroup_proportions(top_roots, "generation", "node")
-    top_node_ns = df_subgroup_proportions(top_nodes, "generation", "node")
-    top_connection_ns = df_subgroup_proportions(top_connections, "generation", "receiver", "sender")
-    top_branch_ns = df_subgroup_proportions(top_branches, "generation", "node")
-    top_root_ns.to_csv(cfg.output_dir / "top_roots.csv", index=False)
-    top_node_ns.to_csv(cfg.output_dir / "top_nodes.csv", index=False)
-    top_connection_ns.to_csv(cfg.output_dir / "top_connections.csv", index=False)
-    top_branch_ns.to_csv(cfg.output_dir / "top_branches.csv", index=False)
+        if False:
+            indivs = tpot_attributes["evaluated_individuals"]
+            roots = []
+            nodes = []
+            connections = []
+            branches = []
+            for gen, graph in zip(indivs["Generation"].values(), indivs["Instance"].values()):
+                graph_sum = decomp_graph_pipeline(int(gen), graph)
+                roots.extend(graph_sum.root)
+                nodes.extend(graph_sum.nodes)
+                connections.extend(graph_sum.connections)
+                branches.extend(graph_sum.branches)
+            pop_roots.append(pd.DataFrame(roots))
+            pop_nodes.append(pd.DataFrame(nodes))
+            pop_connections.append(pd.DataFrame(connections))
+            pop_branches.append(pd.DataFrame(branches))
+            top_graph = decomp_graph_pipeline(0, tpot_attributes["fitted_pipeline_"])
+            top_roots.append(pd.DataFrame(top_graph.root))
+            top_nodes.append(pd.DataFrame(top_graph.nodes))
+            top_connections.append(pd.DataFrame(top_graph.connections))
+            top_branches.append(pd.DataFrame(top_graph.branches))
+            # kfold_predictions = manager_attributes.get("kfold_predictions")
+            # if kfold_predictions:
+            #     responses.update(run_responses(summary["id"][-1], kfold_predictions))
+    if False:
+        cfg.output_dir.mkdir(parents=True, exist_ok=True)
+        pop_roots = pd.concat(pop_roots)
+        pop_nodes = pd.concat(pop_nodes)
+        pop_connections = pd.concat(pop_connections)
+        pop_branches = pd.concat(pop_branches)
+        pop_root_ns = df_subgroup_proportions(pop_roots, "generation", "node")
+        pop_node_ns = df_subgroup_proportions(pop_nodes, "generation", "node")
+        pop_connection_ns = df_subgroup_proportions(pop_connections, "generation", "receiver", "sender")
+        pop_branch_ns = df_subgroup_proportions(pop_branches, "generation", "node")
+        pop_root_ns.to_csv(cfg.output_dir / "pop_roots.csv", index=False)
+        pop_node_ns.to_csv(cfg.output_dir / "pop_nodes.csv", index=False)
+        pop_connection_ns.to_csv(cfg.output_dir / "pop_connections.csv", index=False)
+        pop_branch_ns.to_csv(cfg.output_dir / "pop_branches.csv", index=False)
+        top_roots = pd.concat(top_roots)
+        top_nodes = pd.concat(top_nodes)
+        top_connections = pd.concat(top_connections)
+        top_branches = pd.concat(top_branches)
+        top_root_ns = df_subgroup_proportions(top_roots, "generation", "node")
+        top_node_ns = df_subgroup_proportions(top_nodes, "generation", "node")
+        top_connection_ns = df_subgroup_proportions(top_connections, "generation", "receiver", "sender")
+        top_branch_ns = df_subgroup_proportions(top_branches, "generation", "node")
+        top_root_ns.to_csv(cfg.output_dir / "top_roots.csv", index=False)
+        top_node_ns.to_csv(cfg.output_dir / "top_nodes.csv", index=False)
+        top_connection_ns.to_csv(cfg.output_dir / "top_connections.csv", index=False)
+        top_branch_ns.to_csv(cfg.output_dir / "top_branches.csv", index=False)
     # summary = pd.DataFrame(summary)
     # print(summary)
     pd.DataFrame(summary).to_csv(cfg.summary_csv, index=False)
