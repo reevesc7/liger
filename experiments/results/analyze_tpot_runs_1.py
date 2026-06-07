@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
 import matplotlib.pyplot as plt
-from liger.tpot.results import mass_load_data, load_data
+from liger.results_processing.tpot.load_data import mass_load_data, load_data
 
 
 def plot_2d_scores(indiv_data: pd.DataFrame) -> None:

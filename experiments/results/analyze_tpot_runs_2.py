@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 from matplotlib.axes import Axes
 from cycler import cycler
-from liger.output_processing import JSONCache
-from liger.tpot.output_processing import DemographicsAnalyzer
+from liger.results_processing.json_cache import JSONCache
+from liger.results_processing.tpot.demographics import DemographicsAnalyzer
 
 
 # INPUT_DIR = Path("../../../runs_data/e03/outputs/e03.0")
