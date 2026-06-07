@@ -56,6 +56,10 @@ def load_data(
     path: Path | str,
     filters: Iterable[dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
+    warnings.warn(
+        "Use liger.results_processing.json_cache.JSONCache instead",
+        DeprecationWarning,
+    )
     path = Path(path)
     manager_path = path / "manager_data.json"
     population_path = path / "population.pkl"
@@ -83,6 +87,10 @@ def mass_load_data(
     pattern: str,
     filters: Iterable[dict[str, Any]] | None = None,
 ) -> Iterator[dict[str, Any]]:
+    warnings.warn(
+        "Use liger.results_processing.json_cache.JSONCache instead",
+        DeprecationWarning,
+    )
     path = Path(path)
     subdirs = sorted([dpath for dpath in path.rglob(pattern) if dpath.is_dir()])
     manager_data = load_data(path, filters)
