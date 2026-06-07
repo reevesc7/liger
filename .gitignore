@@ -1,6 +1,12 @@
 # __pycache__ directory
 __pycache__/
 
+# uv venv
+.venv/
+
+# arbor data
+.arbor/
+
 # Editable install
 *.egg-info/
 
