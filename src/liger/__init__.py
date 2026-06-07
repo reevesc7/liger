@@ -16,6 +16,7 @@
 
 
 from importlib.metadata import version, PackageNotFoundError
+import warnings
 
 
 try:
@@ -23,4 +24,10 @@ try:
 except PackageNotFoundError as e:
     print("WARNING:", e)
     __version__ = "0.0.0"
+
+
+warnings.filterwarnings(
+    "once",
+    category=DeprecationWarning,
+)
 
