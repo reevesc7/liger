@@ -11,7 +11,7 @@
         ],
         "feature_transformers": [],
         "target_transformers": [
-            "liger.probabilities.apply_mean_center"
+            "liger.transforms.apply_mean_center"
         ],
         "feature_transformers_kwargs": [],
         "target_transformers_kwargs": [

@@ -19,7 +19,7 @@ from sklearn.metrics import make_scorer
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.stats import wasserstein_distance
-from liger import probabilities as prb
+from liger import transforms
 
 
 def score_dummy(*args, **kwargs) -> float:
@@ -108,8 +108,8 @@ def score_softmax_wasserstein(
 ) -> np.floating:
     y_true = np.asarray(y_true)
     y_pred = np.asarray(y_pred)
-    pmf_true = prb.softmax(y_true, temperature)
-    pmf_pred = prb.softmax(y_pred, temperature)
+    pmf_true = transforms.softmax(y_true, temperature)
+    pmf_pred = transforms.softmax(y_pred, temperature)
     return score_wasserstein(pmf_true, pmf_pred, norm)
 
 
