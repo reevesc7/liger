@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterable, Iterator, overload
+from typing import Any, Iterable, Iterator
 from pathlib import Path
 import json
 
@@ -63,41 +63,4 @@ class JSONCache:
     def __iter__(self) -> Iterator[tuple[Path, Any]]:
         for filepath in self.filepaths:
             yield filepath, self.get_file_data(filepath)
-
-
-def _json_load(filepath: Path) -> Any:
-    with open(filepath, "r") as file:
-        return json.load(file)
-
-
-def mass_json_load(
-    paths: Path | str | Iterable[Path | str],
-    pattern: str,
-) -> Iterator[Any]:
-    if isinstance(paths, (Path, str)):
-        paths = paths,
-    for path in paths:
-        path = Path(path)
-        if not path.exists():
-            print(f"Warning: {path} does not exist")
-            continue
-        if path.is_file() and path.match(pattern) and path.suffix == ".json":
-            yield _json_load(path)
-        for fpath in sorted(path.rglob(pattern)):
-            if not fpath.suffix == ".json":
-                continue
-            yield _json_load(fpath)
-
-
-_sentinel = object()
-
-@overload
-def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str) -> list[Any]: ...
-@overload
-def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str, default: Any) -> list[Any]: ...
-
-def mass_dict_get(dicts: Iterable[dict[str, Any]], key: str, default: Any = _sentinel) -> list[Any]:
-    if default is _sentinel:
-        return [dictionary.get(key) for dictionary in dicts]
-    return [dictionary.get(key, default) for dictionary in dicts]
 
