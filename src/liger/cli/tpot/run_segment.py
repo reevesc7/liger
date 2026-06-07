@@ -18,7 +18,7 @@
 from typing import Any
 from argparse import ArgumentParser, Namespace
 import json
-from .manager import TPOTManager
+from liger.tpot.manager import TPOTManager
 
 
 def main():
@@ -69,7 +69,7 @@ def get_args() -> Namespace:
         type=str_or_none,
         required=False,
         help="config file path",
-    )       #e.g., "Configs/nolong_reg_1.json"
+    )       #e.g., "configs/nolong_reg_1.json"
     parser.add_argument(
         "-r",
         "--tpotrs",
