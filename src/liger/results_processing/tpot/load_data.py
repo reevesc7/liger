@@ -69,7 +69,10 @@ def load_data(
     with open(manager_path, "r") as file:
         manager_data: dict[str, Any] = json.load(file)
     if not manager_data:
-        print(f"Warning, {manager_path} is empty; skipping...")
+        warnings.warn(
+            f"{manager_path} is an empty file; skipping",
+            UserWarning,
+        )
         return
     if filters is not None and not _passes_filters(manager_data, filters):
         return

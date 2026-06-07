@@ -16,6 +16,7 @@
 
 
 from typing import Any, Callable, Self, TextIO
+import warnings
 import sys
 from pathlib import Path
 import shutil
@@ -314,7 +315,10 @@ class TPOTManager:
         if param_cv is None:
             return max_cv
         elif param_cv > max_cv:
-            print(f"WARNING: Config \"cv\"={param_cv} is greater than the dataset allows. Using max allowed by dataset ({max_cv})", flush=True)
+            warnings.warn((
+                f"Config \"cv\"={param_cv} is greater than the dataset allows. "
+                f"Using max allowed by dataset ({max_cv})"
+            ))
             return max_cv
         return param_cv
 

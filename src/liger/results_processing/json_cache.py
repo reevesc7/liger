@@ -34,8 +34,7 @@ class JSONCache:
         for path in paths:
             path = Path(path)
             if not path.exists():
-                print(f"Warning: {path} does not exist")
-                continue
+                raise FileNotFoundError(f"{path} is not a file or directory")
             filepaths.update(self._filepaths_matching_patterns(path, patterns))
         self.filepaths = sorted(filepaths)
         self._cache: dict[Path, Any] = {}

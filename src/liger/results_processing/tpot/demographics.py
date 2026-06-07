@@ -1,3 +1,4 @@
+import warnings
 from functools import cached_property
 import pandas as pd
 from liger.results_processing.tpot.base import TPOTOuputAnalyzer
@@ -10,11 +11,17 @@ class DemographicsAnalyzer(TPOTOuputAnalyzer):
     ) -> list[dict[str, str]]:
         # TODO: add handling of pipelines other than GraphPipeline
         if individual["Instance"]["method"] != "tpot.graphsklearn.GraphPipeline":
-            print(f"Individual {individual.name} is not a GraphPipeline or was stored improperly")
+            warnings.warn(
+                f"Individual {individual.name} is not a GraphPipeline; skipping",
+                UserWarning,
+            )
             return []
         graph = individual["Instance"]["params"]["graph"]
         if not isinstance(graph, dict):
-            print(f"Individual{individual.name} does not have a valid node graph")
+            warnings.warn(
+                f"Individual {individual.name} does not have a valid node graph; skipping",
+                UserWarning,
+            )
             return []
         connections: list[dict[str, str]] = []
         for node_id, node_data in graph.items():

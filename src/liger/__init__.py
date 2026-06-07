@@ -22,7 +22,10 @@ import warnings
 try:
     __version__ = version("liger")
 except PackageNotFoundError as e:
-    print("WARNING:", e)
+    warnings.warn(
+        f"Encountered exception while attempting to retrieve liger's version:\n    {e}",
+        ImportWarning,
+    )
     __version__ = "0.0.0"
 
 
