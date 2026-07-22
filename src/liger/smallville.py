@@ -55,9 +55,13 @@ def get_logged_prompts(
                 continue
             collecting = False
             prompt = "".join(lines[start_index:index + end_offset + 1])
-            if whitelist is not None and not any(substr in prompt for substr in whitelist):
+            if whitelist is not None and not any(
+                substr in prompt for substr in whitelist
+            ):
                 continue
-            if blacklist is not None and any(substr in prompt for substr in blacklist):
+            if blacklist is not None and any(
+                substr in prompt for substr in blacklist
+            ):
                 continue
             prompts.append(prompt)
     return pd.Series(prompts, name="prompt")
@@ -90,4 +94,3 @@ def response_strip(responses: pd.Series) -> pd.Series:
             for ratings in responses
         ]
     return pd.Series(data=stripped, name=responses.name)
-

@@ -42,7 +42,7 @@ def init_objects(param_objects: list[str]) -> list[str | Callable]:
     return objects
 
 
-# Returns a model's predictions across all training instances of a KFold cross validation
+# Returns a model's predictions across all training instances of KFold cross validation
 def kfold_scores(
     model,
     kfold: KFold | StratifiedKFold,
@@ -56,7 +56,9 @@ def kfold_scores(
         model_clone = clone(model)
         model_clone.fit(data.x.iloc[train_indices], data.y.iloc[train_indices])
         fold_predicted = [
-            prediction[0] if isinstance(prediction, list) and len(prediction) == 1 else prediction
+            prediction[0] if (
+                isinstance(prediction, list) and len(prediction) == 1
+            ) else prediction
             for prediction in model_clone.predict(data.x.iloc[test_indices]).tolist()
         ]
         predicted.append(dict(zip(test_indices.tolist(), fold_predicted)))
@@ -76,4 +78,3 @@ def kfold_scores(
 
 def other_objective_scores(model, other_objectives: list[Any]) -> list[Any]:
     return [objective(model) for objective in other_objectives]
-

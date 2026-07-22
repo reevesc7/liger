@@ -588,4 +588,3 @@ class LiveOutputCapture:
         """Retreive all recorded text as a string.
         """
         return "".join(self.captured_text)
-

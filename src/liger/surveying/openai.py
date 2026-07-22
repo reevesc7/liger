@@ -59,7 +59,12 @@ class OpenAISurveyor(BaseSurveyor):
     def generate_responses(self, prompt: str, reps: None, **kwargs) -> str: ...
     @overload
     def generate_responses(self, prompt: str, reps: int, **kwargs) -> list[str]: ...
-    def generate_responses(self, prompt: str, reps: int | None = None, **kwargs) -> str | list[str]:
+    def generate_responses(
+            self,
+            prompt: str,
+            reps: int | None = None,
+            **kwargs,
+    ) -> str | list[str]:
         if reps is None or reps == 1:
             return self.generate_response(prompt, **kwargs)
         return [self.generate_response(prompt, **kwargs) for _ in range(reps)]
@@ -80,12 +85,18 @@ class OpenAISurveyor(BaseSurveyor):
     # TODO: remove unused method
     @staticmethod
     def mean(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
-        return probs.apply(lambda row: sum(col * row[col] for col in probs.columns), axis=1)
+        return probs.apply(
+            lambda row: sum(col * row[col] for col in probs.columns),
+            axis=1,
+        )
 
     # TODO: remove unused method
     @staticmethod
     def mode(probs: pd.DataFrame) -> pd.DataFrame | pd.Series:
-        return probs.apply(lambda row: max(probs.columns, key=lambda col: row[col]), axis=1)
+        return probs.apply(
+            lambda row: max(probs.columns, key=lambda col: row[col]),
+            axis=1,
+        )
 
     # TODO: remove unused method
     @staticmethod
@@ -113,7 +124,9 @@ class OpenAISurveyor(BaseSurveyor):
         probs: pd.DataFrame,
         colname_prune: str | MutableSequence[str] = "prob_",
     ) -> pd.DataFrame:
-        probs.columns = probs.columns.map(lambda col: OpenAISurveyor._col2int(col, colname_prune))
+        probs.columns = probs.columns.map(
+            lambda col: OpenAISurveyor._col2int(col, colname_prune)
+        )
         return pd.DataFrame({
             "mean": OpenAISurveyor.mean(probs),
             "mode": OpenAISurveyor.mode(probs),
@@ -143,7 +156,10 @@ class OpenAISurveyor(BaseSurveyor):
         allowed_tokens: str | set[str] | None = None,
         normalize: bool = True,
     ) -> dict[str, float]:
-        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
+        print(
+            f"{type(self).__name__} responding to "
+            f"\"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " ")
+        )
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -206,7 +222,9 @@ class OpenAISurveyor(BaseSurveyor):
     ) -> pd.Series | pd.DataFrame:
         if isinstance(prompts, str):
             if not isinstance(response_seeds, str):
-                raise TypeError("response_seeds must be a string if prompts is a string")
+                raise TypeError(
+                    "response_seeds must be a string if prompts is a string"
+                )
             response = pd.Series(
                 self._probs_one(prompts, response_seeds, allowed_tokens, normalize)
             )
@@ -230,7 +248,10 @@ class OpenAISurveyor(BaseSurveyor):
         allowed_tokens: set[str] | None = None,
         floor_margin: float = 1.0,
     ) -> dict[str, float]:
-        print(f"{type(self).__name__} responding to \"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " "))
+        print(
+            f"{type(self).__name__} responding to "
+            f"\"{prompt[:16]}...{prompt[-16:]}\"".replace("\n", " ")
+        )
         completion = self.client.chat.completions.create(
             model=self.model,
             messages=[
@@ -283,7 +304,9 @@ class OpenAISurveyor(BaseSurveyor):
     ) -> pd.Series | pd.DataFrame:
         if isinstance(prompts, str):
             if not isinstance(response_seeds, str):
-                raise TypeError("response_seeds must be a string if prompts is a string")
+                raise TypeError(
+                    "response_seeds must be a string if prompts is a string"
+                )
             response = pd.Series(
                 self._log_probs_one(prompts, response_seeds, allowed_tokens)
             )
@@ -299,4 +322,3 @@ class OpenAISurveyor(BaseSurveyor):
         )
         responses.columns = self._col_names(responses.columns)
         return responses
-

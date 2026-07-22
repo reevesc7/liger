@@ -114,4 +114,3 @@ def get_args() -> Namespace:
 
 if __name__ == "__main__":
     main()
-

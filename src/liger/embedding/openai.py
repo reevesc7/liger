@@ -52,7 +52,10 @@ class OpenAIEmbedder(BaseEmbedder):
     def embed(self, strings: str) -> pd.Series: ...
     @overload
     def embed(self, strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
-    def embed(self, strings: str | MutableSequence[str] | pd.Series) -> pd.Series | pd.DataFrame:
+    def embed(
+        self,
+        strings: str | MutableSequence[str] | pd.Series,
+    ) -> pd.Series | pd.DataFrame:
         if isinstance(strings, str):
             embedding = pd.Series(self._embed_one(strings))
             embedding.index = self._col_names(embedding.size)
@@ -60,4 +63,3 @@ class OpenAIEmbedder(BaseEmbedder):
         embeddings = pd.DataFrame(self._embed_one(string) for string in strings)
         embeddings.columns = self._col_names(embeddings.shape[1])
         return embeddings
-

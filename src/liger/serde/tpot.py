@@ -315,4 +315,3 @@ def items_to_search_space(
                 random_state,
             )
     raise ValueError(f"{node_type} does not match a TPOT pipeline or node type")
-

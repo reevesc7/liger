@@ -77,9 +77,13 @@ def _row_wasserstein(
     pmf_true = np.asarray(pmf_true)
     pmf_pred = np.asarray(pmf_pred)
     if pmf_true.ndim != 1:
-        raise ValueError(f"Expected 1D array-like inputs, but pmf_true is shape {pmf_true.shape}")
+        raise ValueError(
+            f"Expected 1D array-like inputs, but pmf_true is shape {pmf_true.shape}"
+        )
     if pmf_pred.ndim != 1:
-        raise ValueError(f"Expected 1D array-like inputs, but pmf_pred is shape {pmf_pred.shape}")
+        raise ValueError(
+            f"Expected 1D array-like inputs, but pmf_pred is shape {pmf_pred.shape}"
+        )
     if norm:
         x_vals = [support / (pmf_true.size - 1) for support in range(pmf_true.size)]
     else:
@@ -164,4 +168,3 @@ neg_softmax_norm_wasserstein = make_scorer(
         "temperature": 1.0,
     },
 )
-

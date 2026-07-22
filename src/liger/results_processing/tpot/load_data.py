@@ -80,7 +80,9 @@ def load_data(
     if population_path.is_file():
         with open(population_path, "rb") as file:
             population: Population = dill.load(file)
-        eval_indivs["Individual"] = population.evaluated_individuals["Individual"].to_numpy()
+        eval_indivs["Individual"] = (
+            population.evaluated_individuals["Individual"].to_numpy()
+        )
     manager_data["tpot_attributes"]["evaluated_individuals"] = eval_indivs
     return manager_data
 
@@ -103,4 +105,3 @@ def mass_load_data(
         manager_data = load_data(subdir, filters)
         if manager_data is not None:
             yield manager_data
-

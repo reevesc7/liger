@@ -1,16 +1,16 @@
 # liger - Helper functions for the Likert General Regressor project
 # Copyright (C) 2024  Chris Reeves
-# 
+#
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-# 
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
@@ -48,7 +48,11 @@ def _n_fields(dataset: np.ndarray) -> int:
     return dataset.shape[0]
 
 
-def _set_titles(ax: Axes, title: str | None, axis_labels: tuple[str, str] | None) -> None:
+def _set_titles(
+        ax: Axes,
+        title: str | None,
+        axis_labels: tuple[str, str] | None,
+) -> None:
     if title is not None:
         ax.set_title(title, fontsize='small')
     if axis_labels is not None:
@@ -159,6 +163,7 @@ def bar(
         elif n_fields == 3:
             ax.bar(dataset[0], dataset[1], yerr=dataset[2])
         else:
-            raise ValueError(f"Expected array of shape (2, n) or (3, n), got {dataset.shape}")
+            raise ValueError(
+                f"Expected array of shape (2, n) or (3, n), got {dataset.shape}"
+            )
     return fig
-

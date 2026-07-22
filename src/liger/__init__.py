@@ -33,4 +33,3 @@ warnings.filterwarnings(
     "once",
     category=DeprecationWarning,
 )
-

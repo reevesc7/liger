@@ -83,4 +83,3 @@ class LgPassthrough(TransformerMixin, BaseEstimator):
         tags = super().__sklearn_tags__()
         tags.requires_fit = False
         return tags
-

@@ -20,6 +20,9 @@ import pandas as pd
 
 
 class BaseSurveyor:
-    def survey(self, prompts: MutableSequence[str] | pd.Series, reps: int = 1) -> pd.Series:
+    def survey(
+            self,
+            _prompts: MutableSequence[str] | pd.Series,
+            _reps: int = 1,
+    ) -> pd.Series:
         raise NotImplementedError()
-

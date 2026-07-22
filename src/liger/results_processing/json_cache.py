@@ -62,4 +62,3 @@ class JSONCache:
     def __iter__(self) -> Iterator[tuple[Path, Any]]:
         for filepath in self.filepaths:
             yield filepath, self.get_file_data(filepath)
-

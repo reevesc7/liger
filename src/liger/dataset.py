@@ -37,8 +37,14 @@ class Dataset:
     ):
         self.x = x
         self.y = y
-        self.x_transformers = self._init_transformers(x_transformers, x_transformers_kwargs)
-        self.y_transformers = self._init_transformers(y_transformers, y_transformers_kwargs)
+        self.x_transformers = self._init_transformers(
+            x_transformers,
+            x_transformers_kwargs
+        )
+        self.y_transformers = self._init_transformers(
+            y_transformers,
+            y_transformers_kwargs,
+        )
         self.x = self._transform_data(x, self.x_transformers)
         self.y = self._transform_data(y, self.y_transformers)
 
@@ -105,7 +111,10 @@ y_transformer:
         if kwargs is None or len(kwargs) == 0:
             kwargs = [{} for _ in range(len(transformers))]
         elif len(kwargs) != len(transformers):
-            raise ValueError(f"length of transformers is {len(transformers)}, but length of transformers kwargs is {len(kwargs)}")
+            raise ValueError(
+                f"length of transformers is {len(transformers)}, "
+                f"but length of transformers kwargs is {len(kwargs)}"
+            )
         return [
             cls._init_transformer(transformer, kwargs)
             for transformer, kwargs in zip(transformers, kwargs)
@@ -230,10 +239,16 @@ y_transformer:
         file_path = Path(file_path)
         x_patterns = cls._to_set(x_patterns)
         y_patterns = cls._to_set(y_patterns)
-        x = pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, x_patterns))
+        x = pd.read_csv(
+            file_path,
+            usecols=lambda col: cls._patterns_in(col, x_patterns),
+        )
         if x_patterns is not None and x.empty:
             raise ValueError("No data in x")
-        y = pd.read_csv(file_path, usecols=lambda col: cls._patterns_in(col, y_patterns))
+        y = pd.read_csv(
+            file_path,
+            usecols=lambda col: cls._patterns_in(col, y_patterns),
+        )
         if y_patterns is not None and y.empty:
             raise ValueError("No data in y")
         return cls(
@@ -246,7 +261,11 @@ y_transformer:
         )
 
     @staticmethod
-    def interpolated_point(point1: ArrayLike, point2: ArrayLike, alpha: float) -> np.ndarray:
+    def interpolated_point(
+            point1: ArrayLike,
+            point2: ArrayLike,
+            alpha: float,
+    ) -> np.ndarray:
         """Creates a point along the line segment between two points.
         #
         Parameters
@@ -299,7 +318,11 @@ y_transformer:
         rng = np.random.default_rng(random_state)
         y = pd.DataFrame(rng.random(n_entries), columns=pd.Index(["y"]))
         x = pd.DataFrame(
-            np.stack([cls.interpolated_point(point1, point2, alpha) for alpha in y.iloc[:, 0]]),
+            np.stack([cls.interpolated_point(
+                point1,
+                point2,
+                alpha,
+            ) for alpha in y.iloc[:, 0]]),
             columns=pd.Index(f"x_{index}" for index in range(point1.shape[0])),
         )
         if noise != 0.0:

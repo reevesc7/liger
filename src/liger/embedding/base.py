@@ -103,9 +103,11 @@ class BaseEmbedder:
         self.model = model_str
 
     @overload
-    def embed(self, strings: str) -> pd.Series: ...
+    def embed(self, _strings: str) -> pd.Series: ...
     @overload
-    def embed(self, strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
-    def embed(self, strings: str | MutableSequence[str] | pd.Series) -> pd.Series | pd.DataFrame:
+    def embed(self, _strings: MutableSequence[str] | pd.Series) -> pd.DataFrame: ...
+    def embed(
+        self,
+        _strings: str | MutableSequence[str] | pd.Series,
+    ) -> pd.Series | pd.DataFrame:
         raise NotImplementedError()
-

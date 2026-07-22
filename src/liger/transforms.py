@@ -149,4 +149,3 @@ def apply_mean_center(
     axis: int | Sequence[int] | None = None,
 ) -> pd.DataFrame:
     return pd.DataFrame(mean_center(x, axis), index=x.index, columns=x.columns)
-

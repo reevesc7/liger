@@ -60,4 +60,3 @@ def pareto_knee(
     distances = hyperplane.distances(pareto_scores)
     knee = pd.Series(pareto_scores.iloc[np.abs(distances).argmax()])
     return knee
-
