@@ -53,6 +53,7 @@ class JSONCache:
     def get_file_data(self, filepath: Path | str) -> Any:
         filepath = Path(filepath)
         if filepath not in self._cache:
+            print(f"Loading {filepath}")
             if filepath not in self.filepaths:
                 self.filepaths.append(filepath)
             with open(filepath, "r") as file:
