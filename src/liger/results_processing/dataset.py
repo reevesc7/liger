@@ -18,7 +18,6 @@
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
-from sklearn.decomposition import PCA
 
 
 def _projection_coeff(vector: ArrayLike, target: ArrayLike) -> float:
@@ -34,33 +33,25 @@ def _rejection(vector: ArrayLike, target: ArrayLike) -> float:
     return float(np.linalg.norm(vector - projection))
 
 
-def linear_fit(data: pd.DataFrame, point1: ArrayLike, point2: ArrayLike) -> pd.DataFrame:
-    """Squash the data onto a line segment between two points and report the proportional
-    distance of each point along the line segment (alpha) and the distance of each
+def linear_fit(
+    data: pd.DataFrame,
+    point1: ArrayLike,
+    point2: ArrayLike,
+) -> pd.DataFrame:
+    """Squash the data onto a line segment between two points
+    and report the proportional distance of each point along
+    the line segment (alpha) and the distance of each
     point from the line segment (deviation).
-
+    #
     ...
     """
     point1 = np.asarray(point1)
     point2 = np.asarray(point2)
     target = point2 - point1
-    x = data.apply(
+    return pd.DataFrame(data.apply(
         lambda row: pd.Series((
             _projection_coeff(row - point1, target),
             _rejection(row - point1, target)
         ), index=pd.Index(("alpha", "deviation"))),
         axis=1,
-    )
-    if not isinstance(x, pd.DataFrame):
-        raise TypeError("This error should not happen. x is not a DataFrame")
-    return x
-
-
-def pca(data: pd.DataFrame, n_components: int | None = None) -> tuple[PCA, pd.DataFrame]:
-    pca = PCA(n_components)
-    reduced_data = pca.fit_transform(data)
-    return pca, pd.DataFrame(
-        reduced_data,
-        columns=pd.Index(f"pc_{pc}" for pc in pca.n_components_)
-    )
-
+    ))
