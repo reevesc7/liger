@@ -27,7 +27,7 @@ import numpy as np
 import pandas as pd
 from liger.dataset import Dataset
 from liger.training_testing import init_objects
-from liger.serde.tpot import create_search_space
+from liger.serde.tpot import SearchSpaceParser
 from tpot import TPOTEstimator, Population
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
@@ -245,13 +245,13 @@ class TPOTManager:
                 "random_state",
             ]
         }
+        search_space_parser = SearchSpaceParser(
+            self.dataset.x.shape[0],
+            self.dataset.y.shape[0],
+            _tpot_random_state,
+        )
         self.tpot = TPOTEstimator(
-            search_space=create_search_space(
-                self._config_search_space,
-                self.dataset.x.shape[0],
-                self.dataset.x.shape[1],
-                _tpot_random_state
-            ),
+            search_space=search_space_parser.parse(self._config_search_space),
             scorers=init_objects(self._config_scorers),
             cv=self.get_cv(
                 _tpot_params.get("cv"),
