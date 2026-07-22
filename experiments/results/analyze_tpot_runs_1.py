@@ -88,9 +88,9 @@ def _format_knee(knee: pd.Series, id: str) -> pd.Series:
 
 
 def _pareto_knee(
-        pareto_scores: pd.DataFrame,
-        objectives_weights: ArrayLike,
-        id: str,
+    pareto_scores: pd.DataFrame,
+    objectives_weights: ArrayLike,
+    id: str,
 ) -> pd.Series | None:
     objectives_weights = np.asarray(objectives_weights)
     if objectives_weights.ndim != 1 or objectives_weights.size != pareto_scores.shape[1]:
