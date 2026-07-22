@@ -7,7 +7,7 @@ from liger import smallville
 from liger.surveying.openai import OpenAISurveyor
 from liger.embedding.openai import OpenAIEmbedder
 from liger.embedding.sentencetrans import STEmbedder
-from liger import probabilities as prb
+from liger import transforms as tfs
 
 
 @dataclass(slots=True)
@@ -158,10 +158,10 @@ def get_functionals(cfg: Config, data: Data) -> pd.DataFrame:
         return pd.read_csv(cfg.paths.functionals)
     logprobs = get_responses(cfg, data)
     return pd.concat([
-        prb.apply_logprobs_mode(logprobs, temperature=cfg.survey.temperature),
-        prb.apply_logprobs_mean(logprobs, temperature=cfg.survey.temperature),
-        prb.apply_logprobs_variance(logprobs, temperature=cfg.survey.temperature),
-        prb.apply_logprobs_std_dev(logprobs, temperature=cfg.survey.temperature),
+        tfs.apply_logprobs_mode(logprobs, temperature=cfg.survey.temperature),
+        tfs.apply_logprobs_mean(logprobs, temperature=cfg.survey.temperature),
+        tfs.apply_logprobs_variance(logprobs, temperature=cfg.survey.temperature),
+        tfs.apply_logprobs_std_dev(logprobs, temperature=cfg.survey.temperature),
     ], axis=1)
 
 
