@@ -21,7 +21,7 @@ from importlib import import_module
 from statistics import mean
 from sklearn.base import clone
 from sklearn.model_selection import KFold, StratifiedKFold
-from .dataset import Dataset
+from liger.dataset import Dataset
 
 
 @dataclass(slots=True)

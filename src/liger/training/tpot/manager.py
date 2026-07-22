@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 from liger.dataset import Dataset
 from liger.training_testing import init_objects
-from liger.training.tpot.serde.search_space import create_search_space
+from liger.serde.tpot import create_search_space
 from tpot import TPOTEstimator, Population
 from sklearn.pipeline import Pipeline
 from tpot.graphsklearn import GraphPipeline
@@ -42,7 +42,10 @@ warnings.filterwarnings(
 )
 warnings.filterwarnings(
     "ignore",
-    message="The behavior of DataFrame concatenation with empty or all-NA entries is deprecated.",
+    message=(
+        "The behavior of DataFrame concatenation with "
+        "empty or all-NA entries is deprecated."
+    ),
 )
 
 
@@ -392,10 +395,12 @@ class TPOTManager:
         }
         tpot_attributes = {}
         if self.tpot.evaluated_individuals is not None:
-            tpot_attributes["fitted_pipeline_id"] = self.tpot.evaluated_individuals[self.tpot.objective_names[0]].idxmax()
-            tpot_attributes["evaluated_individuals"] = self.tpot.evaluated_individuals.drop([
-                "Individual",
-            ], axis=1)
+            tpot_attributes["fitted_pipeline_id"] = (
+                self.tpot.evaluated_individuals[self.tpot.objective_names[0]].idxmax()
+            )
+            tpot_attributes["evaluated_individuals"] = (
+                self.tpot.evaluated_individuals.drop(["Individual"], axis=1)
+            )
         return {
             "manager_parameters": manager_parameters,
             "tpot_parameters": tpot_parameters,
@@ -409,7 +414,9 @@ class TPOTManager:
             json.dump(manager_data, file, indent=4, default=self.json_everything)
         with open(self.output_dir / self.POPULATION_PKL, "rb") as file:
             pop: Population = dill.load(file)
-        pop.evaluated_individuals["Generation"] = pop.evaluated_individuals["Generation"].astype("Int64")
+        pop.evaluated_individuals["Generation"] = (
+            pop.evaluated_individuals["Generation"].astype("Int64")
+        )
         with open(self.output_dir / self.POPULATION_PKL, "wb") as file:
             dill.dump(pop, file)
 

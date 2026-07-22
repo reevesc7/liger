@@ -26,7 +26,7 @@ from liger import sklearn as lsk
 
 
 def create_search_space(
-    param_search_space: Any,
+    param_search_space: dict[str, Any],
     n_samples: int,
     n_features: int,
     random_state: int | None = None
@@ -42,12 +42,12 @@ def create_search_space(
 
 
 def create_search_spaces(
-    param_search_spaces: Any,
+    param_search_spaces: list[dict[str, Any]],
     n_samples: int,
     n_features: int,
     random_state: int | None = None
 ) -> list[tpss.SearchSpace]:
-    search_spaces = []
+    search_spaces: list[tpss.SearchSpace] = []
     for param_search_space in param_search_spaces:
         search_spaces.append(create_search_space(
             param_search_space,
@@ -67,9 +67,19 @@ def _unroll_node_parameters(
     node_kwargs = {}
     for key, value in node_parameters.items():
         if key == "search_spaces":
-            node_kwargs[key] = create_search_spaces(value, n_samples, n_features, random_state)
+            node_kwargs[key] = create_search_spaces(
+                value,
+                n_samples,
+                n_features,
+                random_state,
+            )
         elif "search_space" in key:
-            node_kwargs[key] = create_search_space(value, n_samples, n_features, random_state)
+            node_kwargs[key] = create_search_space(
+                value,
+                n_samples,
+                n_features,
+                random_state,
+            )
     node_kwargs.update({
         key: value
         for key, value in node_parameters.items()
@@ -151,7 +161,10 @@ def _make_wrapper_pipeline(
     return tpss.pipelines.WrapperPipeline(method, space, **node_parameters)
 
 
-def _append_to_hyperparameter_name(hyperparameter: Hyperparameter, add: str) -> Hyperparameter:
+def _append_to_hyperparameter_name(
+        hyperparameter: Hyperparameter,
+        add: str,
+) -> Hyperparameter:
     hyperparameter.name = add + hyperparameter.name
     return hyperparameter
 
@@ -256,7 +269,12 @@ def items_to_search_space(
     n_features: int,
     random_state: int | None = None
 ) -> tpss.SearchSpace:
-    node_kwargs = _unroll_node_parameters(node_parameters, n_samples, n_features, random_state)
+    node_kwargs = _unroll_node_parameters(
+        node_parameters,
+        n_samples,
+        n_features,
+        random_state,
+    )
     match node_type:
         case "ChoicePipeline":
             return tpss.pipelines.ChoicePipeline(**node_kwargs)

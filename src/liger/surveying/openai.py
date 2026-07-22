@@ -21,7 +21,7 @@ import math
 import pandas as pd
 from openai import OpenAI
 import tiktoken
-from .base import BaseSurveyor
+from liger.surveying.base import BaseSurveyor
 
 
 OPENAI_KEYFILE = "openai.key"
