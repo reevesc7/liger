@@ -139,15 +139,27 @@ def get_prompts(cfg: Config, data: Data) -> pd.Series:
     return prompts
 
 
-def get_responses(cfg: Config, data: Data) -> pd.DataFrame:
-    if data.responses is not None:
-        return data.responses
-    if cfg.retrieve.responses and cfg.paths.responses.exists():
-        return pd.read_csv(cfg.paths.responses)
-    return OpenAISurveyor(cfg.survey.model).log_probs_survey(
+# def get_responses(cfg: Config, data: Data) -> pd.DataFrame:
+#     if data.responses is not None:
+#         return data.responses
+#     if cfg.retrieve.responses and cfg.paths.responses.exists():
+#         return pd.read_csv(cfg.paths.responses)
+#     return OpenAISurveyor(cfg.survey.model).log_probs_survey(
+#         get_prompts(cfg, data),
+#         cfg.survey.response_seed,
+#         cfg.survey.allowed_responses,
+#     )
+
+
+def get_responses(cfg: Config, data: Data) -> pd.Series:
+    # if data.responses is not None:
+    #     return data.responses
+    # if cfg.retrieve.responses and cfg.paths.responses.exists():
+    #     return pd.read_csv(cfg.paths.responses)
+    return OpenAISurveyor(cfg.survey.model).survey(
         get_prompts(cfg, data),
-        cfg.survey.response_seed,
-        cfg.survey.allowed_responses,
+        1,
+        temperature=0.0,
     )
 
 
@@ -191,9 +203,10 @@ def main():
         if cfg.save.prompts:
             data.prompts.to_csv(cfg.paths.prompts, index=False)
     if cfg.include.responses:
-        data.responses = get_responses(cfg, data)
-        if cfg.save.responses:
-            data.responses.to_csv(cfg.paths.responses, index=False)
+        get_responses(cfg, data).to_csv(cfg.paths.responses, index=False)
+        # data.responses = get_responses(cfg, data)
+        # if cfg.save.responses:
+        #     data.responses.to_csv(cfg.paths.responses, index=False)
     if cfg.include.functionals:
         data.functionals = get_functionals(cfg, data)
         if cfg.save.functionals:
