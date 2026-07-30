@@ -15,25 +15,25 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-import importlib.util
-import warnings
+from types import FrameType
+from typing import Generator
+from contextlib import contextmanager
+import signal
 
 
-warnings.filterwarnings(
-    "ignore",
-    message="pkg_resources is deprecated as an API.",
-)
+class SIGTERMReceived(Exception):
+    """Raised when a SIGTERM signal is received"""
+    pass
 
 
-# pkg_resources.get_distribution() replacement for stopit compatibility
-if importlib.util.find_spec("pkg_resources") is None:
-    from types import ModuleType
-    from importlib.metadata import version
-    import sys
-    fake_pkg_resources = ModuleType("pkg_resources")
-    setattr(
-        fake_pkg_resources,
-        "get_distribution",
-        lambda name: type("Distribution", (), {"version": version(name)})(),
-    )
-    sys.modules["pkg_resources"] = fake_pkg_resources
+def _handle_sigterm(_signalnum: int, _frame: FrameType | None) -> None:
+    raise SIGTERMReceived()
+
+
+@contextmanager
+def sigterm_handler() -> Generator[None]:
+    old_handler = signal.signal(signal.SIGTERM, _handle_sigterm)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGTERM, old_handler)
