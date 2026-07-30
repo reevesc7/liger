@@ -81,6 +81,12 @@ class Prompt:
             attr = get.__name__
             setattr(self, attr, "")
 
+    def change_poignancy(self) -> None:
+        self.poignancy = "Estimate how poignant the following event would be for Maria Lopez.\n\nEvent: "
+
+    def change_output_fmt(self) -> None:
+        self.output_fmt = "\"\"\"\nPlease write a short paragraph response to the above prompt."
+
     def remove_poignancy_agent(self) -> None:
         self.poignancy = re.sub(r" for .*?\.", ".", self.poignancy)
 
