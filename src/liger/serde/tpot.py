@@ -17,12 +17,18 @@
 
 from typing import Any
 from sklearn.decomposition import TruncatedSVD
+from sklearn.pipeline import Pipeline
+from sklearn.metrics._scorer import _Scorer
 from tpot import search_spaces as tpss
 from tpot import config as tpcfg
 from tpot.builtin_modules import EstimatorTransformer
+from tpot.graphsklearn import GraphPipeline
 from ConfigSpace import ConfigurationSpace
 from ConfigSpace.hyperparameters.hyperparameter import Hyperparameter
+from networkx.classes import DiGraph
 from liger import sklearn as lsk
+from liger.objectives import LgScorer
+from liger.serde.core import to_json_compatible
 
 
 class SearchSpaceParser:
@@ -244,3 +250,56 @@ class SearchSpaceParser:
                     node_kwargs,
                 )
         raise ValueError(f"{node_type} does not match a TPOT pipeline or node type")
+
+
+@to_json_compatible.register(Pipeline)
+def _(obj: Pipeline) -> dict:
+    method = f"{type(obj).__module__}.{type(obj).__name__}"
+    return {
+        "method": method,
+        "params": obj.get_params(deep=False),
+    }
+
+
+@to_json_compatible.register(GraphPipeline)
+def _(obj: GraphPipeline) -> dict:
+    method = f"{type(obj).__module__}.{type(obj).__name__}"
+    return {
+        "method": method,
+        "params": obj.get_params(deep=False),
+    }
+
+
+@to_json_compatible.register(DiGraph)
+def _(obj: DiGraph) -> dict:
+    return {key: value for key, value in obj.nodes.items()}
+
+
+@to_json_compatible.register(LgScorer)
+def _(obj: LgScorer) -> str:
+    return f"{obj.__module__}.{obj.name}"
+
+
+@to_json_compatible.register(object)
+def _(obj: object) -> dict | str:
+    if hasattr(obj, "__dict__"):
+        method = f"{type(obj).__module__}.{type(obj).__name__}"
+        return {"method": method, "params": {
+            key: value
+            for key, value in obj.__dict__.items()
+            if not key.startswith("_") and not key.endswith("_")
+        }}
+    return repr(obj)
+
+
+@to_json_compatible.register(_Scorer)
+def _(obj: _Scorer) -> dict:
+    return {
+        "factory": f"{type(obj).__module__}.{type(obj).__name__}",
+        "kwargs": {
+            "score_func": obj._score_func,
+            "sign": obj._sign,
+                "kwargs": obj._kwargs,
+            "response_method": obj._response_method,
+        }
+    }
