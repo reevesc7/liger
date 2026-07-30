@@ -16,6 +16,7 @@
 
 
 from typing import Any, Callable
+import warnings
 from dataclasses import dataclass
 from importlib import import_module
 from statistics import mean
@@ -32,6 +33,10 @@ class KFoldScores:
 
 
 def init_objects(param_objects: list[str]) -> list[str | Callable]:
+    warnings.warn(
+        "Use liger.serde.core.import_from_string() instead",
+        DeprecationWarning,
+    )
     objects: list[str | Callable] = []
     for param_object in param_objects:
         if "." not in param_object:
@@ -46,7 +51,7 @@ def init_objects(param_objects: list[str]) -> list[str | Callable]:
 def kfold_scores(
     model,
     kfold: KFold | StratifiedKFold,
-    scorers: list[Any],
+    scorers: list[Callable],
     data: Dataset
 ) -> KFoldScores:
     predicted: list[dict[int, Any]] = []
