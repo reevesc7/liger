@@ -1,0 +1,9 @@
+#!/bin/bash --login
+
+CHECKPOINT=$1
+SLURM_INIT=$2
+
+# shellcheck source=/dev/null
+source "$CHECKPOINT/$SLURM_INIT"
+lgtpot checkpoint "$CHECKPOINT" --recurse --slurm
+scontrol show job "$SLURM_JOB_ID"

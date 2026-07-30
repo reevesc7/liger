@@ -13,3 +13,17 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+from typing import Generator
+from pathlib import Path
+from contextlib import contextmanager
+from importlib.resources import files, as_file
+
+
+@contextmanager
+def get_script_path(filepath: str | Path) -> Generator[Path]:
+    filepath = Path(filepath)
+    resource = files("liger.scripts") / filepath
+    with as_file(resource) as path:
+        yield path
