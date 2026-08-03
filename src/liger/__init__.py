@@ -30,6 +30,10 @@ except PackageNotFoundError as e:
 
 
 warnings.filterwarnings(
+    "ignore",
+    message="pkg_resources is deprecated as an API.",
+)
+warnings.filterwarnings(
     "once",
     category=DeprecationWarning,
 )
