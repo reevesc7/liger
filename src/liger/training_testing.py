@@ -16,9 +16,7 @@
 
 
 from typing import Any, Callable
-import warnings
 from dataclasses import dataclass
-from importlib import import_module
 from statistics import mean
 from sklearn.base import clone
 from sklearn.model_selection import KFold, StratifiedKFold
@@ -30,21 +28,6 @@ class KFoldScores:
     predictions: list[dict[int, Any]]
     samples_scores: list[list[dict[int, float]]]
     fold_scores: list[list[float]]
-
-
-def init_objects(param_objects: list[str]) -> list[str | Callable]:
-    warnings.warn(
-        "Use liger.serde.core.import_from_string() instead",
-        DeprecationWarning,
-    )
-    objects: list[str | Callable] = []
-    for param_object in param_objects:
-        if "." not in param_object:
-            objects.append(param_object)
-            continue
-        split_scorer = param_object.rsplit(".", 1)
-        objects.append(getattr(import_module(split_scorer[0]), split_scorer[1]))
-    return objects
 
 
 # Returns a model's predictions across all training instances of KFold cross validation
