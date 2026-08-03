@@ -25,7 +25,7 @@ from datetime import datetime, timezone
 from liger.typing import LgConfig
 import liger.config as cfg
 from liger.tpot import TPOTManager
-from .core import get_script_path
+from ._script_path import get_script_path
 
 
 DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
