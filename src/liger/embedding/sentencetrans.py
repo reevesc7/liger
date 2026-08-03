@@ -18,7 +18,7 @@
 from typing import MutableSequence, overload
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from liger.embedding.base import BaseEmbedder
+from ._base import BaseEmbedder
 
 
 class STEmbedder(BaseEmbedder):

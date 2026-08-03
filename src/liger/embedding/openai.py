@@ -19,7 +19,7 @@ from typing import MutableSequence, overload
 from pathlib import Path
 import pandas as pd
 from openai import OpenAI
-from liger.embedding.base import BaseEmbedder
+from ._base import BaseEmbedder
 
 
 OPENAI_KEYFILE = "openai.key"
