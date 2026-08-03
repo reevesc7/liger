@@ -15,7 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from sklearn.metrics import make_scorer
 import numpy as np
 from numpy.typing import ArrayLike
 from scipy.stats import wasserstein_distance
@@ -61,12 +60,6 @@ def score_test(y_true: ArrayLike, y_pred: ArrayLike) -> np.floating:
     d = stdev_pred**2
     e = mean_true**2
     return np.mean(a + b + c + d - e)
-
-
-# def soft_brier(y_true_pmf: ArrayLike, y_pred_proba: ArrayLike) -> np.floating[Any]:
-    # y_true = np.asarray(y_true)
-    # y_pred = np.asarray(y_pred)
-#     return np.mean(np.sum((y_pred_proba - y_true_pmf) ** 2, axis=1))
 
 
 def _row_wasserstein(
@@ -115,56 +108,3 @@ def score_softmax_wasserstein(
     pmf_true = transforms.softmax(y_true, temperature)
     pmf_pred = transforms.softmax(y_pred, temperature)
     return score_wasserstein(pmf_true, pmf_pred, norm)
-
-
-# Define scorers
-dummy = make_scorer(
-    score_dummy,
-    response_method="predict",
-    greater_is_better=False,
-)
-neg_msle_2d = make_scorer(
-    score_msle_2d,
-    response_method="predict",
-    greater_is_better=False,
-)
-neg_test = make_scorer(
-    score_test,
-    response_method="predict",
-    greater_is_better=False,
-)
-# neg_soft_brier = make_scorer(
-#     soft_brier,
-#     response_method="predict_proba",
-#     greater_is_better=False,
-# )
-neg_wasserstein = make_scorer(
-    score_wasserstein,
-    response_method="predict",
-    greater_is_better=False,
-)
-neg_softmax_wasserstein = make_scorer(
-    score_softmax_wasserstein,
-    response_method="predict",
-    greater_is_better=False,
-    **{
-        "temperature": 1.0,
-    },
-)
-neg_norm_wasserstein = make_scorer(
-    score_wasserstein,
-    response_method="predict",
-    greater_is_better=False,
-    **{
-        "norm": True,
-    },
-)
-neg_softmax_norm_wasserstein = make_scorer(
-    score_softmax_wasserstein,
-    response_method="predict",
-    greater_is_better=False,
-    **{
-        "norm": True,
-        "temperature": 1.0,
-    },
-)
