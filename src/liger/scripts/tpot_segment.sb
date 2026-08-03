@@ -5,5 +5,5 @@ SLURM_INIT=$2
 
 # shellcheck source=/dev/null
 source "$CHECKPOINT/$SLURM_INIT"
-lgtpot checkpoint "$CHECKPOINT" --recurse --slurm
+lgtpot segment "$CHECKPOINT" --recurse --slurm
 scontrol show job "$SLURM_JOB_ID"

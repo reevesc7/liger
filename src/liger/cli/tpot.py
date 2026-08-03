@@ -15,24 +15,29 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any
 import shutil
 from pathlib import Path
 import subprocess
 from argparse import ArgumentParser, Namespace
-from enum import Enum, auto
+from enum import IntEnum, auto
 import json
-from liger.cli.core import get_script_path
-from liger.training.tpot import TPOTManager
+from datetime import datetime, timezone
+from liger.typing import LgConfig
+import liger.config as cfg
+from liger.tpot import TPOTManager
+from .core import get_script_path
 
 
-SCRIPT_DIR = Path("tpot")
+DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
+SCRIPT_DIR = Path("")
 SLURM_SCRIPT = SCRIPT_DIR / "tpot_segment.sb"
-SLURM_INIT = Path("slurm_init.sh")
-SLURM_FLAGS = Path("slurm_flags.txt")
+SLURM_INIT_NAME = Path("slurm_init.sh")
+SLURM_OPTS_NAME = Path("slurm_opts.txt")
+CONFIG_NAME = Path("config.json")
+PARAMS_NAME = Path("params.json")
 
 
-class _ExecMode(Enum):
+class _ExecMode(IntEnum):
     LOCAL = auto()
     SLURM = auto()
 
@@ -60,39 +65,44 @@ def _queue_segment(
 ) -> None:
     checkpoint_dir = checkpoint_dir.resolve()
     if exec_mode == _ExecMode.LOCAL:
-        subprocess.Popen(["lgtpot", "checkpoint", checkpoint_dir, "--recurse"])
+        subprocess.Popen(["lgtpot", "segment", checkpoint_dir, "--recurse"])
         return
     slurm_options = _parse_slurm_options(
-        checkpoint_dir / SLURM_FLAGS
+        checkpoint_dir / SLURM_OPTS_NAME
     ) + [f"--output={checkpoint_dir}/slurm-%j.out"]
     with get_script_path(SLURM_SCRIPT) as script:
         subprocess.run(["sbatch"] + slurm_options + [script, checkpoint_dir])
 
 
-def _config_command(args: Namespace) -> None:
+def _init_command(args: Namespace) -> None:
     if args.sinit is not None:
         exec_mode = _ExecMode.SLURM
     else:
         exec_mode = _ExecMode.LOCAL
-    if args.kwargs is None:
-        kwargs: dict[str, Any] = {}
-    else:
-        kwargs = args.kwargs
+    config: dict[str, LgConfig] = json.load(args.configpath.open())
+    now = datetime.now(timezone.utc).strftime(DATETIME_FMT)
     if args.dir is not None:
-        kwargs["output_dir"] = args.dir
+        config["output_dir"] = args.dir
+    elif "output_dir" in config:
+        config["output_dir"] = str(Path(str(config["output_dir"])) / now)
+    else:
+        config["output_dir"] = now
     if args.rstate is not None:
-        kwargs["random_state"] = args.rstate
-    tpot = TPOTManager.from_config(args.configpath, **kwargs)
+        config["random_state"] = args.rstate
+    tpot = cfg.parse_config(config, TPOTManager)
+    tpot.output_dir_.mkdir(parents=True, exist_ok=True)
+    shutil.copy(args.configpath, tpot.output_dir_ / CONFIG_NAME)
+    json.dump(cfg.to_config(tpot), (tpot.output_dir_ / PARAMS_NAME).open("w"), indent=4)
     if args.sinit is not None:
-        shutil.copy(args.sinit, tpot.output_dir / SLURM_INIT)
+        shutil.copy(args.sinit, tpot.output_dir_ / SLURM_INIT_NAME)
         if args.slurmcfg is not None:
-            shutil.copy(args.sopts, tpot.output_dir / SLURM_FLAGS)
+            shutil.copy(args.sopts, tpot.output_dir_ / SLURM_OPTS_NAME)
     if args.recurse:
-        _queue_segment(tpot.output_dir, exec_mode)
+        _queue_segment(tpot.output_dir_, exec_mode)
 
 
-def _init_config_parser(parser: ArgumentParser) -> None:
-    parser.set_defaults(func=_config_command)
+def _make_init_parser(parser: ArgumentParser) -> None:
+    parser.set_defaults(func=_init_command)
     parser.add_argument(
         "configpath",
         type=Path,
@@ -108,63 +118,63 @@ def _init_config_parser(parser: ArgumentParser) -> None:
         "-d",
         "--dir",
         type=Path,
-        help=(
-            "(Path) Run directory, for all output files and checkpoints; "
-            "overrides config file output directory"
-        ),
+        help="(Path) Run directory, for all output files and checkpoints; "
+            "overrides config file output directory",
     )
     parser.add_argument(
         "--recurse",
         action="store_true",
         help=(
             "Automatically and recursively submit segments "
-            "after setting up the output directory"
+                "after setting up the output/checkpoint directory"
         ),
     )
     parser.add_argument(
         "--sinit",
         type=Path,
-        help=(
-            "(Path) Path to a Python environment setup shell script for Slurm jobs; "
+        help="(Path) Path to a Python environment setup shell script for Slurm jobs; "
             "if provided, run segments *can* be submitted as Slurm jobs; "
             "if `--recurse` is present, "
-            "automatic segments *will* be submitted as Slurm jobs"
-        ),
+            "automatic segments *will* be submitted as Slurm jobs",
     )
     parser.add_argument(
         "--sopts",
         type=Path,
-        help=(
-            "(Path) Path to a text file with SBATCH options; "
+        help="(Path) Path to a text file with SBATCH options; "
             "provides `sbatch` options for segments as Slurm jobs; "
-            "ignored if `--sinit` is not set"
-        ),
+            "ignored if `--sinit` is not set",
     )
     parser.add_argument(
         "-k",
         "--kwargs",
         type=_JSONObject,
-        help="Keyword arguments to pass to TPOTManager.from_config()",
+        help="Keyword arguments to pass to the 'TPOTManager' constructor specified "
+            "in the config file top-level '<instance>' field",
     )
 
 
-def _checkpoint_command(args: Namespace) -> None:
-    tpot = TPOTManager.from_checkpoint(args.checkpointdir)
+def _segment_command(args: Namespace) -> None:
+    checkpoint_dir = Path(args.checkpointdir).resolve()
+    config: dict[str, LgConfig] = json.load((checkpoint_dir / PARAMS_NAME).open())
+    if Path(str(config["output_dir"])).resolve() != checkpoint_dir:
+        config["output_dir"] = str(checkpoint_dir)
+        json.dump(config, checkpoint_dir.open("w"), indent=4)
+    tpot = cfg.parse_config(config, TPOTManager)
     tpot.run_segment()
     if args.slurm:
         exec_mode = _ExecMode.SLURM
     else:
         exec_mode = _ExecMode.LOCAL
-    if args.recurse and not tpot.is_complete():
-        _queue_segment(tpot.output_dir, exec_mode)
+    if args.recurse and not tpot.is_complete_:
+        _queue_segment(tpot.output_dir_, exec_mode)
 
 
-def _init_checkpoint_parser(parser: ArgumentParser) -> None:
-    parser.set_defaults(func=_checkpoint_command)
+def _make_segment_parser(parser: ArgumentParser) -> None:
+    parser.set_defaults(func=_segment_command)
     parser.add_argument(
         "checkpointdir",
         type=Path,
-        help="(Path) Path to the directory containing checkpoint files",
+        help="(Path) Path to the output/checkpoin directory",
     )
     parser.add_argument(
         "--recurse",
@@ -180,24 +190,22 @@ def _init_checkpoint_parser(parser: ArgumentParser) -> None:
     )
 
 
-def parse_args() -> Namespace:
+def _parse_args() -> Namespace:
     parser = ArgumentParser(description="Start a liger TPOT run")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    _init_config_parser(subparsers.add_parser(
-        "config",
-        description="Set up a TPOT output directory from a config file",
+    _make_init_parser(subparsers.add_parser(
+        "init",
+        description="Initialize a TPOT output/checkpoint directory from a config file",
     ))
-    _init_checkpoint_parser(subparsers.add_parser(
-        "checkpoint",
+    _make_segment_parser(subparsers.add_parser(
+        "segment",
         description="Run a TPOT segment from a checkpoint directory",
     ))
     return parser.parse_args()
 
 
-
-
 def main():
-    args = parse_args()
+    args = _parse_args()
     args.func(args)
 
 
