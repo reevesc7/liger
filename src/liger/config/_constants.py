@@ -15,13 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ._to import to_config, instance_to_config, dataclass_init_fields_to_config
-from ._parse import parse_config
-
-
-__all__ = [
-    "to_config",
-    "instance_to_config",
-    "dataclass_init_fields_to_config",
-    "parse_config",
-]
+OBJECT = "<OBJECT>"
+INSTANCE = "<INSTANCE>"
+PARTIAL = "<PARTIAL>"
+ARGS = "<ARGS>"
