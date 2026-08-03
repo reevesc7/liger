@@ -15,17 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+# /// --- Fixes missing pkg_resources, imported by stopit --- \\\
 import importlib.util
-import warnings
-
-
-warnings.filterwarnings(
-    "ignore",
-    message="pkg_resources is deprecated as an API.",
-)
-
-
-# pkg_resources.get_distribution() replacement for stopit compatibility
 if importlib.util.find_spec("pkg_resources") is None:
     from types import ModuleType
     from importlib.metadata import version
@@ -37,3 +28,33 @@ if importlib.util.find_spec("pkg_resources") is None:
         lambda name: type("Distribution", (), {"version": version(name)})(),
     )
     sys.modules["pkg_resources"] = fake_pkg_resources
+# \\\ --------------------------------------------------------///
+
+
+from ._params import (
+    Objective,
+    InverseObjectives,
+    DatasetParams,
+    EvolutionParams,
+    EvalParams,
+    EndParams,
+    RuntimeParams,
+)
+from ._manager import TPOTManager
+from . import _to_config
+
+
+__all__ = [
+    "Objective",
+    "InverseObjectives",
+    "DatasetParams",
+    "EvolutionParams",
+    "EvalParams",
+    "EndParams",
+    "RuntimeParams",
+    "TPOTManager",
+]
+
+
+_to_config.register()
+del _to_config
