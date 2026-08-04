@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 import warnings
 import logging
 from pathlib import Path
+import json
 import numpy as np
 import pandas as pd
 import dill
@@ -27,6 +28,7 @@ from tpot import TPOTEstimator, Population
 from tpot.search_spaces.base import SearchSpace
 from tpot.utils import beta_interpolation
 from liger.typing import LgConfigLike
+import liger.config as cfg
 from liger.dataset import Dataset
 from ._search_space import SearchSpaceParser
 from ._params import (
@@ -65,8 +67,9 @@ class _TruthyInt(int):
 
 @dataclass(slots=True)
 class TPOTManager:
-    INDIVS_NAME: ClassVar[str] = "individuals.csv"
     POP_NAME: ClassVar[str] = "population.pkl"
+    INDIVS_NAME: ClassVar[str] = "individuals.csv"
+    INSTANCES_NAME: ClassVar[str] = "instances.json"
     ID_INDEX_NAME: ClassVar[str] = "ID"
 
     output_dir: str | Path
@@ -93,12 +96,16 @@ class TPOTManager:
         self._check_end_conditions()
 
     @property
+    def pop_path_(self) -> Path:
+        return self.output_dir_ / self.POP_NAME
+
+    @property
     def indivs_path_(self) -> Path:
         return self.output_dir_ / self.INDIVS_NAME
 
     @property
-    def pop_path_(self) -> Path:
-        return self.output_dir_ / self.POP_NAME
+    def instances_path_(self) -> Path:
+        return self.output_dir_ / self.INSTANCES_NAME
 
     def _log(self, message: str, category: int | type[Warning] = logging.INFO) -> None:
         if isinstance(category, type):
@@ -404,9 +411,11 @@ class TPOTManager:
     def _dump_indivs(self, indivs: pd.DataFrame) -> None:
         self._log(f"Dumping individuals to {self.indivs_path_!r}", logging.DEBUG)
         self.output_dir_.mkdir(parents=True, exist_ok=True)
-        indivs.drop(
-            "Individual", axis=1
-        ).rename_axis(self.ID_INDEX_NAME).to_csv(self.indivs_path_)
+        indivs.drop("Individual", axis=1).rename_axis(
+            self.ID_INDEX_NAME
+        ).to_csv(self.indivs_path_)
+        config_indivs = cfg.to_config(indivs["Instance"])
+        json.dump(config_indivs, self.instances_path_.open("w"), indent=4)
 
     def run_segment(self) -> None:
         self._init_state()
