@@ -119,6 +119,11 @@ def _(obj: np.generic) -> Any:
     return obj.item()
 
 
+@to_config.register(pd.RangeIndex)
+def _(obj: pd.RangeIndex) -> LgConfig:
+    return instance_to_config(type(obj), start=obj.start, stop=obj.stop, step=obj.step)
+
+
 @to_config.register(pd.Index)
 def _(obj: pd.Index) -> LgConfig:
     return instance_to_config(type(obj), data=obj.to_list(), name=obj.name)
@@ -138,7 +143,7 @@ def _(obj: pd.Series) -> LgConfig:
 def _(obj: pd.DataFrame) -> LgConfig:
     return instance_to_config(
         type(obj),
-        data=obj.to_dict("index"),
+        data=obj.to_numpy(),
         index=obj.index,
         columns=obj.columns,
     )
