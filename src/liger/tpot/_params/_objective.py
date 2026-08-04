@@ -16,7 +16,7 @@
 
 
 from typing import Any, Iterable, Protocol
-from dataclasses import InitVar, dataclass, field
+from dataclasses import dataclass, field
 import inspect
 import numpy as np
 from sklearn.base import BaseEstimator
@@ -51,8 +51,6 @@ class Objective:
     def _func_is_scorer(func: ScorerCallable | OtherCallable) -> bool:
         signature = inspect.signature(func)
         params = signature.parameters.values()
-        # if any(param.kind is param.VAR_POSITIONAL for param in params):
-        #     return True
         positional_capable_args = [
             param for param in params
             if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD)
