@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from sklearn.base import BaseEstimator
 from sklearn.metrics._scorer import _Scorer
 # from sklearn.pipeline import Pipeline
 # from networkx.classes import DiGraph
@@ -33,24 +34,31 @@ from ._params import (
 )
 
 
+def init_digraph(
+    graph_attrs: dict,
+    node_attrs: list,
+    edge_attrs: list,
+) -> DiGraph:
+    digraph = DiGraph(**graph_attrs)
+    digraph.add_nodes_from(node_attrs)
+    digraph.add_edges_from(edge_attrs)
+    return digraph
+
+
 def register() -> None:
-    @cfg.to_config.register(TPOTManager
-        | Objective
-        | InverseObjectives
-        | DatasetParams
-        | EvolutionParams
-        | EvalParams
-        | EndParams
-        | RuntimeParams)
-    def _(obj: TPOTManager
-        | Objective
-        | InverseObjectives
-        | DatasetParams
-        | EvolutionParams
-        | EvalParams
-        | EndParams
-        | RuntimeParams) -> LgConfig:
-        return cfg.dataclass_init_fields_to_config(obj)
+    @cfg.to_config.register(
+        BaseEstimator
+            | TPOTManager
+            | Objective
+            | InverseObjectives
+            | DatasetParams
+            | EvolutionParams
+            | EvalParams
+            | EndParams
+            | RuntimeParams
+    )
+    def _(obj) -> LgConfig:
+        return cfg.instance_init_args_to_config(obj)
 
     @cfg.to_config.register(_Scorer)
     def _(obj: _Scorer) -> LgConfig:

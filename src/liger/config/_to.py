@@ -17,7 +17,7 @@
 
 from typing import Any, TypeVar
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import fields
+import inspect
 from functools import partial, singledispatch
 from pathlib import Path
 import numpy as np
@@ -47,11 +47,12 @@ def instance_to_config(typ: type, *args, **kwargs) -> LgConfig:
     return to_config(config | kwargs)
 
 
-def dataclass_init_fields_to_config(obj: Any) -> LgConfig:
-    return instance_to_config(
-        type(obj),
-        **{fld.name: getattr(obj, fld.name) for fld in fields(obj) if fld.init},
-    )
+def instance_init_args_to_config(obj: Any) -> LgConfig:
+    signature = inspect.signature(type(obj))
+    return instance_to_config(type(obj), **{
+        key: getattr(obj, key)
+        for key in signature.parameters.keys() if key != "kwargs"
+    })
 
 
 @to_config.register(bool | int | float | str | None)
