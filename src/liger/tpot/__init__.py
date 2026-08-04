@@ -41,7 +41,7 @@ from ._params import (
     RuntimeParams,
 )
 from ._manager import TPOTManager
-from . import _to_config
+from . import _config
 
 
 __all__ = [
@@ -56,5 +56,5 @@ __all__ = [
 ]
 
 
-_to_config.register()
-del _to_config
+_config.register()
+del _config
