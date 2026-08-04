@@ -105,7 +105,7 @@ def _(obj: partial) -> dict[str, LgConfig]:
 
 @to_config.register(range)
 def _(obj: range) -> LgConfig:
-    return instance_to_config(range, start=obj.start, stop=obj.stop, step=obj.step)
+    return instance_to_config(range, obj.start, obj.stop, obj.step)
 
 
 @to_config.register(Path)
