@@ -435,9 +435,13 @@ class TPOTManager:
         self._dump_indivs(indivs)
         self.is_complete_ = self._check_is_complete(indivs)
         if not self.is_complete_:
-            self._log("End of segment; Run incomplete")
+            self._log("End of segment; Run incomplete\n")
             return
-        self._log(f"{self._tpot.fitted_pipeline_}")
+        pretty_fitted_pipeline = json.dumps(
+            cfg.to_config(self._tpot.fitted_pipeline_),
+            indent=4,
+        )
+        self._log(f"Fitted pipeline:\n\n{pretty_fitted_pipeline}\n")
         if self.end_params.clear_population_file:
             (self.pop_path_).unlink(missing_ok=True)
-        self._log("End of segment; Run complete")
+        self._log("End of segment; Run complete\n")
