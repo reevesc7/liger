@@ -52,7 +52,8 @@ def instance_init_args_to_config(obj: Any) -> LgConfig:
     signature = inspect.signature(type(obj))
     return instance_to_config(type(obj), **{
         key: getattr(obj, key)
-        for key in signature.parameters.keys() if key != "kwargs"
+        for key in signature.parameters.keys()
+        if key != "kwargs"
     })
 
 
@@ -79,17 +80,6 @@ def _(obj: Callable) -> dict[str, LgConfig]:
             f"'@{to_config.__module__}.{to_config.__qualname__}"
             f".register({type(obj).__name__})'")
     return {OBJECT: _attr_path(obj)}
-    # if hasattr(obj, "__qualname__"):
-    #     name = obj.__qualname__
-    # elif hasattr(obj, "__name__"):
-    #     name = obj.__name__
-    # else:
-    #     raise TypeError(
-    #         f"No {Config!r} encoder registered for "
-    #             f"callable type {type(obj).__name__!r}. "
-    #             f"A relevant encoder may be registered in a {__name__!r} submodule."
-    #     )
-    # return {OBJECT_TAG: f"{obj.__module__}.{name}"}
 
 
 @to_config.register(partial)
