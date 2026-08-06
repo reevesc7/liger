@@ -158,7 +158,7 @@ class TPOTManager:
         per_gen_pop_size: list[np.float64] = beta_interpolation(
             start=start_size,
             end=end_size,
-            scale=self.evolution_params.population_scaling, # pyright: ignore[reportArgumentType]
+            scale=self.evolution_params.population_scaling, # type: ignore
             n=gen_of_end_size,
         )
         return np.round(per_gen_pop_size[gen]).astype(int)
@@ -367,7 +367,7 @@ class TPOTManager:
             export_graphpipeline=False,
             memory=self.runtime_params.make_eval_cache(self.output_dir_),
             categorical_features=self.dataset_params.categorical_features,
-            preprocessing=self.dataset_params.preprocessing, # pyright: ignore[reportArgumentType]
+            preprocessing=self.dataset_params.preprocessing, # type: ignore
             population_size=self.evolution_params.population_size,
             initial_population_size=self.evolution_params.initial_population_size,
             population_scaling=self.evolution_params.population_scaling,
@@ -375,15 +375,15 @@ class TPOTManager:
                 self.evolution_params.generations_until_end_population
             ),
             generations=self.end_params.segment_generations,
-            max_time_mins=self.end_params.segment_time, # pyright: ignore[reportArgumentType]
-            max_eval_time_mins=self.eval_params.eval_time, # pyright: ignore[reportArgumentType]
+            max_time_mins=self.end_params.segment_time, # type: ignore
+            max_eval_time_mins=self.eval_params.eval_time, # type: ignore
             validation_strategy=self.eval_params.validation_strategy,
             validation_fraction=self.eval_params.validation_fraction,
             disable_label_encoder=self.dataset_params.disable_label_encoder,
             early_stop=early_stop,
             scorers_early_stop_tol=(
                     self._objectives.scorers_early_stop_tols_
-            ), # pyright: ignore[reportArgumentType]
+            ), # type: ignore
             other_objectives_early_stop_tol=self._objectives.others_early_stop_tols_,
             threshold_evaluation_pruning=self.eval_params.threshold_evaluation_pruning,
             threshold_evaluation_scaling=self.eval_params.threshold_evaluation_scaling,
@@ -392,7 +392,7 @@ class TPOTManager:
             min_history_threshold=self.eval_params.min_history_threshold,
             survival_percentage=(
                 self.evolution_params.survival_percentage
-            ), # pyright: ignore[reportArgumentType]
+            ), # type: ignore
             crossover_probability=self.evolution_params.crossover_probability,
             mutate_probability=self.evolution_params.mutate_probability,
             mutate_then_crossover_probability=(
@@ -406,7 +406,7 @@ class TPOTManager:
             budget_range=self.eval_params.budget_range,
             budget_scaling=self.eval_params.budget_scaling,
             generations_until_end_budget=self.eval_params.generations_until_end_budget,
-            stepwise_steps=None, # pyright: ignore[reportArgumentType]
+            stepwise_steps=None, # type: ignore
             n_jobs=self.runtime_params.n_jobs,
             memory_limit=self.runtime_params.memory_limit,
             client=self.runtime_params.client,
