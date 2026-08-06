@@ -25,14 +25,14 @@ from ._constants import OBJECT, INSTANCE, PARTIAL, ARGS
 T = TypeVar("T")
 
 
-class _UnsetType:
+class UnsetType:
     __slots__ = ()
 
     def __repr__(self) -> str:
         return "<UNSET>"
 
 
-UNSET: Final = _UnsetType()
+UNSET: Final = UnsetType()
 
 
 def _import(import_path: str) -> Any:
@@ -92,7 +92,7 @@ def parse_config(config: LgConfigLike) -> Any: ...
 def parse_config(config: LgConfigLike, expected_type: type[T]) -> T: ...
 def parse_config(
         config: LgConfigLike,
-        expected_type: type[T] | _UnsetType = UNSET,
+        expected_type: type[T] | UnsetType = UNSET,
 ) -> Any:
     if not is_lg_config_like(config):
         raise TypeError(f"'config' must be {LgConfigLike!r}")
@@ -109,7 +109,7 @@ def parse_config(
             obj = {key: parse_config(value) for key, value in config.items()}
     else:
         obj = config
-    if not (isinstance(expected_type, _UnsetType) or isinstance(obj, expected_type)):
+    if not (isinstance(expected_type, UnsetType) or isinstance(obj, expected_type)):
         raise TypeError(
             f"Expected type {expected_type.__name__!r}, "
                 f"but parsed config is type {type(obj).__name__!r}"
