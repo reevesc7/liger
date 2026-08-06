@@ -36,8 +36,8 @@ def _attr_path(obj: Any) -> str:
 @singledispatch
 def to_config(obj: Any) -> LgConfig:
     raise TypeError(f"No {LgConfig.__name__!r} encoder registered for "
-        f"type {type(obj).__name__!r}. Type can be registered with "
-        f"'@{to_config.__module__}.{to_config.__qualname__}"
+        f"type '{type(obj).__module__}.{type(obj).__name__}'. "
+        f"Type can be registered with '@{to_config.__module__}.{to_config.__qualname__}"
         f".register({type(obj).__name__})'")
 
 
@@ -74,12 +74,12 @@ def _(obj: Mapping) -> dict[str, LgConfig]:
 
 @to_config.register
 def _(obj: Callable) -> dict[str, LgConfig]:
-    if not hasattr(obj, "__qualname__"):
-        raise TypeError(f"No {LgConfig!r} encoder registered for callable instance of"
-            f"type {type(obj).__name__!r}. Type can be registered with "
-            f"'@{to_config.__module__}.{to_config.__qualname__}"
-            f".register({type(obj).__name__})'")
-    return {OBJECT: _attr_path(obj)}
+    if hasattr(obj, "__qualname__"):
+        return {OBJECT: _attr_path(obj)}
+    raise TypeError(f"No {LgConfig!r} encoder registered for callable instance of"
+        f"type '{type(obj).__module__}.{type(obj).__name__}'. "
+        f"Type can be registered with '@{to_config.__module__}.{to_config.__qualname__}"
+        f".register({type(obj).__name__})'")
 
 
 @to_config.register(partial)
