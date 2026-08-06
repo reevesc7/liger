@@ -17,7 +17,9 @@
 
 from sklearn.base import BaseEstimator
 from sklearn.metrics._scorer import _Scorer
+from ConfigSpace import ConfigurationSpace
 from networkx.classes import DiGraph
+from tpot.search_spaces import SearchSpace
 from tpot.graphsklearn import GraphPipeline
 from liger.typing import LgConfig
 import liger.config as cfg
@@ -47,6 +49,8 @@ def init_digraph(
 def register() -> None:
     @cfg.to_config.register(
         BaseEstimator
+            | SearchSpace
+            | GraphPipeline
             | TPOTManager
             | Objective
             | InverseObjectives
@@ -69,6 +73,13 @@ def register() -> None:
             response_method=obj._response_method,
         )
 
+    @cfg.to_config.register(ConfigurationSpace)
+    def _(obj: ConfigurationSpace) -> LgConfig:
+        return cfg.instance_to_config(
+            obj.from_serialized_dict,
+            d=obj.to_serialized_dict(),
+        )
+
     @cfg.to_config.register(DiGraph)
     def _(obj: DiGraph) -> LgConfig:
         return cfg.instance_to_config(
@@ -77,7 +88,3 @@ def register() -> None:
             node_attrs=obj.nodes(data=True),
             edge_attrs=obj.edges(data=True),
         )
-
-    @cfg.to_config.register(GraphPipeline)
-    def _(obj: GraphPipeline) -> LgConfig:
-        return cfg.instance_init_args_to_config(obj)
