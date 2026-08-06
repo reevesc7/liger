@@ -15,7 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any
+from typing import Any, Protocol
+from dataclasses import dataclass, field
 from sklearn.decomposition import TruncatedSVD
 from tpot.search_spaces import nodes, pipelines, SearchSpace
 from tpot import config as tpcfg
@@ -26,16 +27,24 @@ from liger.typing import LgConfigLike, is_lg_config_like
 from liger import sklearn as lsk
 
 
-class SearchSpaceParser:
-    def __init__(
+class SearchSpaceInitializer(Protocol):
+    def __call__(
         self,
+        *,
+        n_classes: int,
         n_samples: int,
         n_features: int,
-        random_state: int | None = None,
-    ) -> None:
-        self.n_samples = n_samples
-        self.n_features = n_features
-        self.random_state = random_state
+        random_state: int | None,
+    ) -> SearchSpace: ...
+
+
+@dataclass(slots=True)
+class _SearchSpaceParser:
+    config: LgConfigLike
+    n_classes: int = field(default=3)
+    n_samples: int = field(default=1000)
+    n_features: int = field(default=100)
+    random_state: int | None = field(default=None)
 
     def _parse_subspaces(
         self,
@@ -46,9 +55,9 @@ class SearchSpaceParser:
             if key == "search_spaces":
                 if not isinstance(value, list):
                     raise TypeError("Value of 'search_spaces' key is not a list")
-                node_kwargs[key] = [self.parse(config) for config in value]
+                node_kwargs[key] = [self._parse_space(config) for config in value]
             elif "search_space" in key:
-                node_kwargs[key] = self.parse(value)
+                node_kwargs[key] = self._parse_space(value)
         node_kwargs.update({
             key: value
             for key, value in node_parameters.items()
@@ -212,7 +221,7 @@ class SearchSpaceParser:
                     f"{method_name!r} does not match a liger estimator type"
                 )
 
-    def parse(self, config: LgConfigLike) -> SearchSpace:
+    def _parse_space(self, config: LgConfigLike) -> SearchSpace:
         if not (is_lg_config_like(config) and isinstance(config, dict)):
             raise TypeError(f"Search space config must be "
                 f"'dict[str, {LgConfigLike.__name__}]' "
@@ -254,3 +263,18 @@ class SearchSpaceParser:
                     node_kwargs,
                 )
         raise ValueError(f"{node_type!r} does not match a TPOT pipeline or node type")
+
+    def parse(self) -> SearchSpace:
+        return self._parse_space(self.config)
+
+
+def defaults_search_space(
+    space: LgConfigLike,
+    *,
+    n_classes: int = 3,
+    n_samples: int = 1000,
+    n_features: int = 100,
+    random_state: int | None = None,
+) -> SearchSpace:
+    parser = _SearchSpaceParser(space, n_classes, n_samples, n_features, random_state)
+    return parser.parse()

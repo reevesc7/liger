@@ -41,6 +41,7 @@ from ._params import (
     RuntimeParams,
 )
 from ._manager import TPOTManager
+from ._search_space import SearchSpaceInitializer, defaults_search_space
 from . import _config
 
 
@@ -53,6 +54,8 @@ __all__ = [
     "EndParams",
     "RuntimeParams",
     "TPOTManager",
+    "SearchSpaceInitializer",
+    "defaults_search_space",
 ]
 
 
