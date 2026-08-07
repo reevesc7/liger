@@ -22,8 +22,8 @@ from functools import partial, singledispatch
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from liger.typing import LgConfig
-from ._constants import OBJECT, INSTANCE, PARTIAL, ARGS
+from liger.typing import LgConfig, RawList, RawDict
+from ._constants import ConfigTag
 
 
 VT = TypeVar("VT", bool, int, float, str, None)
@@ -42,9 +42,9 @@ def to_config(obj: Any) -> LgConfig:
 
 
 def instance_to_config(factory: Callable, *args, **kwargs) -> LgConfig:
-    config: dict[str, Any] = {INSTANCE: _attr_path(factory)}
+    config: dict[str, Any] = {ConfigTag.INSTANCE: _attr_path(factory)}
     if args:
-        config[ARGS] = args
+        config[ConfigTag.ARGS] = args
     return to_config(config | kwargs)
 
 
@@ -75,7 +75,7 @@ def _(obj: Mapping) -> dict[str, LgConfig]:
 @to_config.register
 def _(obj: Callable) -> dict[str, LgConfig]:
     if hasattr(obj, "__qualname__"):
-        return {OBJECT: _attr_path(obj)}
+        return {ConfigTag.OBJECT: _attr_path(obj)}
     raise TypeError(f"No {LgConfig!r} encoder registered for callable instance of"
         f"type '{type(obj).__module__}.{type(obj).__name__}'. "
         f"Type can be registered with '@{to_config.__module__}.{to_config.__qualname__}"
@@ -84,14 +84,24 @@ def _(obj: Callable) -> dict[str, LgConfig]:
 
 @to_config.register(partial)
 def _(obj: partial) -> dict[str, LgConfig]:
-    func: dict[str, str] = {PARTIAL: _attr_path(obj.func)}
-    attrs: dict[str, Any] = {ARGS: obj.args} if obj.args else {}
+    func: dict[str, str] = {ConfigTag.PARTIAL: _attr_path(obj.func)}
+    attrs: dict[str, Any] = {ConfigTag.ARGS: obj.args} if obj.args else {}
     config = to_config(attrs | obj.keywords)
     if not isinstance(config, dict):
         raise TypeError(
             f"Config should by type 'dict', but is type '{type(config).__name__!r}"
         )
     return func | config
+
+
+@to_config.register(RawList)
+def _(obj: RawList) -> dict[str, LgConfig]:
+    return {ConfigTag.RAW: to_config(list(obj))}
+
+
+@to_config.register(RawDict)
+def _(obj: RawDict) -> dict[str, LgConfig]:
+    return {ConfigTag.RAW: to_config(dict(obj))}
 
 
 @to_config.register(range)

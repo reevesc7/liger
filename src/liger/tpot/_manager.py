@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Callable, ClassVar, Iterable
+from typing import Callable, ClassVar, Iterable, Protocol
 from dataclasses import dataclass, field
 import warnings
 import logging
@@ -38,7 +38,6 @@ from ._params import (
     EndParams,
     RuntimeParams,
 )
-from ._search_space import SearchSpaceInitializer
 
 
 warnings.filterwarnings(
@@ -52,6 +51,17 @@ warnings.filterwarnings(
         "empty or all-NA entries is deprecated."
     ),
 )
+
+
+class SearchSpaceInitializer(Protocol):
+    def __call__(
+        self,
+        *,
+        n_classes: int,
+        n_samples: int,
+        n_features: int,
+        random_state: int | None,
+    ) -> SearchSpace: ...
 
 
 class _TruthyInt(int):

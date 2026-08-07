@@ -66,3 +66,16 @@ def is_lg_config_like(obj: Any) -> TypeGuard[LgConfigLike]:
             all(is_lg_config(value) for value in obj.values())
         )
     return False
+
+
+class RawMarker:
+    """Marks a class as having originated from a raw config tag"""
+    __slots__ = ()
+
+
+class RawList(RawMarker, list):
+    pass
+
+
+class RawDict(RawMarker, dict):
+    pass

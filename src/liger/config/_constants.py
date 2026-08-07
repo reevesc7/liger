@@ -15,7 +15,13 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-OBJECT = "<OBJECT>"
-INSTANCE = "<INSTANCE>"
-PARTIAL = "<PARTIAL>"
-ARGS = "<ARGS>"
+from enum import StrEnum
+
+
+class ConfigTag(StrEnum):
+    RAW = "<RAW>"
+    OBJECT = "<OBJECT>"
+    INSTANCE = "<INSTANCE>"
+    PARTIAL = "<PARTIAL>"
+    ARGS = "<ARGS>"
+    EVAL = "<EVAL>"
