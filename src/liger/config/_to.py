@@ -23,6 +23,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from liger.typing import LgConfig, RawList, RawDict
+from liger.dataset import ColumnsFilter
 from ._constants import ConfigTag
 
 
@@ -147,3 +148,8 @@ def _(obj: pd.DataFrame) -> LgConfig:
         index=obj.index,
         columns=obj.columns,
     )
+
+
+@to_config.register(ColumnsFilter)
+def _(obj: ColumnsFilter) -> LgConfig:
+    return instance_init_args_to_config(obj)

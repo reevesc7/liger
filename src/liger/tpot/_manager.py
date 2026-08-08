@@ -22,13 +22,15 @@ import logging
 from pathlib import Path
 import json
 import numpy as np
+from numpy.typing import ArrayLike
 import pandas as pd
 import dill
+from scipy.sparse import spmatrix
+from sklearn.utils.multiclass import type_of_target
 from tpot import TPOTEstimator, Population
 from tpot.search_spaces.base import SearchSpace
 from tpot.utils import beta_interpolation
 import liger.config as cfg
-from liger.dataset import Dataset
 from ._params import (
     Objective,
     InverseObjectives,
@@ -83,8 +85,10 @@ class TPOTManager:
 
     output_dir: str | Path
     output_dir_: Path = field(init=False)
-    dataset: Dataset | Callable[[], Dataset]
-    _dataset: Dataset | None = field(default=None, init=False)
+    x: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
+    _x: np.ndarray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
+    y: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
+    _y: np.ndarray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
     search_space: str | SearchSpace | SearchSpaceInitializer
     _search_space: str | SearchSpace | None = field(default=None, init=False)
     classification: bool
@@ -312,40 +316,66 @@ class TPOTManager:
                 "indicates run is incomplete, but no population file exists at "
                 f"{self.pop_path_!r}; cannot recover run state")
 
-    def _init_dataset(self) -> Dataset:
-        if self._dataset is not None:
-            return self._dataset
-        if isinstance(self.dataset, Dataset):
-            return self.dataset
-        return self.dataset()
+    def _init_x(self) -> np.ndarray | pd.DataFrame | spmatrix:
+        if self._x is not None:
+            x = self._x
+        elif isinstance(self.x, Callable):
+            x = self.x()
+        else:
+            x = self.x
+        if isinstance(x, (np.ndarray, pd.DataFrame, spmatrix)):
+            return x
+        return np.asarray(x)
+
+    def _init_y(self) -> np.ndarray | pd.DataFrame | spmatrix:
+        if self._y is not None:
+            y = self._y
+        elif isinstance(self.y, Callable):
+            y = self.y()
+        else:
+            y = self.y
+        if isinstance(y, (np.ndarray, pd.DataFrame, spmatrix)):
+            return y
+        return np.asarray(y)
+
+    def _y_class_counts(self) -> tuple[np.ndarray, np.ndarray]:
+        if self._y is None:
+            self._y = self._init_y()
+        y = self._y
+        target_type = type_of_target(y)
+        if target_type == "multilabel-indicator":
+            if not isinstance(y, spmatrix):
+                y = np.asarray(y)
+            counts = np.asarray(np.ones(y.shape[0], "Int16") @ y).ravel()
+            labels = np.arange(y.shape[1])
+        else:
+            y = np.asarray(self._y).ravel()
+            labels, counts = np.unique(y, return_counts=True)
+        return labels, counts
 
     def _init_search_space(self) -> str | SearchSpace:
         if isinstance(self.search_space, (str, SearchSpace)):
             return self.search_space
-        if self._dataset is None:
-            self._dataset = self._init_dataset()
+        if self._x is None:
+            self._x = self._init_x()
         return self.search_space(
-            n_classes=np.unique(self._dataset.y, axis=0).shape[0],
-            n_samples=np.asarray(self._dataset.x).shape[0],
-            n_features=np.asarray(self._dataset.x).shape[1],
+            n_classes=self._y_class_counts()[0].shape[0],
+            n_samples=self._x.shape[0],
+            n_features=self._x.shape[1],
             random_state=self.evolution_params.random_state_,
         )
 
     def _safe_cv(self) -> int:
-        if self._dataset is None:
-            self._dataset = self._init_dataset()
+        if self._y is None:
+            self._y = self._init_y()
         if self.classification:
-            _, counts = np.unique(
-                np.asarray(self._dataset.y),
-                return_counts=True,
-                axis=0,
-            )
-            if counts.size == 1:
-                max_cv = int(counts[0])
+            class_counts = self._y_class_counts()[1]
+            if class_counts.size == 1:
+                max_cv = int(class_counts[0])
             else:
-                max_cv = int(np.sort(counts)[-2])
+                max_cv = int(np.sort(class_counts)[-2])
         else:
-            max_cv = np.asarray(self._dataset.y).shape[0]
+            max_cv = self._y.shape[0]
         if self.eval_params.cv > max_cv:
             self._log((
                 f"Provided cv value {self.eval_params.cv} "
@@ -445,9 +475,11 @@ class TPOTManager:
         self._log(f"Run output directory: {self.output_dir_!r}")
         if self._tpot is None:
             self._tpot = self._init_tpot()
-        if self._dataset is None:
-            self._dataset = self._init_dataset()
-        self._tpot.fit(self._dataset.x, self._dataset.y)
+        if self._x is None:
+            self._x = self._init_x()
+        if self._y is None:
+            self._y = self._init_y()
+        self._tpot.fit(self._x, self._y)
         indivs = self._tpot.evaluated_individuals
         if not isinstance(indivs, pd.DataFrame):
             raise TypeError("Evaluated individuals should be type "

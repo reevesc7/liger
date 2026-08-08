@@ -16,6 +16,7 @@
 
 
 from sklearn.base import BaseEstimator
+from sklearn.ensemble import BaggingRegressor
 from sklearn.metrics._scorer import _Scorer
 from ConfigSpace import ConfigurationSpace
 from networkx.classes import DiGraph
@@ -49,6 +50,7 @@ def init_digraph(
 def register() -> None:
     @cfg.to_config.register(
         BaseEstimator
+            | BaggingRegressor
             | SearchSpace
             | GraphPipeline
             | TPOTManager
