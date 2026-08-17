@@ -15,49 +15,81 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Self
-from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
+from typing import Any, Callable, Self
+from sklearn.base import BaseEstimator, TransformerMixin, Tags
 from sklearn.compose import TransformedTargetRegressor
 
 
-class LgTransformedTargetRegressor(RegressorMixin, BaseEstimator):
-    def __init__(
-        self,
-        regressor: type,
-        transformer: type,
-        func = None,
-        inverse_func = None,
-        check_inverse = True,
-        **kwargs,
-    ) -> None:
-        self.regressor = regressor
-        self.transformer = transformer
-        self.func = func
-        self.inverse_func = inverse_func
-        self.check_inverse = check_inverse
-        self.tt_regressor: TransformedTargetRegressor = TransformedTargetRegressor(
-            regressor=self.regressor(**{
-                key.removeprefix("regressor_"): value
-                for key, value in kwargs.items()
-                if key.startswith("regressor_")
-            }),
-            transformer=self.transformer(**{
-                key.removeprefix("transformer_"): value
-                for key, value in kwargs.items()
-                if key.startswith("transformer_")
-            }),
-            func=self.func,
-            inverse_func=self.inverse_func,
-            check_inverse=self.check_inverse,
-        )
+REG_KEY = "regressor_"
+TRANS_KEY = "transformer_"
 
-    def fit(self, X, y = None) -> Self:
-        self.tt_regressor.fit(X, y)
-        self.is_fitted_ = True
-        return self
 
-    def predict(self, X):
-        return self.tt_regressor.predict(X)
+def _maybe_instance(factory: Callable | None, kwargs: dict[str, Any]) -> Any:
+    if factory is None:
+        return None
+    return factory(**kwargs)
+
+
+def _filter_kwargs(kwargs: dict[str, Any], filter: str) -> dict[str, Any]:
+    return {
+        key.removeprefix(filter): value
+        for key, value in kwargs.items()
+        if key.startswith(filter)
+    }
+
+
+def flat_init_transformed_target_regressor(
+    regressor_factory: Callable | None = None,
+    transformer_factory: Callable | None = None,
+    func: Callable | None = None,
+    inverse_func: Callable | None = None,
+    check_inverse: bool = True,
+    **kwargs: Any,
+) -> TransformedTargetRegressor:
+    """Construct a `sklearn.compose.TransformedTargetRegressor` and internal
+    regressor and transformer.
+    #
+    Parameters
+    ----------
+    `regressor_factory` : `Callable`, optional
+        Constructor for a regressor.
+    `transformer_factory` : `Callable`, optional
+        Constructor for a transformer. Cannot be set at the same time as
+        `func` and `inverse_func`. See `TransformedTargetRegressor`.
+    `func` : `Callable`, optional
+        Function used to tranform `y`. Cannot be set at the same time as
+        `transformer_factory`. If set, `inverse_func` must also be set.
+        See `TransformedTargetRegressor`.
+    `inverse_func` : `Callable`, optional
+        Function used to inverse tranform `y`. Cannot be set at the same time as
+        `transformer_factory`. If set, `func` must also be set.
+        See `TransformedTargetRegressor`.
+    `check_inverse` : bool, default=`True`
+        Whether to check if tranformation followed by inverse transformation returns
+        the original `y`. See `TransformedTargetRegressor`.
+    `kwargs` : `Any`
+        Keyword arguments to pass to regressor and transformer factories.
+        Prefix keys with `"regressor_"` and `"transformer_"` to pass arguments for
+        regressor and transformer arguments, respectively.
+    #
+    Returns
+    -------
+    `regressor` : `sklearn.compose.TransformedTargetRegressor`
+        Initialized regressor.
+    """
+    return TransformedTargetRegressor(
+        regressor=_maybe_instance(
+            regressor_factory,
+            _filter_kwargs(kwargs, REG_KEY),
+        ),
+        transformer=_maybe_instance(
+            transformer_factory,
+            _filter_kwargs(kwargs, TRANS_KEY),
+        ),
+        func=func,
+        inverse_func=inverse_func,
+        check_inverse=check_inverse,
+    )
 
 
 class LgPassthrough(TransformerMixin, BaseEstimator):
