@@ -1,72 +1,344 @@
 {
-    "manager_parameters": {
-        "data_file": "data/test_data.csv",
-        "feature_keys": [
-            "all-mpnet-base-v2"
-        ],
-        "score_keys": [
-            "mean",
-            "median"
-        ],
-        "target_gens": 10,
-        "eval_random_states": [
-            0,
-            1
-        ],
-        "id": null
+    "<INSTANCE>": "liger.tpot.TPOTManager",
+    "output_dir": "outputs/testing",
+    "x": {
+        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "file_path": {
+            "<INSTANCE>": "pathlib.Path",
+            "<ARGS>": [
+                "data/smallville_417_maria_embprop.csv"
+            ]
+        },
+        "col_filters": [
+            {
+                "<INSTANCE>": "liger.dataset.ColumnsFilter",
+                "columns": "all-mpnet-base-v2_--e"
+            }
+        ]
     },
-    "tpot_parameters": {
-        "search_space": {
-            "node_type": "SequentialPipeline",
-            "search_spaces": [
-                {
-                    "node_type": "DynamicLinearPipeline",
-                    "search_space": {
-                        "node_type": "ChoicePipeline",
-                        "search_spaces": [
-                            {
-                                "node_type": "EstimatorNode",
-                                "method": "all_transformers"
-                            },
-                            {
-                                "node_type": "EstimatorNode",
-                                "method": "Passthrough"
-                            }
-                        ]
-                    },
-                    "max_length": 3
-                },
-                {
-                    "node_type": "ChoicePipeline",
+    "y": {
+        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "file_path": {
+            "<INSTANCE>": "pathlib.Path",
+            "<ARGS>": [
+                "data/smallville_417_maria_embprop.csv"
+            ]
+        },
+        "col_filters": [
+            {
+                "<INSTANCE>": "liger.dataset.ColumnsFilter",
+                "columns": "logprob"
+            }
+        ]
+    },
+    "search_space": {
+        "<PARTIAL>": "liger.config.parse_config",
+        "config": {
+            "<RAW>": {
+                "<INSTANCE>": "tpot.search_spaces.pipelines.GraphSearchPipeline",
+                "root_search_space": {
+                    "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
                     "search_spaces": [
                         {
-                            "node_type": "EstimatorNode",
-                            "method": "KNeighborsRegressor"
+                            "<INSTANCE>": "tpot.search_spaces.pipelines.WrapperPipeline",
+                            "method": {
+                                "<OBJECT>": "sklearn.ensemble.BaggingRegressor"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_estimators": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_estimators",
+                                        "bounds": [
+                                            3,
+                                            100
+                                        ]
+                                    },
+                                    "max_samples": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "max_samples",
+                                        "bounds": [
+                                            0.1,
+                                            1.0
+                                        ]
+                                    },
+                                    "max_features": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "max_features",
+                                        "bounds": [
+                                            0.1,
+                                            1.0
+                                        ]
+                                    },
+                                    "bootstrap": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "bootstrap",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    },
+                                    "bootstrap_features": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "bootstrap_features",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            },
+                            "estimator_search_space": {
+                                "<INSTANCE>": "tpot.config.get_search_space",
+                                "name": "KNeighborsRegressor",
+                                "n_samples": {
+                                    "<EVAL>": "n_samples"
+                                }
+                        },
+                            "hyperparameter_parser": null,
+                            "wrapped_param_name": null
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Lasso",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "LassoLars",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "KNeighborsRegressor",
+                            "n_samples": {
+                                "<EVAL>": "n_samples"
+                            }
+                        }
+                    ]
+                },
+                "inner_search_space": {
+                    "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
+                    "search_spaces": [
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "PCA"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "FastICA",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.decomposition.TruncatedSVD"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_components": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_components",
+                                        "bounds": [
+                                            1,
+                                            200
+                                        ]
+                                    },
+                                    "algorithm": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "algorithm",
+                                        "items": [
+                                            "arpack",
+                                            "randomized"
+                                        ]
+                                    },
+                                    "n_iter": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_iter",
+                                        "bounds": [
+                                            2,
+                                            8
+                                        ]
+                                    },
+                                    "n_oversamples": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_oversamples",
+                                        "bounds": [
+                                            1,
+                                            30
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "FeatureAgglomeration",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.kernel_approximation.Nystroem"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "kernel": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "kernel",
+                                        "items": [
+                                            "rbf",
+                                            "cosine",
+                                            "laplacian",
+                                            "polynomial",
+                                            "poly",
+                                            "linear",
+                                            "sigmoid"
+                                        ]
+                                    },
+                                    "gamma": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "gamma",
+                                        "bounds": [
+                                            0.0,
+                                            1.0
+                                        ]
+                                    },
+                                    "n_components": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_components",
+                                        "bounds": [
+                                            1,
+                                            {
+                                                "<EVAL>": "n_features"
+                                            }
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "RBFSampler",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Binarizer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "QuantileTransformer",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "PowerTransformer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "MinMaxScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "RobustScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "StandardScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "MaxAbsScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Normalizer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.estimator_node.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "liger.sklearn.LgPassthrough"
+                            },
+                            "space": {}
                         }
                     ]
                 }
-            ]
+            }
+        }
+    },
+    "classification": false,
+    "objectives": [
+        {
+            "<INSTANCE>": "liger.tpot.Objective",
+            "func": {
+                "<INSTANCE>": "sklearn.metrics.make_scorer",
+                "score_func": {
+                    "<OBJECT>": "liger.objectives.score_softmax_wasserstein"
+                },
+                "greater_is_better": false,
+                "norm": true,
+                "temperature": 1.0
+            },
+            "weight": 1.0
         },
-        "scorers": [
-            "neg_mean_squared_error",
-            "tpot.objectives.complexity_scorer"
-        ],
-        "scorers_weights": [
-            1,
-            -1
-        ],
-        "classification": false,
-        "cv": 4,
-        "bigger_is_better": true,
+        {
+            "<INSTANCE>": "liger.tpot.Objective",
+            "func": {
+                "<OBJECT>": "tpot.objectives.complexity_scorer"
+            },
+            "weight": -1.0
+        }
+    ],
+    "evolution_params": {
+        "<INSTANCE>": "liger.tpot.EvolutionParams",
         "population_size": 4,
-        "generations": 1,
-        "max_time_mins": 220,
-        "max_eval_time_mins": 1,
-        "early_stop": 2,
-        "scorers_early_stop_tol": 0.001,
-        "other_objectives_early_stop_tol": null,
-        "warm_start": true,
-        "verbose": 4,
         "random_state": 1
-    }
+    },
+    "eval_params": {
+        "<INSTANCE>": "liger.tpot.EvalParams",
+        "cv": 4,
+        "eval_time": 1.0
+    },
+    "end_params": {
+        "<INSTANCE>": "liger.tpot.EndParams",
+        "segment_generations": 1,
+        "total_generations": 4,
+        "total_time": 1.2,
+        "early_stop": 1
+    },
+    "verbose": 4
 }
