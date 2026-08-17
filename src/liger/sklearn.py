@@ -101,17 +101,17 @@ class LgPassthrough(TransformerMixin, BaseEstimator):
     A transformer that does nothing. It just passes the input array as is.
     """
 
-    def fit(self, _X=None, _y=None):
+    def fit(self, _X=None, _y=None) -> Self:
         """Nothing to fit, returns self.
         """
         return self
 
-    def transform(self, X):
+    def transform(self, X: Any) -> Any:
         """Returns the input array as-is.
         """
         return X
 
-    def __sklearn_tags__(self):
+    def __sklearn_tags__(self) -> Tags:
         tags = super().__sklearn_tags__()
         tags.requires_fit = False
         return tags
