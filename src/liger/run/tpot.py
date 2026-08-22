@@ -89,17 +89,19 @@ def _submit_slurm_segment(
     slurm_options = _parse_slurm_options(slurm_profile_path) + [
         f"--job-name=lgtpot_{checkpoint_dir.name}",
         f"--output={checkpoint_dir}/slurm-%j.out",
+        "--parsable",
+        f"--wrap=#!/bin/bash --login\n"
+            f"source {slurm_profile_path}\n"
+            f"liger tpot run slurm {checkpoint_dir}{' --recurse' if recurse else ''}\n",
     ]
     if job_id:
         slurm_options.append(f"--dependency=afterany:{job_id}")
-    return int(subprocess.run(
+    re = subprocess.run(
         ["sbatch"] + slurm_options,
-        input=f"#!/bin/bash --login\n"
-            f"source {slurm_profile_path}\n"
-            f"liger tpot run slurm {checkpoint_dir}{' --recurse' if recurse else ''}\n",
         capture_output=True,
         text=True,
-    ).stdout.strip().rsplit(" ", 1)[-1])
+    )
+    return(int(re.stdout))
 
 
 def run_slurm_segment(checkpoint_dir: str | Path, recurse: bool) -> int | None:

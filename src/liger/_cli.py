@@ -59,6 +59,7 @@ def _cmd_tpot_init(args: Namespace) -> None:
     if args.run == _RunMode.SLURM:
         for dir in checkpoint_dirs:
             tpot.run_slurm_segment(dir, args.recurse)
+        return
     raise ValueError(f"{args.run!r} is not a valid run mode")
 
 
