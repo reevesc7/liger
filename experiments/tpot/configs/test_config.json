@@ -325,7 +325,7 @@
     ],
     "evolution_params": {
         "<INSTANCE>": "liger.tpot.EvolutionParams",
-        "population_size": 4,
+        "population_size": 10,
         "random_state": 1
     },
     "eval_params": {
@@ -335,10 +335,10 @@
     },
     "end_params": {
         "<INSTANCE>": "liger.tpot.EndParams",
-        "segment_generations": 1,
-        "total_generations": 4,
+        "segment_generations": 3,
+        "total_generations": 10,
         "total_time": 1.2,
-        "early_stop": 1
+        "early_stop": 3
     },
     "verbose": 4
 }
