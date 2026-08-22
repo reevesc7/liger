@@ -39,14 +39,14 @@ def init_tpot_dir(
 ) -> Path:
     config_path = Path(config_path)
     config: dict[str, LgConfig] = json.load(config_path.open())
-    now = datetime.now(timezone.utc).strftime(DATETIME_FMT)
+    dirname = "liger_tpot_" + datetime.now(timezone.utc).strftime(DATETIME_FMT)
     if output_dir is not None:
         output_dir = Path(output_dir)
-        config["output_dir"] = str(output_dir / now)
+        config["output_dir"] = str(output_dir / dirname)
     elif "output_dir" in config:
-        config["output_dir"] = str(Path(str(config["output_dir"])) / now)
+        config["output_dir"] = str(Path(str(config["output_dir"])) / dirname)
     else:
-        config["output_dir"] = now
+        config["output_dir"] = dirname
     tpot = cfg.parse_config(config, TPOTManager)
     tpot.output_dir_.mkdir(parents=True, exist_ok=True)
     shutil.copy(config_path, tpot.output_dir_ / CONFIG_NAME)
