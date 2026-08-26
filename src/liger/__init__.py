@@ -17,6 +17,7 @@
 
 from importlib.metadata import version, PackageNotFoundError
 import warnings
+from ._cli import cmd_liger
 
 
 try:
@@ -37,3 +38,6 @@ warnings.filterwarnings(
     "once",
     category=DeprecationWarning,
 )
+
+
+__all__ = ["cmd_liger"]

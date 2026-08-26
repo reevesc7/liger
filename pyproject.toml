@@ -39,7 +39,7 @@ all = [
 Repository = "https://github.com/reevesc7/liger.git"
 
 [project.scripts]
-liger = "liger._cli:main"
+liger = "liger:cmd_liger"
 
 [tool.uv.sources]
 torch = [
