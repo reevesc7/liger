@@ -87,7 +87,7 @@ def _submit_slurm_segment(
 ) -> int:
     slurm_profile_path = checkpoint_dir / SLURM_PROFILE_NAME
     slurm_options = _parse_slurm_options(slurm_profile_path) + [
-        f"--job-name=lgtpot_{checkpoint_dir.name}",
+        f"--job-name={checkpoint_dir.name}",
         f"--output={checkpoint_dir}/slurm-%j.out",
         "--parsable",
         f"--wrap=#!/bin/bash --login\n"
