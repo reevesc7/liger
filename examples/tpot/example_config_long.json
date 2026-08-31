@@ -1,6 +1,6 @@
 {
     "<INSTANCE>": "liger.tpot.TPOTManager",
-    "output_dir": "outputs/testing",
+    "output_dir": "example_outputs",
     "x": {
         "<PARTIAL>": "liger.dataset.data_from_csv",
         "file_path": {
