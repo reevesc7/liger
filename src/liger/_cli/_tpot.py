@@ -43,7 +43,11 @@ def _cmd_init(args: Namespace) -> None:
         slurm_profile_path = None
     n = 1 if args.n is None or args.n < 1 else args.n
     checkpoint_dirs = [
-        tpot.init_tpot_dir(config_path, slurm_profile_path, args.output)
+        tpot.init_tpot_dir(
+            config_path,
+            slurm_profile_path=slurm_profile_path,
+            output_dir=args.output,
+        )
         for _ in range(n)
     ]
     if args.run is None:

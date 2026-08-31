@@ -27,13 +27,15 @@ from liger.tpot import TPOTManager
 
 
 DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
-SLURM_PROFILE_NAME = Path("slurm_profile.sh")
-CONFIG_NAME = Path("config.json")
-PARAMS_NAME = Path("params.json")
+SLURM_PROFILE_NAME = "slurm_profile.sh"
+CONFIG_NAME = "config.json"
+PARAMS_NAME = "params.json"
+SLURM_OUT_NAME = "slurm-%j.out"
 
 
 def init_tpot_dir(
     config_path: str | Path,
+    *,
     slurm_profile_path: str | Path | None = None,
     output_dir: str | Path | None = None,
 ) -> Path:
@@ -88,7 +90,7 @@ def _submit_slurm_segment(
     slurm_profile_path = checkpoint_dir / SLURM_PROFILE_NAME
     slurm_options = _parse_slurm_options(slurm_profile_path) + [
         f"--job-name={checkpoint_dir.name}",
-        f"--output={checkpoint_dir}/slurm-%j.out",
+        f"--output={checkpoint_dir / SLURM_OUT_NAME}",
         "--parsable",
         f"--wrap=#!/bin/bash --login\n"
             f"source {slurm_profile_path}\n"
@@ -100,6 +102,7 @@ def _submit_slurm_segment(
         ["sbatch"] + slurm_options,
         capture_output=True,
         text=True,
+        check=True,
     )
     return(int(re.stdout))
 
@@ -116,8 +119,8 @@ def run_slurm_segment(checkpoint_dir: str | Path, recurse: bool) -> int | None:
     try:
         tpot_is_complete = run_local_segment(checkpoint_dir)
     except BaseException:
-        subprocess.run(["scancel", str(next_job_id)])
+        subprocess.run(["scancel", str(next_job_id)], check=True)
         raise
     if tpot_is_complete:
-        subprocess.run(["scancel", str(next_job_id)])
+        subprocess.run(["scancel", str(next_job_id)], check=True)
     return next_job_id
