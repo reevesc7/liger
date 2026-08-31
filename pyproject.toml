@@ -35,6 +35,11 @@ all = [
     "liger[tpot]",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
+
 [project.urls]
 Repository = "https://github.com/reevesc7/liger.git"
 
@@ -61,3 +66,8 @@ source = "vcs"
 [tool.hatch.version.raw-options]
 version_scheme = "no-guess-dev"
 search_parent_directories = true
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+addopts = "-v --tb=short"
+filterwarnings = ["ignore::UserWarning"]
