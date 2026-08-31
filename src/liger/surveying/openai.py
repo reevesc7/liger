@@ -77,7 +77,7 @@ class OpenAISurveyor(BaseSurveyor):
     ) -> pd.Series:
         if isinstance(prompts, str):
             prompts = [prompts]
-        responses = []
+        responses: list[str | list[str]] = []
         for prompt in prompts:
             responses.append(self.generate_responses(prompt, reps, **kwargs))
         return pd.Series(responses, name="response")
