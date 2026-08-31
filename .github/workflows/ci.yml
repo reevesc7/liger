@@ -8,7 +8,7 @@ jobs:
     timeout-minutes: 15
     strategy:
       matrix:
-        python-version: ["3.12", "3.13", 3.14", "3.15"]
+        python-version: ["3.12", "3.13", "3.14", "3.15"]
         extra: ["tpot", "all"]
     steps:
       - name: Check out repo
