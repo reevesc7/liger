@@ -1,18 +1,18 @@
 {
     "<INSTANCE>": "liger.tpot.TPOTManager",
-    "output_dir": "outputs/testing",
+    "output_dir": "example_outputs",
     "x": {
         "<PARTIAL>": "liger.dataset.data_from_csv",
         "file_path": {
             "<INSTANCE>": "pathlib.Path",
             "<ARGS>": [
-                "data/smallville_417_maria_embprop.csv"
+                "../example_data.csv"
             ]
         },
         "col_filters": [
             {
                 "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "all-mpnet-base-v2_--e"
+                "columns": "^all-mpnet-base-v2"
             }
         ]
     },
@@ -21,13 +21,13 @@
         "file_path": {
             "<INSTANCE>": "pathlib.Path",
             "<ARGS>": [
-                "data/smallville_417_maria_embprop.csv"
+                "../example_data.csv"
             ]
         },
         "col_filters": [
             {
                 "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "logprob"
+                "columns": "^mean$"
             }
         ]
     },
@@ -305,13 +305,8 @@
         {
             "<INSTANCE>": "liger.tpot.Objective",
             "func": {
-                "<INSTANCE>": "sklearn.metrics.make_scorer",
-                "score_func": {
-                    "<OBJECT>": "liger.objectives.score_softmax_wasserstein"
-                },
-                "greater_is_better": false,
-                "norm": true,
-                "temperature": 1.0
+                "<INSTANCE>": "sklearn.metrics.get_scorer",
+                "scoring": "neg_mean_squared_error"
             },
             "weight": 1.0
         },
@@ -325,7 +320,7 @@
     ],
     "evolution_params": {
         "<INSTANCE>": "liger.tpot.EvolutionParams",
-        "population_size": 10,
+        "population_size": 4,
         "random_state": 1
     },
     "eval_params": {
@@ -335,9 +330,10 @@
     },
     "end_params": {
         "<INSTANCE>": "liger.tpot.EndParams",
-        "segment_generations": 3,
-        "total_generations": 10,
-        "early_stop": 3
+        "segment_generations": 1,
+        "total_generations": 4,
+        "total_time": 1.2,
+        "early_stop": 1
     },
     "verbose": 4
 }
