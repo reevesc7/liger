@@ -17,24 +17,28 @@ SLURM_CMDS = [
 ]
 
 
-def slurm_available() -> bool:
+def _slurm_available() -> bool:
     """True if Slurm CLI tools are present on PATH."""
-    return not any(shutil.which(cmd) is None for cmd in SLURM_CMDS)
+    if any(shutil.which(cmd) is None for cmd in SLURM_CMDS):
+        return False
+    vslurm_present = os.environ.get("VSLURM_PRESENT") == "1"
+    vslurm_active = subprocess.run(
+        ["pgrep", "slurmctld"],
+        capture_output=True,
+    ).returncode == 0
+    if vslurm_present and not vslurm_active:
+        return False
+    return True
 
 
-def vslurm_active() -> bool:
-    pgrep_result = subprocess.run(["pgrep", "slurmctld"], capture_output=True)
-    return pgrep_result.returncode == 0
-
-
-def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:
-    if slurm_available():
-        if os.environ.get("VSLURM_PRESENT") != "1":
-            return
-        if vslurm_active():
-            return
-    # TODO: detect whether Slurm/vslurm daemon is active and condition `reason` on it
-    skip_slurm = pytest.mark.skip(reason="Slurm CLI tools not found on PATH")
+def _handle_slurm_skip(items: list[Item]) -> None:
+    if _slurm_available():
+        return
+    skip_slurm = pytest.mark.skip(reason="Slurm tools not found/enabled")
     for item in items:
         if "slurm" in item.keywords:
             item.add_marker(skip_slurm)
+
+
+def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:
+    _handle_slurm_skip(items)
