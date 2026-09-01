@@ -16,8 +16,8 @@
 
 
 # /// --- Fixes missing pkg_resources, imported by stopit --- \\\
-import importlib.util
-if importlib.util.find_spec("pkg_resources") is None:
+from importlib.util import find_spec
+if find_spec("pkg_resources") is None:
     from types import ModuleType
     from importlib.metadata import version
     import sys
