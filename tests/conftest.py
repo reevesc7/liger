@@ -17,12 +17,6 @@ SLURM_CMDS = [
 ]
 
 
-def pytest_configure(config: Config) -> None:
-    config.addinivalue_line(
-        "markers", "slurm: requires Slurm CLI tools within environment scope"
-    )
-
-
 def slurm_available() -> bool:
     """True if Slurm CLI tools are present on PATH."""
     return not any(shutil.which(cmd) is None for cmd in SLURM_CMDS)
