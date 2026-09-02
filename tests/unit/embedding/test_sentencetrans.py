@@ -1,9 +1,7 @@
-import pytest
 import pandas as pd
 from liger.embedding.sentencetrans import STEmbedder
 
 
-@pytest.mark.torch
 def test_st_embedder_embed() -> None:
     embedder = STEmbedder("all-mpnet-base-v2")
     embedding = embedder.embed("This is a test sentence.")
