@@ -1,0 +1,19 @@
+on:
+  workflow_call:
+    inputs:
+      python-version: { required: true, type: string }
+      resolution: { required: true, type: string }
+      extra: { required: true, type: string }
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: astral-sh/setup-uv@v8.3.2
+        with:
+          enable-cache: true
+          python-version: ${{ inputs.python-version }}
+      - run: uv sync --resolution ${{ inputs.resolution }} --extra ${{ inputs.extra }}
+      - run: uv run pytest

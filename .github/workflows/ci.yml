@@ -1,27 +1,23 @@
-name: CI
-
 on: [push, pull_request]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+  python-compat:
     strategy:
       matrix:
-        python-version: ["3.12", "3.13", "3.14"]
+        python-version: ["3.12", "3.14"]
+        resolution: ["lowest-direct", "highest"]
+    uses: ./.github/workflows/_run_tests.yml
+    with:
+      python-version: ${{ matrix.python-version }}
+      resolution: ${{ matrix.resolution }}
+      extra: "all"
+
+  extras-isolation:
+    strategy:
+      matrix:
         extra: ["tpot", "all"]
-    steps:
-      - name: Check out repo
-        uses: actions/checkout@v7.0.1
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.3.2
-        with:
-          enable-cache: true
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: uv sync --extra ${{ matrix.extra }} --dev --frozen
-
-      - name: Run tests
-        run: uv run pytest
+    uses: ./.github/workflows/_run_tests.yml
+    with:
+      python-version: "3.14"
+      resolution: "highest"
+      extra: ${{ matrix.extra }}
