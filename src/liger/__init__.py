@@ -15,22 +15,6 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-# /// --- Fixes missing pkg_resources, imported by stopit --- \\\
-from importlib.util import find_spec
-if find_spec("pkg_resources") is None:
-    from types import ModuleType
-    from importlib.metadata import version
-    import sys
-    fake_pkg_resources = ModuleType("pkg_resources")
-    setattr(
-        fake_pkg_resources,
-        "get_distribution",
-        lambda name: type("Distribution", (), {"version": version(name)})(),
-    )
-    sys.modules["pkg_resources"] = fake_pkg_resources
-# \\\ --------------------------------------------------------///
-
-
 from importlib.metadata import version, PackageNotFoundError
 import warnings
 from ._cli import cmd_liger
