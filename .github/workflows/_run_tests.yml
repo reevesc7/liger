@@ -2,8 +2,7 @@ on:
   workflow_call:
     inputs:
       python-version: { required: true, type: string }
-      resolution: { required: true, type: string }
-      extra: { required: true, type: string }
+      uv-opts: {required: true, type: string }
 
 jobs:
   test:
@@ -15,5 +14,5 @@ jobs:
         with:
           enable-cache: true
           python-version: ${{ inputs.python-version }}
-      - run: uv sync --resolution ${{ inputs.resolution }} --extra ${{ inputs.extra }}
+      - run: uv sync ${{ inputs.uv-opts }}
       - run: uv run pytest

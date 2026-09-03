@@ -5,12 +5,11 @@ jobs:
     strategy:
       matrix:
         python-version: ["3.12", "3.14"]
-        resolution: ["lowest-direct", "highest"]
+        resolution: ["--resolution lowest-direct", "--upgrade"]
     uses: ./.github/workflows/_run_tests.yml
     with:
       python-version: ${{ matrix.python-version }}
-      resolution: ${{ matrix.resolution }}
-      extra: "all"
+      uv-opts: "${{ matrix.resolution }} --extra all"
 
   extras-isolation:
     strategy:
@@ -19,5 +18,4 @@ jobs:
     uses: ./.github/workflows/_run_tests.yml
     with:
       python-version: "3.14"
-      resolution: "highest"
-      extra: ${{ matrix.extra }}
+      uv-opts: "--upgrade --extra ${{ matrix.extra }}"
