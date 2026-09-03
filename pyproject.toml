@@ -48,6 +48,9 @@ Repository = "https://github.com/reevesc7/liger.git"
 [project.scripts]
 liger = "liger:cmd_liger"
 
+[tool.uv]
+required-environments = ["sys_platform == 'linux' and platform_machine == 'x86_64'"]
+
 [tool.uv.sources]
 torch = [
     { index = "pytorch-cpu" },

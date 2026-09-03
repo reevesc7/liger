@@ -5,6 +5,9 @@ resolution-markers = [
     "sys_platform != 'darwin'",
     "sys_platform == 'darwin'",
 ]
+required-markers = [
+    "platform_machine == 'x86_64' and sys_platform == 'linux'",
+]
 
 [[package]]
 name = "alembic"
