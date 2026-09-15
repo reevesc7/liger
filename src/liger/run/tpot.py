@@ -92,7 +92,7 @@ def _submit_slurm_segment(
         f"--job-name={checkpoint_dir.name}",
         f"--output={checkpoint_dir / SLURM_OUT_NAME}",
         "--parsable",
-        f"--wrap=#!/bin/bash --login\n"
+        f"--wrap=#!/usr/bin/env bash\n"
             f"source {slurm_profile_path}\n"
             f"liger tpot run slurm {checkpoint_dir}{' --recurse' if recurse else ''}\n",
     ]
