@@ -38,7 +38,7 @@ def _attr_path(obj: Any) -> str:
 def to_config(obj: Any) -> LgConfig:
     raise TypeError(f"No {LgConfig.__name__!r} encoder registered for "
         f"type '{type(obj).__module__}.{type(obj).__name__}'. "
-        f"Type can be registered with '@{to_config.__module__}.{to_config.__qualname__}"
+        f"Type can be registered with '@{_attr_path(to_config)}"
         f".register({type(obj).__name__})'")
 
 
