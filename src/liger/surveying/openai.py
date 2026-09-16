@@ -291,7 +291,7 @@ class OpenAISurveyor(BaseSurveyor):
     def log_probs_survey(
         self,
         prompts: MutableSequence[str] | pd.Series,
-        response_seeds: str | list[str],
+        response_seeds: str | MutableSequence[str] | pd.Series,
         allowed_tokens: set[str] | None = None,
         floor_margin: float = 1.0,
     ) -> pd.DataFrame: ...
