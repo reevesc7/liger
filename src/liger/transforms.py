@@ -88,12 +88,13 @@ def apply_softmax(
     logprobs: pd.DataFrame,
     temperature: float = 1.0,
     strip_prefix: str = "logprob_",
+    add_prefix: str = "prob_",
 ) -> pd.DataFrame:
     x_vals = _strip_prefix(logprobs.columns, strip_prefix)
     return pd.DataFrame(
         softmax(logprobs.to_numpy(), temperature),
         index=logprobs.index,
-        columns=pd.Index([f"prob_{x_val}" for x_val in x_vals]),
+        columns=pd.Index([f"{add_prefix}{x_val}" for x_val in x_vals]),
     )
 
 
