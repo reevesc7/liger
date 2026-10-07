@@ -1,0 +1,782 @@
+{
+    "<INSTANCE>": "liger.tpot.TPOTManager",
+    "output_dir": "outputs/e04_0",
+    "x": {
+        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "file_path": {
+            "<INSTANCE>": "pathlib.Path",
+            "<ARGS>": [
+                "data/sv_417_event_maria_lpd_b_1.csv"
+            ]
+        },
+        "col_filters": [
+            {
+                "<INSTANCE>": "liger.dataset.ColumnsFilter",
+                "columns": "all-mpnet-base-v2"
+            }
+        ]
+    },
+    "y": {
+        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "file_path": {
+            "<INSTANCE>": "pathlib.Path",
+            "<ARGS>": [
+                "data/sv_417_event_maria_lpd_b_1.csv"
+            ]
+        },
+        "col_filters": [
+            {
+                "<INSTANCE>": "liger.dataset.ColumnsFilter",
+                "columns": "logprob_diff"
+            }
+        ]
+    },
+    "search_space": {
+        "<PARTIAL>": "liger.config.parse_config",
+        "config": {
+            "<RAW>": {
+                "<INSTANCE>": "tpot.search_spaces.pipelines.GraphSearchPipeline",
+                "root_search_space": {
+                    "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
+                    "search_spaces": [
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.cross_decomposition.PLSRegression"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_components": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_components",
+                                        "bounds": [
+                                            1,
+                                            {
+                                                "<EVAL>": "min(100, n_features, n_samples)"
+                                            }
+                                        ]
+                                    },
+                                    "scale": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "scale",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.pipelines.WrapperPipeline",
+                            "method": {
+                                "<OBJECT>": "sklearn.ensemble.BaggingRegressor"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_estimators": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_estimators",
+                                        "bounds": [
+                                            3,
+                                            100
+                                        ]
+                                    },
+                                    "max_samples": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "max_samples",
+                                        "bounds": [
+                                            0.1,
+                                            1.0
+                                        ]
+                                    },
+                                    "max_features": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "max_features",
+                                        "bounds": [
+                                            0.1,
+                                            1.0
+                                        ]
+                                    },
+                                    "bootstrap": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "bootstrap",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    },
+                                    "bootstrap_features": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "bootstrap_features",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            },
+                            "estimator_search_space": {
+                                "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
+                                "search_spaces": [
+                                    {
+                                        "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                                        "method": {
+                                            "<OBJECT>": "sklearn.kernel_ridge.KernelRidge"
+                                        },
+                                        "space": {
+                                            "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                            "space": {
+                                                "alpha": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "alpha",
+                                                    "bounds": [
+                                                        1.0e-5,
+                                                        10.0
+                                                    ],
+                                                    "log": true
+                                                },
+                                                "kernel": {
+                                                    "<INSTANCE>": "ConfigSpace.Categorical",
+                                                    "name": "kernel",
+                                                    "items": [
+                                                        "poly",
+                                                        "rbf",
+                                                        "laplacian",
+                                                        "cosine"
+                                                    ]
+                                                },
+                                                "gamma": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "gamma",
+                                                    "bounds": [
+                                                        1.0e-5,
+                                                        10.0
+                                                    ],
+                                                    "log": true
+                                                },
+                                                "degree": {
+                                                    "<INSTANCE>": "ConfigSpace.Integer",
+                                                    "name": "degree",
+                                                    "bounds": [
+                                                        1,
+                                                        5
+                                                    ]
+                                                },
+                                                "coef0": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "coef0",
+                                                    "bounds": [
+                                                        -1.0,
+                                                        1.0
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                                        "method": {
+                                            "<OBJECT>": "sklearn.neighbors.KNeighborsRegressor"
+                                        },
+                                        "space": {
+                                            "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                            "space": {
+                                                "n_neighbors": {
+                                                    "<INSTANCE>": "ConfigSpace.Integer",
+                                                    "name": "n_neighbors",
+                                                    "bounds": [
+                                                        1,
+                                                        {
+                                                            "<EVAL>": "min(100, n_samples)"
+                                                        }
+                                                    ]
+                                                },
+                                                "weights": {
+                                                    "<INSTANCE>": "ConfigSpace.Categorical",
+                                                    "name": "weights",
+                                                    "items": [
+                                                        "uniform",
+                                                        "distance"
+                                                    ]
+                                                },
+                                                "p": {
+                                                    "<INSTANCE>": "ConfigSpace.Integer",
+                                                    "name": "p",
+                                                    "bounds": [
+                                                        1,
+                                                        3
+                                                    ]
+                                                },
+                                                "metric": {
+                                                    "<INSTANCE>": "ConfigSpace.Categorical",
+                                                    "name": "metric",
+                                                    "items": [
+                                                        "minkowski",
+                                                        "cosine"
+                                                    ]
+                                                },
+                                                "n_jobs": {
+                                                    "<EVAL>": "n_jobs"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    {
+                                        "<INSTANCE>": "tpot.config.get_search_space",
+                                        "name": "MLPRegressor",
+                                        "random_state": {
+                                            "<EVAL>": "random_state"
+                                        }
+                                    },
+                                    {
+                                        "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                                        "method": {
+                                            "<OBJECT>": "sklearn.svm.SVR"
+                                        },
+                                        "space": {
+                                            "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                            "space": {
+                                                "kernel": {
+                                                    "<INSTANCE>": "ConfigSpace.Categorical",
+                                                    "name": "kernel",
+                                                    "items": [
+                                                        "poly",
+                                                        "rbf"
+                                                    ]
+                                                },
+                                                "degree": {
+                                                    "<INSTANCE>": "ConfigSpace.Integer",
+                                                    "name": "degree",
+                                                    "bounds": [
+                                                        1,
+                                                        5
+                                                    ]
+                                                },
+                                                "gamma": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "gamma",
+                                                    "bounds": [
+                                                        1.0e-5,
+                                                        10.0
+                                                    ],
+                                                    "log": true
+                                                },
+                                                "coef0": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "coef0",
+                                                    "bounds": [
+                                                        -1.0,
+                                                        1.0
+                                                    ]
+                                                },
+                                                "tol": 0.005,
+                                                "C": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "C",
+                                                    "bounds": [
+                                                        0.01,
+                                                        1.0e5
+                                                    ],
+                                                    "log": true
+                                                },
+                                                "epsilon": {
+                                                    "<INSTANCE>": "ConfigSpace.Float",
+                                                    "name": "epsilon",
+                                                    "bounds": [
+                                                        1.0e-4,
+                                                        1.0
+                                                    ],
+                                                    "log": true
+                                                },
+                                                "shrinking": {
+                                                    "<INSTANCE>": "ConfigSpace.Categorical",
+                                                    "name": "shrinking",
+                                                    "items": [
+                                                        true,
+                                                        false
+                                                    ]
+                                                },
+                                                "max_iter": 3000
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "HistGradientBoostingRegressor",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.kernel_ridge.KernelRidge"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "alpha": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "alpha",
+                                        "bounds": [
+                                            1.0e-5,
+                                            10.0
+                                        ],
+                                        "log": true
+                                    },
+                                    "kernel": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "kernel",
+                                        "items": [
+                                            "linear",
+                                            "poly",
+                                            "rbf",
+                                            "laplacian",
+                                            "cosine"
+                                        ]
+                                    },
+                                    "gamma": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "gamma",
+                                        "bounds": [
+                                            1.0e-5,
+                                            10.0
+                                        ],
+                                        "log": true
+                                    },
+                                    "degree": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "degree",
+                                        "bounds": [
+                                            1,
+                                            5
+                                        ]
+                                    },
+                                    "coef0": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "coef0",
+                                        "bounds": [
+                                            -1.0,
+                                            1.0
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Lasso",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "LassoLars",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.linear_model.BayesianRidge"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "alpha_1": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "alpha_1",
+                                        "bounds": [
+                                            1.0e-6,
+                                            1.0e-3
+                                        ],
+                                        "log": true
+                                    },
+                                    "alpha_2": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "alpha_2",
+                                        "bounds": [
+                                            1.0e-6,
+                                            1.0e-3
+                                        ],
+                                        "log": true
+                                    },
+                                    "lambda_1": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "lambda_1",
+                                        "bounds": [
+                                            1.0e-6,
+                                            1.0e-3
+                                        ],
+                                        "log": true
+                                    },
+                                    "lambda_2": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "lambda_2",
+                                        "bounds": [
+                                            1.0e-6,
+                                            1.0e-3
+                                        ],
+                                        "log": true
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.neighbors.KNeighborsRegressor"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_neighbors": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_neighbors",
+                                        "bounds": [
+                                            1,
+                                            {
+                                                "<EVAL>": "min(100, n_samples)"
+                                            }
+                                        ]
+                                    },
+                                    "weights": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "weights",
+                                        "items": [
+                                            "uniform",
+                                            "distance"
+                                        ]
+                                    },
+                                    "p": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "p",
+                                        "bounds": [
+                                            1,
+                                            3
+                                        ]
+                                    },
+                                    "metric": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "metric",
+                                        "items": [
+                                            "minkowski",
+                                            "cosine"
+                                        ]
+                                    },
+                                    "n_jobs": {
+                                        "<EVAL>": "n_jobs"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "LinearSVR",
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.svm.SVR"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "kernel": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "kernel",
+                                        "items": [
+                                            "linear",
+                                            "poly",
+                                            "rbf"
+                                        ]
+                                    },
+                                    "degree": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "degree",
+                                        "bounds": [
+                                            1,
+                                            5
+                                        ]
+                                    },
+                                    "gamma": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "gamma",
+                                        "bounds": [
+                                            1.0e-5,
+                                            10.0
+                                        ],
+                                        "log": true
+                                    },
+                                    "coef0": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "coef0",
+                                        "bounds": [
+                                            -1.0,
+                                            1.0
+                                        ]
+                                    },
+                                    "tol": 0.005,
+                                    "C": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "C",
+                                        "bounds": [
+                                            0.01,
+                                            1.0e5
+                                        ],
+                                        "log": true
+                                    },
+                                    "epsilon": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "epsilon",
+                                        "bounds": [
+                                            1.0e-4,
+                                            1.0
+                                        ],
+                                        "log": true
+                                    },
+                                    "shrinking": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "shrinking",
+                                        "items": [
+                                            true,
+                                            false
+                                        ]
+                                    },
+                                    "max_iter": 3000
+                                }
+                            }
+                        }
+                    ]
+                },
+                "inner_search_space": {
+                    "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
+                    "search_spaces": [
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "PCA"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "FastICA",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.decomposition.TruncatedSVD"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_components": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_components",
+                                        "bounds": [
+                                            1,
+                                            200
+                                        ]
+                                    },
+                                    "algorithm": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "algorithm",
+                                        "items": [
+                                            "arpack",
+                                            "randomized"
+                                        ]
+                                    },
+                                    "n_iter": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_iter",
+                                        "bounds": [
+                                            2,
+                                            8
+                                        ]
+                                    },
+                                    "n_oversamples": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_oversamples",
+                                        "bounds": [
+                                            1,
+                                            30
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "FeatureAgglomeration",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.kernel_approximation.Nystroem"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "kernel": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "kernel",
+                                        "items": [
+                                            "rbf",
+                                            "cosine",
+                                            "laplacian",
+                                            "polynomial",
+                                            "poly",
+                                            "linear",
+                                            "sigmoid"
+                                        ]
+                                    },
+                                    "gamma": {
+                                        "<INSTANCE>": "ConfigSpace.Float",
+                                        "name": "gamma",
+                                        "bounds": [
+                                            0.0,
+                                            1.0
+                                        ]
+                                    },
+                                    "n_components": {
+                                        "<INSTANCE>": "ConfigSpace.Integer",
+                                        "name": "n_components",
+                                        "bounds": [
+                                            1,
+                                            {
+                                                "<EVAL>": "n_features"
+                                            }
+                                        ]
+                                    },
+                                    "random_state": {
+                                        "<EVAL>": "random_state"
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "RBFSampler",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Binarizer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "QuantileTransformer",
+                            "n_features": {
+                                "<EVAL>": "n_features"
+                            },
+                            "random_state": {
+                                "<EVAL>": "random_state"
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "PowerTransformer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "MinMaxScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "RobustScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "StandardScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "MaxAbsScaler"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "Normalizer"
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.estimator_node.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "liger.sklearn.LgPassthrough"
+                            },
+                            "space": {}
+                        }
+                    ]
+                }
+            }
+        }
+    },
+    "classification": false,
+    "objectives": [
+        {
+            "<INSTANCE>": "liger.tpot.Objective",
+            "func": {
+                "<INSTANCE>": "sklearn.metrics.get_scorer",
+                "scoring": "neg_mean_squared_error"
+            },
+            "weight": 1.0,
+            "early_stop_tol": 0.001
+        },
+        {
+            "<INSTANCE>": "liger.tpot.Objective",
+            "func": {
+                "<OBJECT>": "tpot.objectives.complexity_scorer"
+            },
+            "weight": -1.0,
+            "early_stop_tol": 0.001
+        }
+    ],
+    "evolution_params": {
+        "<INSTANCE>": "liger.tpot.EvolutionParams",
+        "population_size": 100,
+        "random_state": "auto"
+    },
+    "eval_params": {
+        "<INSTANCE>": "liger.tpot.EvalParams",
+        "cv": 3,
+        "eval_time": 10.0
+    },
+    "end_params": {
+        "<INSTANCE>": "liger.tpot.EndParams",
+        "total_generations": 100,
+        "segment_time": 120.0,
+        "early_stop": 6
+    },
+    "runtime_params": {
+        "<INSTANCE>": "liger.tpot.RuntimeParams",
+        "n_jobs": 4
+    },
+    "verbose": 4
+}
