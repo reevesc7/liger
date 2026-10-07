@@ -107,7 +107,7 @@ def _format_x_vals(df: pd.DataFrame, strip_prefix: str) -> np.ndarray:
 
 def apply_logprobs_mode(
     logprobs: pd.DataFrame,
-    temperature: float,
+    temperature: float = 1.0,
     strip_prefix: str = "logprob_",
 ) -> pd.Series:
     masses = apply_softmax(logprobs, temperature, strip_prefix)
@@ -117,7 +117,7 @@ def apply_logprobs_mode(
 
 def apply_logprobs_mean(
     logprobs: pd.DataFrame,
-    temperature: float,
+    temperature: float = 1.0,
     strip_prefix: str = "logprob_",
 ) -> pd.Series:
     masses = apply_softmax(logprobs, temperature, strip_prefix)
@@ -127,7 +127,7 @@ def apply_logprobs_mean(
 
 def apply_logprobs_variance(
     logprobs: pd.DataFrame,
-    temperature: float,
+    temperature: float = 1.0,
     strip_prefix: str = "logprob_",
 ) -> pd.Series:
     masses = apply_softmax(logprobs, temperature, strip_prefix)
@@ -137,7 +137,7 @@ def apply_logprobs_variance(
 
 def apply_logprobs_std_dev(
     logprobs: pd.DataFrame,
-    temperature: float,
+    temperature: float = 1.0,
     strip_prefix: str = "logprob_",
 ) -> pd.Series:
     masses = apply_softmax(logprobs, temperature, strip_prefix)
