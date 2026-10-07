@@ -63,6 +63,7 @@ class SearchSpaceInitializer(Protocol):
         n_samples: int,
         n_features: int,
         random_state: int | None,
+        n_jobs: int,
     ) -> SearchSpace: ...
 
 
@@ -353,18 +354,6 @@ class TPOTManager:
             labels, counts = np.unique(y, return_counts=True)
         return labels, counts
 
-    def _init_search_space(self) -> str | SearchSpace:
-        if isinstance(self.search_space, (str, SearchSpace)):
-            return self.search_space
-        if self._x is None:
-            self._x = self._init_x()
-        return self.search_space(
-            n_classes=self._y_class_counts()[0].shape[0],
-            n_samples=self._x.shape[0],
-            n_features=self._x.shape[1],
-            random_state=self.evolution_params.random_state_,
-        )
-
     def _safe_cv(self) -> int:
         if self._y is None:
             self._y = self._init_y()
@@ -384,6 +373,19 @@ class TPOTManager:
             ), logging.WARNING)
             return max_cv
         return self.eval_params.cv
+
+    def _init_search_space(self) -> str | SearchSpace:
+        if isinstance(self.search_space, (str, SearchSpace)):
+            return self.search_space
+        if self._x is None:
+            self._x = self._init_x()
+        return self.search_space(
+            n_classes=self._y_class_counts()[0].shape[0],
+            n_samples=self._x.shape[0] // self._safe_cv(),
+            n_features=self._x.shape[1],
+            random_state=self.evolution_params.random_state_,
+            n_jobs=self.runtime_params.n_jobs,
+        )
 
     def _init_tpot(self) -> TPOTEstimator:
         if self._search_space is None:
