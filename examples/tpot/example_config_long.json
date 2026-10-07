@@ -9,12 +9,7 @@
                 "../example_data.csv"
             ]
         },
-        "col_filters": [
-            {
-                "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "^all-mpnet-base-v2"
-            }
-        ]
+        "columns": "^all-mpnet-base-v2"
     },
     "y": {
         "<PARTIAL>": "liger.dataset.data_from_csv",
@@ -24,12 +19,7 @@
                 "../example_data.csv"
             ]
         },
-        "col_filters": [
-            {
-                "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "^mean$"
-            }
-        ]
+        "columns": "^mean$"
     },
     "search_space": {
         "<PARTIAL>": "liger.config.parse_config",

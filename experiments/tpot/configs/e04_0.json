@@ -9,12 +9,7 @@
                 "data/sv_417_event_maria_lpd_b_1.csv"
             ]
         },
-        "col_filters": [
-            {
-                "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "all-mpnet-base-v2"
-            }
-        ]
+        "columns": "all-mpnet-base-v2"
     },
     "y": {
         "<PARTIAL>": "liger.dataset.data_from_csv",
@@ -24,12 +19,7 @@
                 "data/sv_417_event_maria_lpd_b_1.csv"
             ]
         },
-        "col_filters": [
-            {
-                "<INSTANCE>": "liger.dataset.ColumnsFilter",
-                "columns": "logprob_diff"
-            }
-        ]
+        "columns": "logprob_diff"
     },
     "search_space": {
         "<PARTIAL>": "liger.config.parse_config",
