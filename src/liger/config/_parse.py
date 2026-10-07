@@ -24,6 +24,12 @@ from liger.typing import LgConfigLike, is_lg_config_like, RawList, RawDict
 from ._constants import ConfigTag
 
 
+SIMPLE_EVAL_FUNCS = {
+    "min": lambda *x: min(*x),
+    "max": lambda *x: max(*x),
+}
+
+
 T = TypeVar("T")
 
 
@@ -116,7 +122,11 @@ class _ConfigParser:
 
     def _eval(self, config: Mapping[str, LgConfigLike]) -> Any:
         self._detect_multi_key(config, ConfigTag.EVAL)
-        return simple_eval(config[ConfigTag.EVAL], names=self.kwargs)
+        return simple_eval(
+            config[ConfigTag.EVAL],
+            functions=SIMPLE_EVAL_FUNCS,
+            names=self.kwargs,
+        )
 
     def _parse_config(self, config: LgConfigLike) -> Any:
         if not is_lg_config_like(config):
