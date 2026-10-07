@@ -38,7 +38,10 @@ class STEmbedder(BaseEmbedder):
         strings: str | MutableSequence[str] | pd.Series,
     ) -> pd.Series | pd.DataFrame:
         print("STEmbedder embedding...")
-        model_dims = self.model.get_embedding_dimension()
+        if hasattr(self.model, "get_embedding_dimension"):
+            model_dims = self.model.get_embedding_dimension()
+        else:
+            model_dims = self.model.get_sentence_embedding_dimension()
         if model_dims is None:
             raise ValueError("Model did not return number of embedding dimensions")
         cols = pd.Index(f"{self.model_str}_{dim}" for dim in range(model_dims))
