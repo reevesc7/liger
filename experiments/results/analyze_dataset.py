@@ -105,14 +105,16 @@ def training_sq_mode_dists_fig(
     probs: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    """Plot the expected squared distances to the mode of LLM response distributions, across means.
+    """Plot the expected squared distances to the mode of LLM response distributions,
+    across means.
     """
     return pl.scatter(
         data=[np.array((
             means,
             pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1),
         ))],
-        title=f"{dataset}: ChatGPT responses, expected squared distance to the mode by mean",
+        title=f"{dataset}: ChatGPT responses, "
+            "expected squared distance to the mode by mean",
         axis_labels=("mean", "sq_mode_dist"),
         trend_orders=[],
         plot_perfect=False,
