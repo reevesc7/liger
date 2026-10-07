@@ -180,9 +180,9 @@ class TPOTManager:
 
     def _load_fix_pop(self) -> Population | None:
         if not self.pop_path_.is_file():
-            self._log(f"No population file at {self.pop_path_!r}", logging.DEBUG)
+            self._log(f"No population file at {self.pop_path_}", logging.DEBUG)
             return None
-        self._log(f"Loading population from {self.pop_path_!r}", logging.DEBUG)
+        self._log(f"Loading population from {self.pop_path_}", logging.DEBUG)
         pop = dill.load(self.pop_path_.open("rb"))
         if not isinstance(pop, Population):
             raise TypeError(f"{self.pop_path_!r} does not contain a "
@@ -289,14 +289,14 @@ class TPOTManager:
         ))
 
     def _dump_pop(self, population: Population) -> None:
-        self._log(f"Dumping population to {self.pop_path_!r}", logging.DEBUG)
+        self._log(f"Dumping population to {self.pop_path_}", logging.DEBUG)
         dill.dump(population, self.pop_path_.open("wb"))
 
     def _load_indivs(self) -> pd.DataFrame | None:
         if not self.indivs_path_.is_file():
-            self._log(f"No individuals file at {self.indivs_path_!r}", logging.DEBUG)
+            self._log(f"No individuals file at {self.indivs_path_}", logging.DEBUG)
             return None
-        self._log(f"Loading individuals from {self.indivs_path_!r}", logging.DEBUG)
+        self._log(f"Loading individuals from {self.indivs_path_}", logging.DEBUG)
         return pd.read_csv(self.indivs_path_, index_col=self.ID_INDEX_NAME)
 
     def _init_state(self) -> None:
@@ -461,7 +461,7 @@ class TPOTManager:
         )
 
     def _dump_indivs(self, indivs: pd.DataFrame) -> None:
-        self._log(f"Dumping individuals to {self.indivs_path_!r}", logging.DEBUG)
+        self._log(f"Dumping individuals to {self.indivs_path_}", logging.DEBUG)
         self.output_dir_.mkdir(parents=True, exist_ok=True)
         indivs.drop("Individual", axis=1).rename_axis(
             self.ID_INDEX_NAME
@@ -474,7 +474,7 @@ class TPOTManager:
         if self.is_complete_:
             self._log("Run end conditions already met; aborting")
             return
-        self._log(f"Run output directory: {self.output_dir_!r}")
+        self._log(f"Run output directory: {self.output_dir_}")
         if self._tpot is None:
             self._tpot = self._init_tpot()
         if self._x is None:
