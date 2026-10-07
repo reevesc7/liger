@@ -39,7 +39,9 @@ Transformer = UnfittedTransformer | FittedTransformer
 @dataclass(slots=True)
 class ColumnsFilter:
     columns: str
-    transformer: Callable[[ArrayLike], ArrayLike] | Transformer | None = None
+    transformer: (
+        Callable[[pd.DataFrame], pd.Series | pd.DataFrame] | Transformer | None
+    ) = None
 
 
 def data_from_csv(
@@ -51,10 +53,7 @@ def data_from_csv(
     for col_filter in col_filters:
         frame = pd.read_csv(
             file_path,
-            usecols=lambda col: re.search(
-                col_filter.columns,
-                col,
-            ) is not None,
+            usecols=lambda col: re.search(col_filter.columns, col) is not None,
         )
         if isinstance(col_filter.transformer, UnfittedTransformer):
             frames.append(col_filter.transformer.transform(frame))
