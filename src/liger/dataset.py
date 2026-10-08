@@ -29,7 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 import re
 import pandas as pd
-from pandas.api.typing.aliases import UsecolsArgType
+from pandas._typing import UsecolsArgType
 
 
 @runtime_checkable
