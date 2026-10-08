@@ -18,18 +18,18 @@
 from typing import (
     Any,
     Callable,
+    Hashable,
     Iterable,
     Protocol,
     Sequence,
     TypedDict,
-    runtime_checkable
+    runtime_checkable,
 )
 import warnings
 from dataclasses import dataclass
 from pathlib import Path
 import re
 import pandas as pd
-from pandas._typing import UsecolsArgType
 
 
 @runtime_checkable
@@ -46,7 +46,7 @@ Transformer = Callable[..., Any] | UnfittedTransformer | FittedTransformer
 
 
 class DataFromCSVArgs(TypedDict):
-    columns: str | UsecolsArgType | None
+    columns: str | Sequence[Hashable] | None
     transformer: Transformer | None
 
 
@@ -67,7 +67,7 @@ def _old_data_from_csv(
     for col_filter in col_filters:
         frame = pd.read_csv(
             file_path,
-            usecols=lambda col: re.search(col_filter.columns, col) is not None,
+            usecols=lambda col: re.search(col_filter.columns, str(col)) is not None,
         )
         if isinstance(col_filter.transformer, UnfittedTransformer):
             frames.append(col_filter.transformer.transform(frame))
@@ -95,7 +95,7 @@ def transform_data(
 
 def extract_columns(
     data: pd.DataFrame,
-    columns: str | UsecolsArgType | None = None,
+    columns: str | Sequence[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     if columns is None:
@@ -103,7 +103,7 @@ def extract_columns(
     elif isinstance(columns, str):
         filtered = data.filter(regex=columns, axis=1)
     else:
-        filtered = data.filter(items=columns, axis=1)
+        filtered = data.filter(items=list(columns), axis=1)
     if transformer is None:
         return filtered
     return transform_data(filtered, transformer)
@@ -111,7 +111,7 @@ def extract_columns(
 
 def _new_data_from_csv(
     file_path: str | Path,
-    columns: str | UsecolsArgType | None = None,
+    columns: str | Sequence[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     file_path = Path(file_path)
@@ -120,10 +120,10 @@ def _new_data_from_csv(
     elif isinstance(columns, str):
         data = pd.read_csv(
             file_path,
-            usecols=lambda col: re.search(columns, col) is not None,
+            usecols=lambda col: re.search(columns, str(col)) is not None,
         )
     else:
-        data = pd.read_csv(file_path, usecols=columns)
+        data = pd.read_csv(file_path, usecols=list(columns))
     if transformer is None:
         return data
     return transform_data(data, transformer)
@@ -132,7 +132,7 @@ def _new_data_from_csv(
 def data_from_csv(
     file_path: str | Path,
     col_filters: Sequence[ColumnsFilter] | None = None,
-    columns: str | UsecolsArgType | None = None,
+    columns: str | Sequence[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     if col_filters is None:

@@ -39,6 +39,7 @@ all = [
 
 [dependency-groups]
 dev = [
+    "pandas-stubs (>=2.3.3,<4.0.0); python_version<'3.15'",
     "pytest>=9.1.1",
 ]
 
