@@ -60,6 +60,7 @@ class ColumnsFilter:
 
 def _old_data_from_csv(
     file_path: str | Path,
+    *,
     col_filters: Sequence[ColumnsFilter],
 ) -> pd.DataFrame:
     file_path = Path(file_path)
@@ -111,6 +112,7 @@ def extract_columns(
 
 def _new_data_from_csv(
     file_path: str | Path,
+    *,
     columns: str | Sequence[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
@@ -131,6 +133,7 @@ def _new_data_from_csv(
 
 def data_from_csv(
     file_path: str | Path,
+    *,
     col_filters: Sequence[ColumnsFilter] | None = None,
     columns: str | Sequence[Hashable] | None = None,
     transformer: Transformer | None = None,
