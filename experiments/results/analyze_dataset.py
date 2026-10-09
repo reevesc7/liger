@@ -1,74 +1,62 @@
+import sys
 from dataclasses import dataclass
-import argparse
 from pathlib import Path
-import json
+import tomllib
 import pandas as pd
 import numpy as np
 from numpy.typing import ArrayLike
 from matplotlib.figure import Figure
 from liger import plotting as pl
 from liger import dataset as ds
+from liger import transforms as ts
 
 
 @dataclass(slots=True)
 class Config:
-    output_dir: Path
     dataset: str
+    output_dir: Path
     dataset_file: Path
     softmax_temperature: float
     agreement_intervals: list[int]
 
-
-def init_argparser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        required=True,
-        help="config file path",
-    )
-    return parser
-
-
-def parse_args(parser: argparse.ArgumentParser) -> Path:
-    args = parser.parse_args()
-    return Path(args.config)
+    def __init__(
+        self,
+        cfg_path: Path,
+    ) -> None:
+        self.dataset = cfg_path.stem
+        self.output_dir = cfg_path.parent / self.dataset
+        parsed = tomllib.load(cfg_path.open("rb"))
+        self.dataset_file = Path(parsed["dataset_file"])
+        self.softmax_temperature = parsed["softmax_temperature"]
+        self.agreement_intervals = parsed["agreement_intervals"]
 
 
-def read_config(config_file: str | Path) -> Config:
-    with open(config_file, "r") as file:
-        cfg = json.load(file)
-    dataset_file=Path(cfg["dataset_file"])
-    return Config(
-        output_dir=Path(cfg["output_dir"]),
-        dataset=dataset_file.stem,
-        dataset_file=dataset_file,
-        softmax_temperature=cfg["softmax_temperature"],
-        agreement_intervals=cfg["agreement_intervals"],
-    )
-
-
-def load_dataset(cfg: Config) -> ds.Dataset:
-    return ds.Dataset.from_csv(
-        cfg.dataset_file,
-        None,
-        "logprob",
-        y_transformers=[
-            "liger.probabilities.apply_softmax",
-            "liger.probabilities.apply_logprobs_mode",
-            "liger.probabilities.apply_logprobs_mean",
-            "liger.probabilities.apply_logprobs_variance",
-            "liger.probabilities.apply_logprobs_std_dev",
-        ],
-        y_transformers_kwargs=[
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-            {"temperature": cfg.softmax_temperature},
-        ]
-    )
+def load_dataset(cfg: Config) -> pd.DataFrame:
+    columns = r"^logprob"
+    strip = "response_logprob_"
+    temp = cfg.softmax_temperature
+    return ds.multi_data_from_csv(cfg.dataset_file, (
+        {
+            "columns": columns,
+            "transformer": lambda d: ts.apply_softmax(d, temp, strip),
+        },
+        {
+            "columns": columns,
+            "transformer": lambda d: ts.apply_logprobs_mode(d, temp, strip),
+        },
+        {
+            "columns": columns,
+            "transformer": lambda d: ts.apply_logprobs_mean(d, temp, strip),
+        },
+        {
+            "columns": columns,
+            "transformer": lambda d: ts.apply_logprobs_variance(d, temp, strip),
+        },
+        {
+            "columns": columns,
+            "transformer": lambda d: ts.apply_logprobs_std_dev(d, temp, strip),
+        },
+    ))
 
 
 def training_variances_fig(
@@ -164,7 +152,11 @@ def _agreement(row: pd.Series, interval: int = 1) -> float:
     return sum(agreements)
 
 
-def _agreements(probs: pd.DataFrame, targets: pd.Series, interval: int = 1) -> pd.Series:
+def _agreements(
+    probs: pd.DataFrame,
+    targets: pd.Series,
+    interval: int = 1,
+) -> pd.Series:
     data = pd.concat((targets, probs), axis=1)
     return pd.Series(data.apply(lambda row: _agreement(row, interval), axis=1))
 
@@ -180,7 +172,8 @@ def training_mean_agreement_fig(
     rounded_means = pd.Series(means.apply(lambda row: round(row)))
     return pl.scatter(
         data=[np.array((means, _agreements(probs, rounded_means, interval)))],
-        title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mean by mean",
+        title=f"{dataset}: ChatGPT responses, interval "
+            f"{interval} agreement with mean by mean",
         axis_labels=("mean", "agreement"),
         trend_orders=[],
         plot_perfect=False,
@@ -226,7 +219,9 @@ def training_sq_mode_dists_mode_fig(
     probs: pd.DataFrame,
     dataset: str,
 ) -> Figure:
-    mode_dists = pd.Series(pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1))
+    mode_dists = pd.Series(
+        pd.concat((modes, probs), axis=1).apply(_sq_mode_dist, axis=1)
+    )
     mode_dist_stats = _mean_sem_of_groups(mode_dists, modes)
     return pl.bar(
         data=[np.array((
@@ -234,7 +229,8 @@ def training_sq_mode_dists_mode_fig(
             mode_dist_stats["mean"],
             mode_dist_stats["sem"],
         ))],
-        title=f"{dataset}: ChatGPT responses, expected squared distance to mode by mode",
+        title=f"{dataset}: ChatGPT responses, "
+            "expected squared distance to mode by mode",
         axis_labels=("ChatGPT mode", "mean of expected squared distance to mode (SEM)"),
     )
 
@@ -270,7 +266,8 @@ def training_mode_agreement_mode_fig(
             agreement_stats["mean"],
             agreement_stats["sem"],
         ))],
-        title=f"{dataset}: ChatGPT responses, interval {interval} agreement with mode by mode",
+        title=f"{dataset}: ChatGPT responses, "
+            f"interval {interval} agreement with mode by mode",
         axis_labels=("ChatGPT mode", "mean of means (SEM)"),
     )
 
@@ -287,67 +284,65 @@ def training_n_mode_fig(
     )
 
 
-def make_plots(cfg: Config, dataset: ds.Dataset):
+def make_plots(cfg: Config, dataset: pd.DataFrame):
     training_variances_fig(
-        dataset.y["mean"],
-        dataset.y["variance"],
+        dataset["mean"],
+        dataset["variance"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "00_training_variances")
     training_sq_mode_dists_fig(
-        dataset.y["mean"],
-        dataset.y.loc[:, "mode"],
-        dataset.y.filter(like="prob"),
+        dataset["mean"],
+        dataset.loc[:, "mode"],
+        dataset.filter(like="prob"),
         cfg.dataset,
     ).savefig(cfg.output_dir / "01_training_sq_mode_dists")
     training_mode_fig(
-        dataset.y["mean"],
-        dataset.y["mode"],
+        dataset["mean"],
+        dataset["mode"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "02_training_modes")
     # training_confidence_fig(
-    #     dataset.y["mean"],
-    #     dataset.y["std_dev"],
+    #     dataset["mean"],
+    #     dataset["std_dev"],
     #     cfg.dataset,
     # ).savefig(cfg.output_dir / "02_training_confidences")
     for interval in cfg.agreement_intervals:
         training_mean_agreement_fig(
-            pd.Series(dataset.y["mean"]),
-            dataset.y.filter(like="prob"),
+            pd.Series(dataset["mean"]),
+            dataset.filter(like="prob"),
             interval,
             cfg.dataset,
         ).savefig(cfg.output_dir / f"03_training_mean_agreements_{interval}")
     training_variances_mode_fig(
-        dataset.y["mode"],
-        dataset.y.loc[:, "variance"],
+        dataset["mode"],
+        dataset.loc[:, "variance"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "10_training_variances_mode")
     training_sq_mode_dists_mode_fig(
-        dataset.y.loc[:, "mode"],
-        dataset.y.filter(like="prob"),
+        dataset.loc[:, "mode"],
+        dataset.filter(like="prob"),
         cfg.dataset,
     ).savefig(cfg.output_dir / "11_training_sq_mode_dists_mode")
     training_means_mode_fig(
-        dataset.y["mode"],
-        dataset.y.loc[:, "mean"],
+        dataset["mode"],
+        dataset.loc[:, "mean"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "12_training_means_mode")
     for interval in cfg.agreement_intervals:
         training_mode_agreement_mode_fig(
-            dataset.y.loc[:, "mode"],
-            dataset.y.filter(like="prob"),
+            dataset.loc[:, "mode"],
+            dataset.filter(like="prob"),
             interval,
             cfg.dataset,
         ).savefig(cfg.output_dir / f"13_training_mode_agreements_{interval}")
     training_n_mode_fig(
-        dataset.y.loc[:, "mode"],
+        dataset.loc[:, "mode"],
         cfg.dataset,
     ).savefig(cfg.output_dir / "14_training_mode_ns")
 
 
 def main():
-    arparser = init_argparser()
-    cfg_file = parse_args(arparser)
-    cfg = read_config(cfg_file)
+    cfg = Config(Path(sys.argv[1]))
     cfg.output_dir.mkdir(parents=True, exist_ok=True)
     dataset = load_dataset(cfg)
     make_plots(cfg, dataset)
@@ -355,4 +350,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
