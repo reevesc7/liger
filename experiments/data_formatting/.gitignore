@@ -12,6 +12,7 @@
 
 # Config
 *.json
+*.toml
 !/example_formatting_config.json
 !/example_prompt_config.json
 
