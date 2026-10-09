@@ -8,8 +8,7 @@ from liger.run import tpot
 from liger.tpot import TPOTManager
 
 
-PROJ_ROOT = Path(__file__).parents[3]
-EG_DIR = PROJ_ROOT / "examples/tpot"
+TPOT_DIR = "tpot"
 EG_CONFIG_NAME = "example_config_short.json"
 EG_SLURM_PROFILE_NAME = "example_slurm_profile.sh"
 POPULATION_NAME = "population.pkl"
@@ -18,17 +17,19 @@ SLURM_RUN_STATES = {"PENDING", "RUNNING"}
 SLURM_FAIL_STATES = {"FAILED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL"}
 
 
-os.chdir(EG_DIR)
-
-
 class SlurmChainState(IntEnum):
     RUNNING = auto()
     COMPLETE = auto()
     FAILED = auto()
 
 
-def test_local(tmp_path: Path) -> None:
-    output_dir = tpot.init_tpot_dir(EG_CONFIG_NAME, output_dir=tmp_path)
+def test_local(tmp_path: Path, examples_dir: Path) -> None:
+    os.chdir(examples_dir / TPOT_DIR)
+    print(examples_dir)
+    output_dir = tpot.init_tpot_dir(
+        config_path=examples_dir / TPOT_DIR / EG_CONFIG_NAME,
+        output_dir=tmp_path,
+    )
     assert (output_dir / tpot.CONFIG_NAME).is_file()
     assert (output_dir / tpot.PARAMS_NAME).is_file()
     complete = tpot.run_local_segment(output_dir)
@@ -67,10 +68,11 @@ def _slurm_chain_state(dir: Path) -> SlurmChainState:
 
 
 @pytest.mark.slurm
-def test_slurm(tmp_path: Path) -> None:
+def test_slurm(tmp_path: Path, examples_dir: Path) -> None:
+    os.chdir(examples_dir / TPOT_DIR)
     output_dir = tpot.init_tpot_dir(
-        EG_CONFIG_NAME,
-        slurm_profile_path=EG_SLURM_PROFILE_NAME,
+        config_path=examples_dir / TPOT_DIR / EG_CONFIG_NAME,
+        slurm_profile_path=examples_dir / TPOT_DIR / EG_SLURM_PROFILE_NAME,
         output_dir=tmp_path,
     )
     assert (output_dir / tpot.CONFIG_NAME).is_file()

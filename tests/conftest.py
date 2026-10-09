@@ -3,6 +3,7 @@ from pytest import Config, Item
 import os
 import shutil
 import subprocess
+from pathlib import Path
 
 
 # pyright: reportUnusedParameter=false
@@ -15,6 +16,10 @@ SLURM_CMDS = [
     "squeue",
     "srun",
 ]
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TESTS_DIR = "tests"
+EXAMPLES_DIR = "examples"
+EXAMPLE_DATA_NAME = "example_data.csv"
 
 
 def _slurm_available() -> bool:
@@ -42,3 +47,23 @@ def _handle_slurm_skip(items: list[Item]) -> None:
 
 def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:
     _handle_slurm_skip(items)
+
+
+@pytest.fixture(scope="session")
+def project_root() -> Path:
+    return PROJECT_ROOT
+
+
+@pytest.fixture(scope="session")
+def tests_dir() -> Path:
+    return PROJECT_ROOT / TESTS_DIR
+
+
+@pytest.fixture(scope="session")
+def examples_dir() -> Path:
+    return PROJECT_ROOT / EXAMPLES_DIR
+
+
+@pytest.fixture(scope="session")
+def example_data_file() -> Path:
+    return PROJECT_ROOT / EXAMPLES_DIR / EXAMPLE_DATA_NAME
