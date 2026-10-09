@@ -1,4 +1,5 @@
 import pytest
+from pytest import MonkeyPatch
 import os
 from enum import IntEnum, auto
 import subprocess
@@ -23,8 +24,8 @@ class SlurmChainState(IntEnum):
     FAILED = auto()
 
 
-def test_local(tmp_path: Path, examples_dir: Path) -> None:
-    os.chdir(examples_dir / TPOT_DIR)
+def test_local(monkeypatch: MonkeyPatch, tmp_path: Path, examples_dir: Path) -> None:
+    monkeypatch.chdir(examples_dir / TPOT_DIR)
     print(examples_dir)
     output_dir = tpot.init_tpot_dir(
         config_path=examples_dir / TPOT_DIR / EG_CONFIG_NAME,
@@ -68,8 +69,8 @@ def _slurm_chain_state(dir: Path) -> SlurmChainState:
 
 
 @pytest.mark.slurm
-def test_slurm(tmp_path: Path, examples_dir: Path) -> None:
-    os.chdir(examples_dir / TPOT_DIR)
+def test_slurm(monkeypatch: MonkeyPatch, tmp_path: Path, examples_dir: Path) -> None:
+    monkeypatch.chdir(examples_dir / TPOT_DIR)
     output_dir = tpot.init_tpot_dir(
         config_path=examples_dir / TPOT_DIR / EG_CONFIG_NAME,
         slurm_profile_path=examples_dir / TPOT_DIR / EG_SLURM_PROFILE_NAME,
