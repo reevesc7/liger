@@ -1,15 +1,10 @@
-from typing import TypedDict
 import sys
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 import tomllib
-import re
 import pandas as pd
-
-
-class CSVColumn(TypedDict):
-    path: str
-    column: str | None
+from liger import dataset as ds
 
 
 @dataclass(slots=True)
@@ -19,26 +14,19 @@ class Config:
     data: pd.DataFrame
 
     def __init__(self, cfg_path: Path) -> None:
-        self.cfg_dir = cfg_path.parent
         self.result_path = cfg_path.with_suffix(".csv")
         parsed = tomllib.load(cfg_path.open("rb"))
         self.data = pd.concat(
-            (self._read_columns(**col) for col in parsed["columns"]),
+            (ds.data_from_csv(**columns) for columns in parsed["data"]),
             axis=1,
-        )
-
-    def _read_columns(self, path: str, column: str | None = None) -> pd.DataFrame:
-        if column is None:
-            return pd.read_csv(self.cfg_dir / path).iloc[:, 0]
-        return pd.read_csv(
-            self.cfg_dir / path,
-            usecols=lambda col: re.search(column, col) is not None,
         )
 
 
 def main():
-    cfg = Config(Path(sys.argv[1]))
-    cfg.data.to_csv(cfg.result_path, index=False)
+    cfg_path = Path(sys.argv[1])
+    with contextlib.chdir(cfg_path.parent):
+        cfg = Config(Path(cfg_path.name))
+        cfg.data.to_csv(cfg.result_path, index=False)
 
 
 if __name__ == "__main__":

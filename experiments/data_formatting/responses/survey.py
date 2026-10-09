@@ -1,19 +1,18 @@
 from typing import Literal, NotRequired, TypedDict
 import sys
+import contextlib
 from dataclasses import dataclass
 from pathlib import Path
 import tomllib
 import pandas as pd
 from openai import OpenAI
-
-
-DIR = Path(__file__).parent.resolve()
+from liger import dataset as ds
 
 
 class TextConfig(TypedDict):
     type: Literal["text"]
     temperature: float
-    column: str
+    result_column: str
 
 
 class LogprobsConfig(TypedDict):
@@ -22,61 +21,45 @@ class LogprobsConfig(TypedDict):
     floor_margin: NotRequired[float]
 
 
-class CSVColumn(TypedDict):
-    path: str
-    column: str | None
-
-
 class ConfigMessage(TypedDict):
     role: str
-    content: str | CSVColumn
+    content: str | dict
 
 
 @dataclass(slots=True)
 class Config:
-    key_path: str
+    result_path: Path
+    api_key: str
     model: str
-    result_path: str
     messages: pd.DataFrame
     response: TextConfig | LogprobsConfig
 
-    def __init__(
-        self,
-        key_path: str,
-        model: str,
-        result_path: str,
-        messages: list[ConfigMessage],
-        response: TextConfig | LogprobsConfig,
-    ) -> None:
-        self.key_path = key_path
-        self.model = model
-        self.result_path = result_path
-        self.response = response
+    def __init__(self, cfg_path: Path) -> None:
+        self.result_path = cfg_path.with_suffix(".csv")
+        parsed = tomllib.load(cfg_path.open("rb"))
+        self.api_key = Path(parsed["key_path"]).read_text().strip()
+        self.model = parsed["model"]
+        self.messages = self._init_messages(parsed["messages"])
+        self.response = parsed["response"]
+
+    @staticmethod
+    def _init_messages(messages: list[ConfigMessage]) -> pd.DataFrame:
         contents: list[dict[str, str] | pd.Series] = []
         for message in messages:
             content = message["content"]
             if isinstance(content, str):
                 contents.append({"role": message["role"], "content": content})
                 continue
-            contents.append(pd.Series(self._read_column(**content).apply(
+            contents.append(ds.data_from_csv(**content).iloc[:, 0].apply(
                 lambda el: {"role": message["role"], "content": el}
-            )))
+            ))
         n_rows = max(col.size if isinstance(col, pd.Series) else 1 for col in contents)
         full_contents = [
             col if isinstance(col, pd.Series) else [col] * n_rows for col in contents
         ]
-        self.messages = pd.DataFrame(
+        return pd.DataFrame(
             {col: content for col, content in enumerate(full_contents)}
         )
-
-    @staticmethod
-    def _read_column(path: str, column: str | None = None) -> pd.Series:
-        if column is None:
-            return pd.Series(pd.read_csv(DIR / path).iloc[:, 0])
-        return pd.Series(pd.read_csv(
-            DIR / path,
-            usecols=lambda col: col == column,
-        )[column])
 
 
 def _response(
@@ -125,18 +108,20 @@ def _response(
 
 
 def main():
-    cfg = Config(**tomllib.load(Path(sys.argv[1]).open("rb")))
-    client = OpenAI(api_key=(DIR / cfg.key_path).read_text().strip())
-    responses = pd.DataFrame(
-        cfg.messages.apply(
-            lambda row: _response(cfg, client, row),
-            result_type="expand",
-            axis=1,
+    cfg_path = Path(sys.argv[1])
+    with contextlib.chdir(cfg_path.parent):
+        cfg = Config(Path(cfg_path.name))
+        client = OpenAI(api_key=cfg.api_key)
+        responses = pd.DataFrame(
+            cfg.messages.apply(
+                lambda row: _response(cfg, client, row),
+                result_type="expand",
+                axis=1,
+            )
         )
-    )
-    if cfg.response["type"] == "text":
-        responses.columns = [cfg.response["column"]]
-    responses.to_csv(DIR / cfg.result_path, index=False)
+        if cfg.response["type"] == "text":
+            responses.columns = [cfg.response["result_column"]]
+        responses.to_csv(cfg.result_path, index=False)
 
 
 if __name__ == "__main__":
