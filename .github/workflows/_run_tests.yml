@@ -15,4 +15,4 @@ jobs:
           enable-cache: true
           python-version: ${{ inputs.python-version }}
       - run: uv sync ${{ inputs.uv-opts }}
-      - run: uv run pytest
+      - run: uv run --no-sync pytest
