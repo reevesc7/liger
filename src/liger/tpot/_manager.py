@@ -199,7 +199,7 @@ class TPOTManager:
                 self.pop_path_.unlink()
                 self.indivs_path_.unlink(missing_ok=True)
                 return None
-            indivs = pd.DataFrame(indivs.loc[~last_gen_mask])
+            indivs = indivs.loc[~last_gen_mask]
             pop.population = pop.population[:indivs.shape[0]]
         pop.evaluated_individuals = indivs
         return pop
@@ -223,12 +223,10 @@ class TPOTManager:
         if self.end_params.total_time is None:
             return False
         generations = indivs.groupby("Generation")
-        gens_elapsed_time = pd.Series(pd.Series(
-            generations["Completed Timestamp"].max()
-        ) - pd.Series(
-            generations["Submitted Timestamp"].min()
-        ))
-        elapsed_time: np.float64 = gens_elapsed_time.sum()
+        gens_starts = generations["Submitted Timestamp"].min()
+        gens_ends = generations["Completed Timestamp"].max()
+        gens_elapsed_times = gens_ends - gens_starts
+        elapsed_time = gens_elapsed_times.sum()
         if elapsed_time < 60.0 * self.end_params.total_time:
             return False
         self._log((
@@ -247,8 +245,8 @@ class TPOTManager:
         # TPOT checks that the budget is at max before evaluating early stop.
         # Max budget is generally reached on the generation specified in end_budget,
         # TPOT checks whether the maximum scores across all previously
-        # evaluated individuals increased from those of the last generation.
-        # TPOT counts how many generations have not improved over each previous.
+        # evaluated individuals was increased by the scores of the last generation.
+        # TPOT counts how many generations have failed to make an improvement.
         if self.end_params.early_stop is None:
             return False
         complete_gens = self._complete_gens(indivs)
@@ -259,10 +257,11 @@ class TPOTManager:
                 + self.end_params.early_stop - 1
         ):
             return False
-        great_scores = pd.DataFrame(pd.DataFrame(
-            indivs.set_index("Generation").iloc[:, :len(self._objectives.signs_)]
-        ) * self._objectives.signs_)
-        gens_best_scores = great_scores.groupby("Generation").max()
+        greater_is_better_scores = indivs.set_index("Generation").iloc[
+            :,
+            :len(self._objectives.signs_),
+        ] * self._objectives.signs_
+        gens_best_scores = greater_is_better_scores.groupby("Generation").max()
         cum_gens_best_scores = np.maximum.accumulate(
             gens_best_scores
         )[-self.end_params.early_stop - 1:]
