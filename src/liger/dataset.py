@@ -139,7 +139,7 @@ def data_from_csv(
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     if col_filters is None:
-        return _new_data_from_csv(file_path, columns, transformer)
+        return _new_data_from_csv(file_path, columns=columns, transformer=transformer)
     if columns is not None or transformer is not None:
         raise ValueError("Received old-typical and new-typical arguments; "
             "Prefer supplying only arguments 'columns' and/or 'transformer'.")
@@ -149,7 +149,7 @@ def data_from_csv(
             "use arguments 'columns' and/or 'transformer'",
         DeprecationWarning,
     )
-    return _old_data_from_csv(file_path, col_filters)
+    return _old_data_from_csv(file_path, col_filters=col_filters)
 
 
 def multi_data_from_csv(
