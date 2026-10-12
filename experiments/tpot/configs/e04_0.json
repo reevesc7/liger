@@ -78,7 +78,7 @@
                                         "<INSTANCE>": "ConfigSpace.Float",
                                         "name": "max_samples",
                                         "bounds": [
-                                            0.1,
+                                            0.2,
                                             1.0
                                         ]
                                     },
@@ -183,7 +183,7 @@
                                                     "bounds": [
                                                         1,
                                                         {
-                                                            "<EVAL>": "min(100, n_samples)"
+                                                            "<EVAL>": "min(80, n_samples)"
                                                         }
                                                     ]
                                                 },
@@ -327,7 +327,6 @@
                                         "<INSTANCE>": "ConfigSpace.Categorical",
                                         "name": "kernel",
                                         "items": [
-                                            "linear",
                                             "poly",
                                             "rbf",
                                             "laplacian",
@@ -360,6 +359,40 @@
                                         ]
                                     }
                                 }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                            "method": {
+                                "<OBJECT>": "sklearn.linear_model.RidgeCV"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "alphas": {
+                                        "<INSTANCE>": "ConfigSpace.Categorical",
+                                        "name": "alphas",
+                                        "items": [
+                                            [
+                                                1.0e-3,
+                                                1.0e-2,
+                                                1.0e-1,
+                                                1.0,
+                                                1.0e1,
+                                                1.0e2,
+                                                1.0e3,
+                                                1.0e4
+                                            ]
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "ElasticNet",
+                            "random_state": {
+                                "<EVAL>": "random_state"
                             }
                         },
                         {
@@ -469,6 +502,13 @@
                                         "<EVAL>": "n_jobs"
                                     }
                                 }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.config.get_search_space",
+                            "name": "MLPRegressor",
+                            "random_state": {
+                                "<EVAL>": "random_state"
                             }
                         },
                         {
@@ -583,7 +623,9 @@
                                         "name": "n_components",
                                         "bounds": [
                                             1,
-                                            200
+                                            {
+                                                "<EVAL>": "min(200, n_features)"
+                                            }
                                         ]
                                     },
                                     "algorithm": {
@@ -635,22 +677,21 @@
                                         "<INSTANCE>": "ConfigSpace.Categorical",
                                         "name": "kernel",
                                         "items": [
-                                            "rbf",
-                                            "cosine",
-                                            "laplacian",
-                                            "polynomial",
-                                            "poly",
                                             "linear",
-                                            "sigmoid"
+                                            "poly",
+                                            "rbf",
+                                            "laplacian",
+                                            "cosine"
                                         ]
                                     },
                                     "gamma": {
                                         "<INSTANCE>": "ConfigSpace.Float",
                                         "name": "gamma",
                                         "bounds": [
-                                            0.0,
-                                            1.0
-                                        ]
+                                            1.0e-5,
+                                            10.0
+                                        ],
+                                        "log": true
                                     },
                                     "n_components": {
                                         "<INSTANCE>": "ConfigSpace.Integer",
