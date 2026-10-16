@@ -75,7 +75,7 @@ search_parent_directories = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-v --tb=short"
+addopts = ["-v", "--tb=short", "--import-mode=importlib"]
 markers = [
     "slurm: requires Slurm or vslurm to be within scope and active",
 ]
