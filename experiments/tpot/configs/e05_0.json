@@ -400,136 +400,159 @@
                                 }
                             },
                             "estimator_search_space": {
-                                "<INSTANCE>": "tpot.search_spaces.pipelines.ChoicePipeline",
-                                "search_spaces": [
-                                    {
-                                        "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
-                                        "method": {
-                                            "<OBJECT>": "sklearn.linear_model.BayesianRidge"
+                                "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                                "method": {
+                                    "<OBJECT>": "sklearn.linear_model.BayesianRidge"
+                                },
+                                "space": {
+                                    "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                    "space": {
+                                        "alpha_1": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "alpha_1",
+                                            "bounds": [
+                                                1.0e-6,
+                                                1.0e-3
+                                            ],
+                                            "log": true
                                         },
-                                        "space": {
-                                            "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
-                                            "space": {
-                                                "alpha_1": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "alpha_1",
-                                                    "bounds": [
-                                                        1.0e-6,
-                                                        1.0e-3
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "alpha_2": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "alpha_2",
-                                                    "bounds": [
-                                                        1.0e-6,
-                                                        1.0e-3
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "lambda_1": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "lambda_1",
-                                                    "bounds": [
-                                                        1.0e-6,
-                                                        1.0e-3
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "lambda_2": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "lambda_2",
-                                                    "bounds": [
-                                                        1.0e-6,
-                                                        1.0e-3
-                                                    ],
-                                                    "log": true
-                                                }
-                                            }
-                                        }
-                                    },
-                                    {
-                                        "<INSTANCE>": "tpot.config.get_search_space",
-                                        "name": "LinearSVR",
-                                        "random_state": {
-                                            "<EVAL>": "random_state"
-                                        }
-                                    },
-                                    {
-                                        "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
-                                        "method": {
-                                            "<OBJECT>": "sklearn.svm.SVR"
+                                        "alpha_2": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "alpha_2",
+                                            "bounds": [
+                                                1.0e-6,
+                                                1.0e-3
+                                            ],
+                                            "log": true
                                         },
-                                        "space": {
-                                            "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
-                                            "space": {
-                                                "kernel": {
-                                                    "<INSTANCE>": "ConfigSpace.Categorical",
-                                                    "name": "kernel",
-                                                    "items": [
-                                                        "linear",
-                                                        "poly",
-                                                        "rbf"
-                                                    ]
-                                                },
-                                                "degree": {
-                                                    "<INSTANCE>": "ConfigSpace.Integer",
-                                                    "name": "degree",
-                                                    "bounds": [
-                                                        1,
-                                                        5
-                                                    ]
-                                                },
-                                                "gamma": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "gamma",
-                                                    "bounds": [
-                                                        1.0e-5,
-                                                        10.0
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "coef0": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "coef0",
-                                                    "bounds": [
-                                                        -1.0,
-                                                        1.0
-                                                    ]
-                                                },
-                                                "tol": 0.005,
-                                                "C": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "C",
-                                                    "bounds": [
-                                                        0.01,
-                                                        1.0e5
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "epsilon": {
-                                                    "<INSTANCE>": "ConfigSpace.Float",
-                                                    "name": "epsilon",
-                                                    "bounds": [
-                                                        1.0e-4,
-                                                        1.0
-                                                    ],
-                                                    "log": true
-                                                },
-                                                "shrinking": {
-                                                    "<INSTANCE>": "ConfigSpace.Categorical",
-                                                    "name": "shrinking",
-                                                    "items": [
-                                                        true,
-                                                        false
-                                                    ]
-                                                },
-                                                "max_iter": 3000
-                                            }
+                                        "lambda_1": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "lambda_1",
+                                            "bounds": [
+                                                1.0e-6,
+                                                1.0e-3
+                                            ],
+                                            "log": true
+                                        },
+                                        "lambda_2": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "lambda_2",
+                                            "bounds": [
+                                                1.0e-6,
+                                                1.0e-3
+                                            ],
+                                            "log": true
                                         }
                                     }
-                                ]
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.pipelines.WrapperPipeline",
+                            "method": {
+                                "<OBJECT>": "sklearn.multioutput.MultiOutputRegressor"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_jobs": {
+                                        "<EVAL>": "n_jobs"
+                                    }
+                                }
+                            },
+                            "estimator_search_space": {
+                                "<INSTANCE>": "tpot.config.get_search_space",
+                                "name": "LinearSVR",
+                                "random_state": {
+                                    "<EVAL>": "random_state"
+                                }
+                            }
+                        },
+                        {
+                            "<INSTANCE>": "tpot.search_spaces.pipelines.WrapperPipeline",
+                            "method": {
+                                "<OBJECT>": "sklearn.multioutput.MultiOutputRegressor"
+                            },
+                            "space": {
+                                "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                "space": {
+                                    "n_jobs": {
+                                        "<EVAL>": "n_jobs"
+                                    }
+                                }
+                            },
+                            "estimator_search_space": {
+                                "<INSTANCE>": "tpot.search_spaces.nodes.EstimatorNode",
+                                "method": {
+                                    "<OBJECT>": "sklearn.svm.SVR"
+                                },
+                                "space": {
+                                    "<INSTANCE>": "ConfigSpace.ConfigurationSpace",
+                                    "space": {
+                                        "kernel": {
+                                            "<INSTANCE>": "ConfigSpace.Categorical",
+                                            "name": "kernel",
+                                            "items": [
+                                                "linear",
+                                                "poly",
+                                                "rbf"
+                                            ]
+                                        },
+                                        "degree": {
+                                            "<INSTANCE>": "ConfigSpace.Integer",
+                                            "name": "degree",
+                                            "bounds": [
+                                                1,
+                                                5
+                                            ]
+                                        },
+                                        "gamma": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "gamma",
+                                            "bounds": [
+                                                1.0e-5,
+                                                10.0
+                                            ],
+                                            "log": true
+                                        },
+                                        "coef0": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "coef0",
+                                            "bounds": [
+                                                -1.0,
+                                                1.0
+                                            ]
+                                        },
+                                        "tol": 0.005,
+                                        "C": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "C",
+                                            "bounds": [
+                                                0.01,
+                                                1.0e5
+                                            ],
+                                            "log": true
+                                        },
+                                        "epsilon": {
+                                            "<INSTANCE>": "ConfigSpace.Float",
+                                            "name": "epsilon",
+                                            "bounds": [
+                                                1.0e-4,
+                                                1.0
+                                            ],
+                                            "log": true
+                                        },
+                                        "shrinking": {
+                                            "<INSTANCE>": "ConfigSpace.Categorical",
+                                            "name": "shrinking",
+                                            "items": [
+                                                true,
+                                                false
+                                            ]
+                                        },
+                                        "max_iter": 3000
+                                    }
+                                }
                             }
                         },
                         {
