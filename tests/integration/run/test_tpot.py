@@ -1,6 +1,9 @@
 import pytest
+
+pytest.importorskip("dill", reason="dill not installed")
+pytest.importorskip("tpot", reason="tpot not installed")
+
 from pytest import MonkeyPatch
-import os
 from enum import IntEnum, auto
 import subprocess
 import time
