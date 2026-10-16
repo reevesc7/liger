@@ -58,5 +58,5 @@ def pareto_knee(
     extremes = pareto_array[extreme_indices]
     hyperplane = Hyperplane.from_points(extremes)
     distances = hyperplane.distances(pareto_scores)
-    knee = pd.Series(pareto_scores.iloc[np.abs(distances).argmax()])
+    knee = pareto_scores.iloc[np.abs(distances).argmax()]
     return knee
