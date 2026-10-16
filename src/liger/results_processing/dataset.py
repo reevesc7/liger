@@ -20,17 +20,26 @@ from numpy.typing import ArrayLike
 import pandas as pd
 
 
-def _projection_coeff(vector: ArrayLike, target: ArrayLike) -> float:
-    target = np.asarray(target)
-    vector = np.asarray(vector)
-    return np.dot(vector, target) / np.dot(target, target)
-
-
-def _rejection(vector: ArrayLike, target: ArrayLike) -> float:
-    target = np.asarray(target)
-    vector = np.asarray(vector)
-    projection = _projection_coeff(vector, target) * target
-    return float(np.linalg.norm(vector - projection))
+def linear_fit_array(
+    data: ArrayLike,
+    point1: ArrayLike,
+    point2: ArrayLike,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Squash the data onto a line segment between two points
+    and report the proportional distance of each point along
+    the line segment (alpha) and the distance of each
+    point from the line segment (deviation).
+    #
+    ...
+    """
+    data = np.asarray(data, dtype=float)
+    point1 = np.asarray(point1, dtype=float)
+    target = np.asarray(point2, dtype=float) - point1
+    vectors = data - point1
+    alphas = (vectors @ target) / (target @ target)
+    residuals = vectors - alphas[..., None] * target
+    deviations = np.linalg.norm(residuals, axis=-1)
+    return alphas, deviations
 
 
 def linear_fit(
@@ -45,13 +54,8 @@ def linear_fit(
     #
     ...
     """
-    point1 = np.asarray(point1)
-    point2 = np.asarray(point2)
-    target = point2 - point1
-    return pd.DataFrame(data.apply(
-        lambda row: pd.Series((
-            _projection_coeff(row - point1, target),
-            _rejection(row - point1, target)
-        ), index=pd.Index(("alpha", "deviation"))),
-        axis=1,
-    ))
+    alphas, deviations = linear_fit_array(data.to_numpy(), point1, point2)
+    return pd.DataFrame(
+        {"alpha": alphas, "deviation": deviations},
+        index=data.index,
+    )
