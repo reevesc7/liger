@@ -21,56 +21,45 @@ from liger.results_processing.tpot.results import TPOTResults
 
 
 class TPOTDemographics(TPOTResults):
+    RUN_GEN_IND = ["run_id", "Generation", "individual_id"]
+    RUN_GEN_IND_METHOD = RUN_GEN_IND + ["method"]
+
     @cached_property
     def n_nodes(self) -> pd.Series:
-        return pd.Series(
-            self.nodes.groupby(["run_id", "Generation", "individual_id"]).size(),
-            name="n_nodes",
-        )
+        n_nodes = self.nodes.groupby(self.RUN_GEN_IND).size()
+        n_nodes.name = "n_nodes"
+        return n_nodes
 
     @cached_property
     def leaves(self) -> pd.DataFrame:
-        return pd.DataFrame(self.nodes.loc[self.edges.loc[self.edges.isna()].index])
+        return self.nodes.loc[self.edges.loc[self.edges.isna()].index]
 
     @cached_property
     def n_leaves(self) -> pd.Series:
-        return pd.Series(self.leaves.groupby([
-            "run_id",
-            "Generation",
-            "individual_id",
-        ]).size())
+        n_leaves = self.leaves.groupby(self.RUN_GEN_IND).size()
+        n_leaves.name = "n_leaves"
+        return n_leaves
 
     @cached_property
     def n_branches(self) -> pd.Series:
-        return pd.Series(
-            self.edges.groupby([
-                "run_id",
-                "Generation",
-                "individual_id",
-            ]).size() - self.n_nodes,
-            name="n_branches",
-        )
+        n_branches = self.edges.groupby(self.RUN_GEN_IND).size() - self.n_nodes
+        n_branches.name = "n_branches"
+        return n_branches
 
     @cached_property
     def n_nodes_of_method(self) -> pd.Series:
-        return pd.Series(self.nodes.groupby([
-            "run_id",
-            "Generation",
-            "individual_id",
-            "method",
-        ]).size(), name="n_nodes_of_method")
+        n_nodes_of_method = self.nodes.groupby(self.RUN_GEN_IND_METHOD).size()
+        n_nodes_of_method.name = "n_nodes_of_method"
+        return n_nodes_of_method
 
     @cached_property
     def n_leaves_of_method(self) -> pd.Series:
-        return pd.Series(self.leaves.groupby([
-            "run_id",
-            "Generation",
-            "individual_id",
-            "method",
-        ]).size(), name="n_leaves_of_method")
+        n_leaves_of_method = self.leaves.groupby(self.RUN_GEN_IND_METHOD).size()
+        n_leaves_of_method.name = "n_leaves_of_method"
+        return n_leaves_of_method
 
     @cached_property
     def root_methods(self) -> pd.Series:
-        return pd.Series(
-            self.nodes["method"],
-        ).groupby(["run_id", "Generation", "individual_id"]).first().rename("root_node")
+        root_methods = self.nodes["method"].groupby(self.RUN_GEN_IND).first()
+        root_methods.name = "root_node"
+        return root_methods

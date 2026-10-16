@@ -18,6 +18,7 @@
 from typing import Any
 import warnings
 from functools import cached_property
+from pathlib import Path
 import pandas as pd
 from liger.results_processing.json_cache import JSONCache
 
@@ -28,12 +29,10 @@ class TPOTResults:
         self.runs = pd.DataFrame([run_data for _, run_data in self._cache]).set_index(
             "run_id"
         )
-        self.individuals = pd.concat(
-            self.runs.pop("evaluated_individuals")
-            .map(self._format_individuals)
-            .tolist(),
-            keys=self.runs.index,
-        )
+        individuals: list[pd.DataFrame] = self.runs.pop(
+            "evaluated_individuals"
+        ).map(self._format_individuals).tolist()
+        self.individuals = pd.concat(individuals, keys=self.runs.index)
         nodes = self.individuals.pop("Instance").map(self._decomp_pipeline).explode()
         self.nodes = pd.DataFrame(
             nodes.tolist(),
@@ -78,13 +77,16 @@ class TPOTResults:
 
     @staticmethod
     def _run_is_finished(run_data: Any) -> bool:
+        # TODO: Rely instead on run parameters, instantiating a TPOTManager from them.
+        #       Call TPOTManager.is_complete()
+        #       Create a class which knows all about the run directory organization?
         kfold_scores = run_data["manager_attributes"]["kfold_scores"]
         if isinstance(kfold_scores, dict):
             return kfold_scores != {}
         raise TypeError('"kfold_scores" in output is not of type dict')
 
     @cached_property
-    def finished_runs(self):
+    def finished_runs(self) -> dict[Path, Any]:
         return {
             filepath: data
             for filepath, data in self._cache
@@ -92,7 +94,7 @@ class TPOTResults:
         }
 
     @cached_property
-    def unfinished_runs(self):
+    def unfinished_runs(self) -> dict[Path, Any]:
         return {
             filepath: data
             for filepath, data in self._cache

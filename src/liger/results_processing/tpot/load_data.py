@@ -76,7 +76,7 @@ def load_data(
         return
     if filters is not None and not _passes_filters(manager_data, filters):
         return
-    eval_indivs = pd.DataFrame(manager_data["tpot_attributes"]["evaluated_individuals"])
+    eval_indivs: pd.DataFrame = manager_data["tpot_attributes"]["evaluated_individuals"]
     if population_path.is_file():
         with open(population_path, "rb") as file:
             population: Population = dill.load(file)
