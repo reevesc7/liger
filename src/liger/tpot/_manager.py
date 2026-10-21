@@ -24,12 +24,10 @@ import json
 import numpy as np
 from numpy.typing import ArrayLike
 import pandas as pd
-import dill
 from scipy.sparse import spmatrix
 from sklearn.utils.multiclass import type_of_target
 from tpot import TPOTEstimator, Population
 from tpot.search_spaces.base import SearchSpace
-from tpot.utils import beta_interpolation
 import liger.config as cfg
 from ._params import (
     Objective,
@@ -40,6 +38,8 @@ from ._params import (
     EndParams,
     RuntimeParams,
 )
+from . import paths
+from . import data
 
 
 warnings.filterwarnings(
@@ -79,9 +79,6 @@ class _TruthyInt(int):
 
 @dataclass(slots=True)
 class TPOTManager:
-    POP_NAME: ClassVar[str] = "population.pkl"
-    INDIVS_NAME: ClassVar[str] = "individuals.csv"
-    INSTANCES_NAME: ClassVar[str] = "instances.json"
     ID_INDEX_NAME: ClassVar[str] = "ID"
 
     output_dir: str | Path
@@ -111,15 +108,15 @@ class TPOTManager:
 
     @property
     def pop_path_(self) -> Path:
-        return self.output_dir_ / self.POP_NAME
+        return self.output_dir_ / paths.POP
 
     @property
     def indivs_path_(self) -> Path:
-        return self.output_dir_ / self.INDIVS_NAME
+        return self.output_dir_ / paths.INDIVS
 
     @property
     def instances_path_(self) -> Path:
-        return self.output_dir_ / self.INSTANCES_NAME
+        return self.output_dir_ / paths.INSTANCES
 
     def _log(self, message: str, category: int | type[Warning] = logging.INFO) -> None:
         if isinstance(category, type):
@@ -158,59 +155,25 @@ class TPOTManager:
                     "any segment will continue indefinitely - !!!"
             ), logging.WARNING)
 
-    def _gen_pop_size(self, gen: int) -> int:
-        start_size = self.evolution_params.initial_population_size
-        end_size = self.evolution_params.population_size
-        if start_size is None or start_size == end_size:
-            return end_size
-        gen_of_end_size = self.evolution_params.generations_until_end_population
-        # /// --- Corrects for 'beta_interpolation()' edge case --- \\\
-        if gen_of_end_size <= 1:
-            gen_of_end_size = 2
-        # \\\ ----------------------------------------------------- ///
-        if gen >= gen_of_end_size:
-            return end_size
-        per_gen_pop_size: list[np.float64] = beta_interpolation(
-            start=start_size,
-            end=end_size,
-            scale=self.evolution_params.population_scaling, # type: ignore
-            n=gen_of_end_size,
+    def _fix_pop(self, pop: Population) -> Population | None:
+        last_gen = data.last_gen(pop.evaluated_individuals)
+        pop = data.remove_incomplete_last_gen(
+            pop,
+            self.evolution_params.gens_pop_sizes_,
         )
-        return np.round(per_gen_pop_size[gen]).astype(int)
-
-    def _load_fix_pop(self) -> Population | None:
-        if not self.pop_path_.is_file():
-            self._log(f"No population file at {self.pop_path_}", logging.DEBUG)
-            return None
-        self._log(f"Loading population from {self.pop_path_}", logging.DEBUG)
-        pop = dill.load(self.pop_path_.open("rb"))
-        if not isinstance(pop, Population):
-            raise TypeError(f"{self.pop_path_!r} does not contain a "
-                f"{Population.__name__!r} object")
-        indivs = pop.evaluated_individuals
-        if not pd.api.types.is_integer_dtype(indivs["Generation"]):
-            indivs["Generation"] = indivs["Generation"].astype("Int64")
-        last_gen = self._complete_gens(indivs) - 1
-        last_pop_size = self._gen_pop_size(last_gen)
-        last_gen_mask = indivs["Generation"] == last_gen
-        if last_gen_mask.sum() < last_pop_size:
-            self._log("Last generation of population is incomplete; erasing generation")
+        last_complete_gen = data.last_gen(pop.evaluated_individuals)
+        if last_gen != last_complete_gen:
+            self._log("Found and erased incomplete last generation")
             if last_gen == 0:
                 self.pop_path_.unlink()
                 self.indivs_path_.unlink(missing_ok=True)
                 return None
-            indivs = indivs.loc[~last_gen_mask]
-            pop.population = pop.population[:indivs.shape[0]]
-        pop.evaluated_individuals = indivs
         return pop
-
-    def _complete_gens(self, indivs: pd.DataFrame) -> int:
-        return int(indivs["Generation"].max()) + 1
 
     def _is_end_gen(self, indivs: pd.DataFrame) -> bool:
         if self.end_params.total_generations is None:
             return False
-        complete_gens = self._complete_gens(indivs)
+        complete_gens = data.last_gen(indivs) + 1
         if complete_gens < self.end_params.total_generations:
             return False
         self._log((
@@ -222,9 +185,9 @@ class TPOTManager:
     def _is_end_time(self, indivs: pd.DataFrame) -> bool:
         if self.end_params.total_time is None:
             return False
-        generations = indivs.groupby("Generation")
-        gens_starts = generations["Submitted Timestamp"].min()
-        gens_ends = generations["Completed Timestamp"].max()
+        generations = indivs.groupby(data.Col.GEN)
+        gens_starts = generations[data.Col.SUB_TIME].min()
+        gens_ends = generations[data.Col.COMP_TIME].max()
         gens_elapsed_times = gens_ends - gens_starts
         elapsed_time = gens_elapsed_times.sum()
         if elapsed_time < 60.0 * self.end_params.total_time:
@@ -249,7 +212,7 @@ class TPOTManager:
         # TPOT counts how many generations have failed to make an improvement.
         if self.end_params.early_stop is None:
             return False
-        complete_gens = self._complete_gens(indivs)
+        complete_gens = data.last_gen(indivs) + 1
         if complete_gens <= self.end_params.early_stop:
             return False
         if self.eval_params.budget_range is not None and complete_gens <= (
@@ -257,11 +220,10 @@ class TPOTManager:
                 + self.end_params.early_stop - 1
         ):
             return False
-        greater_is_better_scores = indivs.set_index("Generation").iloc[
-            :,
-            :len(self._objectives.signs_),
-        ] * self._objectives.signs_
-        gens_best_scores = greater_is_better_scores.groupby("Generation").max()
+        greater_is_better_scores = indivs.set_index(
+            data.Col.GEN
+        ).loc[:, data.score_columns(indivs)] * self._objectives.signs_
+        gens_best_scores = greater_is_better_scores.groupby(data.Col.GEN).max()
         cum_gens_best_scores = np.maximum.accumulate(
             gens_best_scores
         )[-self.end_params.early_stop - 1:]
@@ -287,34 +249,32 @@ class TPOTManager:
             self._is_end_early_stop(indivs),
         ))
 
-    def _dump_pop(self, population: Population) -> None:
-        self._log(f"Dumping population to {self.pop_path_}", logging.DEBUG)
-        dill.dump(population, self.pop_path_.open("wb"))
-
-    def _load_indivs(self) -> pd.DataFrame | None:
-        if not self.indivs_path_.is_file():
-            self._log(f"No individuals file at {self.indivs_path_}", logging.DEBUG)
-            return None
-        self._log(f"Loading individuals from {self.indivs_path_}", logging.DEBUG)
-        return pd.read_csv(self.indivs_path_, index_col=self.ID_INDEX_NAME)
-
     def _init_state(self) -> None:
-        last_pop = self._load_fix_pop()
+        self._log("Loading population", logging.DEBUG)
+        try:
+            last_pop = data.load_pop(self.output_dir_)
+            last_pop = self._fix_pop(last_pop)
+        except FileNotFoundError:
+            self._log("Did not find population file", logging.DEBUG)
+            last_pop = None
         if last_pop is not None:
             self.is_complete_ = self._check_is_complete(last_pop.evaluated_individuals)
             if self.is_complete_:
                 return
-            self._dump_pop(last_pop)
+            self._log("Dumping population", logging.DEBUG)
+            data.dump_pop(last_pop, self.output_dir_)
             return
-        last_indivs = self._load_indivs()
-        if last_indivs is None:
+        self._log("Loading individuals", logging.DEBUG)
+        try:
+            last_indivs = data.load_indivs(self.output_dir_)
+        except FileNotFoundError:
+            self._log("Did not find individuals files", logging.DEBUG)
             self.is_complete_ = False
             return
         self.is_complete_ = self._check_is_complete(last_indivs)
         if not self.is_complete_:
-            raise FileNotFoundError(f"Individuals file at {self.indivs_path_!r} "
-                "indicates run is incomplete, but no population file exists at "
-                f"{self.pop_path_!r}; cannot recover run state")
+            raise FileNotFoundError("Individuals files indicate run is incomplete, "
+                "but did not find a population file; cannot recover run state")
 
     def _init_x(self) -> np.ndarray | pd.DataFrame | spmatrix:
         if self._x is not None:
@@ -459,15 +419,6 @@ class TPOTManager:
             random_state=self.evolution_params.random_state_,
         )
 
-    def _dump_indivs(self, indivs: pd.DataFrame) -> None:
-        self._log(f"Dumping individuals to {self.indivs_path_}", logging.DEBUG)
-        self.output_dir_.mkdir(parents=True, exist_ok=True)
-        indivs.drop("Individual", axis=1).rename_axis(
-            self.ID_INDEX_NAME
-        ).to_csv(self.indivs_path_)
-        config_indivs = cfg.to_config(indivs["Instance"])
-        json.dump(config_indivs, self.instances_path_.open("w"), indent=4)
-
     def run_segment(self) -> None:
         self._init_state()
         if self.is_complete_:
@@ -485,7 +436,8 @@ class TPOTManager:
         if not isinstance(indivs, pd.DataFrame):
             raise TypeError("Evaluated individuals should be type "
                 f"{pd.DataFrame.__name__!r} but was type {type(indivs).__name__!r}")
-        self._dump_indivs(indivs)
+        self._log("Dumping individuals", logging.DEBUG)
+        data.dump_indivs(indivs, self.output_dir_)
         self.is_complete_ = self._check_is_complete(indivs)
         if not self.is_complete_:
             self._log("End of segment; Run incomplete\n")

@@ -13,3 +13,16 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+
+from pathlib import Path
+
+
+DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
+SLURM_PROFILE = "slurm_profile.sh"
+CONFIG = "config.json"
+PARAMS = "params.json"
+SLURM_OUT = "slurm-%j.out"
+POP = Path("population.pkl")
+INDIVS = Path("individuals.csv")
+INSTANCES = Path("instances.json")

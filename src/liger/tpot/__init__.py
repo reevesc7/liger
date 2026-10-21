@@ -15,6 +15,8 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+from . import _config, data, paths
+from ._manager import TPOTManager
 from ._params import (
     Objective,
     InverseObjectives,
@@ -24,11 +26,13 @@ from ._params import (
     EndParams,
     RuntimeParams,
 )
-from ._manager import TPOTManager
-from . import _config
+from ._run import init_tpot_dir, run_local_segment, run_slurm_segment
 
 
 __all__ = [
+    "data",
+    "paths",
+    "TPOTManager",
     "Objective",
     "InverseObjectives",
     "DatasetParams",
@@ -36,7 +40,9 @@ __all__ = [
     "EvalParams",
     "EndParams",
     "RuntimeParams",
-    "TPOTManager",
+    "init_tpot_dir",
+    "run_local_segment",
+    "run_slurm_segment",
 ]
 
 

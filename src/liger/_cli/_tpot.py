@@ -31,7 +31,7 @@ class _RunMode(StrEnum):
 
 
 def _cmd_init(args: Namespace) -> None:
-    from liger.run import tpot
+    from liger import tpot
     config_path = Path(args.config)
     if not config_path.is_file():
         raise FileNotFoundError(f"{config_path!r} is not a file")
@@ -64,7 +64,7 @@ def _cmd_init(args: Namespace) -> None:
 
 
 def _cmd_local_run(args: Namespace) -> None:
-    from liger.run import tpot
+    from liger import tpot
     checkpoint_dir = Path(args.checkpoint)
     if not checkpoint_dir.is_dir():
         raise FileNotFoundError(f"{checkpoint_dir!r} is not a directory")
@@ -72,7 +72,7 @@ def _cmd_local_run(args: Namespace) -> None:
 
 
 def _cmd_slurm_run(args: Namespace) -> None:
-    from liger.run import tpot
+    from liger import tpot
     checkpoint_dir = Path(args.checkpoint)
     if not checkpoint_dir.is_dir():
         raise FileNotFoundError(f"{checkpoint_dir!r} is not a directory")
