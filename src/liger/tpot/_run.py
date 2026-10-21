@@ -23,14 +23,8 @@ import json
 from datetime import datetime, timezone
 from liger.typing import LgConfig
 import liger.config as cfg
-from liger.tpot import TPOTManager
-
-
-DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
-SLURM_PROFILE_NAME = "slurm_profile.sh"
-CONFIG_NAME = "config.json"
-PARAMS_NAME = "params.json"
-SLURM_OUT_NAME = "slurm-%j.out"
+from ._manager import TPOTManager
+from . import paths
 
 
 def init_tpot_dir(
@@ -41,7 +35,7 @@ def init_tpot_dir(
 ) -> Path:
     config_path = Path(config_path)
     config: dict[str, LgConfig] = json.load(config_path.open())
-    dirname = "liger_tpot_" + datetime.now(timezone.utc).strftime(DATETIME_FMT)
+    dirname = "liger_tpot_" + datetime.now(timezone.utc).strftime(paths.DATETIME_FMT)
     if output_dir is not None:
         output_dir = Path(output_dir)
         config["output_dir"] = str(output_dir / dirname)
@@ -51,18 +45,22 @@ def init_tpot_dir(
         config["output_dir"] = dirname
     tpot = cfg.parse_config(config, TPOTManager)
     tpot.output_dir_.mkdir(parents=True, exist_ok=True)
-    shutil.copy(config_path, tpot.output_dir_ / CONFIG_NAME)
-    json.dump(cfg.to_config(tpot), (tpot.output_dir_ / PARAMS_NAME).open("w"), indent=4)
+    shutil.copy(config_path, tpot.output_dir_ / paths.CONFIG)
+    json.dump(
+        cfg.to_config(tpot),
+        (tpot.output_dir_ / paths.PARAMS).open("w"),
+        indent=4,
+    )
     if slurm_profile_path is not None:
         slurm_profile_path = Path(slurm_profile_path)
-        shutil.copy(slurm_profile_path, tpot.output_dir_ / SLURM_PROFILE_NAME)
+        shutil.copy(slurm_profile_path, tpot.output_dir_ / paths.SLURM_PROFILE)
     print(f"Initialized TPOT run directory:\n{tpot.output_dir_}\n")
     return tpot.output_dir_
 
 
 def run_local_segment(checkpoint_dir: str | Path) -> bool:
     checkpoint_dir = Path(checkpoint_dir)
-    params_path = checkpoint_dir / PARAMS_NAME
+    params_path = checkpoint_dir / paths.PARAMS
     config: dict[str, LgConfig] = json.load((params_path).open())
     if Path(str(config["output_dir"])).resolve() != checkpoint_dir:
         config["output_dir"] = str(checkpoint_dir)
@@ -87,10 +85,10 @@ def _submit_slurm_segment(
     recurse: bool,
     job_id: str | None = None,
 ) -> int:
-    slurm_profile_path = checkpoint_dir / SLURM_PROFILE_NAME
+    slurm_profile_path = checkpoint_dir / paths.SLURM_PROFILE
     slurm_options = _parse_slurm_options(slurm_profile_path) + [
         f"--job-name={checkpoint_dir.name}",
-        f"--output={checkpoint_dir / SLURM_OUT_NAME}",
+        f"--output={checkpoint_dir / paths.SLURM_OUT}",
         "--parsable",
         f"--wrap=#!/usr/bin/env bash\n"
             f"source {slurm_profile_path}\n"
