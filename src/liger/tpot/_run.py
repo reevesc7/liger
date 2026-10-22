@@ -21,8 +21,8 @@ from pathlib import Path
 import subprocess
 import json
 from datetime import datetime, timezone
-from liger.typing import LgConfig
 import liger.config as cfg
+from liger.config.typing import Config
 from ._manager import TPOTManager
 from . import paths
 
@@ -34,7 +34,7 @@ def init_tpot_dir(
     output_dir: str | Path | None = None,
 ) -> Path:
     config_path = Path(config_path)
-    config: dict[str, LgConfig] = json.load(config_path.open())
+    config: dict[str, Config] = json.load(config_path.open())
     dirname = "liger_tpot_" + datetime.now(timezone.utc).strftime(paths.DATETIME_FMT)
     if output_dir is not None:
         output_dir = Path(output_dir)
@@ -61,7 +61,7 @@ def init_tpot_dir(
 def run_local_segment(checkpoint_dir: str | Path) -> bool:
     checkpoint_dir = Path(checkpoint_dir)
     params_path = checkpoint_dir / paths.PARAMS
-    config: dict[str, LgConfig] = json.load((params_path).open())
+    config: dict[str, Config] = json.load((params_path).open())
     if Path(str(config["output_dir"])).resolve() != checkpoint_dir:
         config["output_dir"] = str(checkpoint_dir)
         json.dump(config, params_path.open("w"), indent=4)

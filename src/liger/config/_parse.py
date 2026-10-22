@@ -20,8 +20,8 @@ from dataclasses import dataclass, field
 from importlib import import_module
 from functools import partial
 from simpleeval import simple_eval
-from liger.typing import LgConfigLike, is_lg_config_like, RawList, RawDict
 from ._constants import ConfigTag
+from .typing import ConfigLike, is_lg_config_like, RawList, RawDict
 
 
 SIMPLE_EVAL_FUNCS = {
@@ -45,15 +45,15 @@ UNSET: Final = UnsetType()
 
 @dataclass(slots=True)
 class _ConfigParser:
-    config: LgConfigLike
+    config: ConfigLike
     kwargs: dict[str, Any] = field(default_factory=dict)
 
     @staticmethod
-    def _detect_multi_key(config: Mapping[str, LgConfigLike], tag: str) -> None:
+    def _detect_multi_key(config: Mapping[str, ConfigLike], tag: str) -> None:
         if len(config) > 1:
             raise ValueError(f"Found multiple keys in {tag!r}-tagged mapping")
 
-    def _make_raw(self, config: Mapping[str, LgConfigLike]) -> Any:
+    def _make_raw(self, config: Mapping[str, ConfigLike]) -> Any:
         self._detect_multi_key(config, ConfigTag.RAW)
         value = config[ConfigTag.RAW]
         if isinstance(value, Sequence) and not isinstance(value, str):
@@ -83,11 +83,11 @@ class _ConfigParser:
             return obj
         raise ImportError(f"Could not import {import_path!r}")
 
-    def _make_object(self, config: Mapping[str, LgConfigLike]) -> Any:
+    def _make_object(self, config: Mapping[str, ConfigLike]) -> Any:
         self._detect_multi_key(config, ConfigTag.OBJECT)
         return self._import(str(config[ConfigTag.OBJECT]))
 
-    def _get_args(self, config: Mapping[str, LgConfigLike]) -> tuple[Any, ...]:
+    def _get_args(self, config: Mapping[str, ConfigLike]) -> tuple[Any, ...]:
         if ConfigTag.ARGS not in config:
             return ()
         args = config[ConfigTag.ARGS]
@@ -98,13 +98,13 @@ class _ConfigParser:
             )
         return tuple(self._parse_config(arg) for arg in args)
 
-    def _get_kwargs(self, config: Mapping[str, LgConfigLike]) -> dict[str, Any]:
+    def _get_kwargs(self, config: Mapping[str, ConfigLike]) -> dict[str, Any]:
         if any(tag.value in config for tag in ConfigTag):
             raise ValueError("Config tags found in keyword arguments "
                 f"for an instance or partial:\n{config}")
         return {key: self._parse_config(value) for key, value in config.items()}
 
-    def _make_instance(self, config: Mapping[str, LgConfigLike]) -> Any:
+    def _make_instance(self, config: Mapping[str, ConfigLike]) -> Any:
         factory: Callable = self._import(str(config[ConfigTag.INSTANCE]))
         return factory(*self._get_args(config), **self._get_kwargs({
             key: value
@@ -112,7 +112,7 @@ class _ConfigParser:
             if key not in (ConfigTag.ARGS, ConfigTag.INSTANCE)
         }))
 
-    def _make_partial(self, config: Mapping[str, LgConfigLike]) -> partial:
+    def _make_partial(self, config: Mapping[str, ConfigLike]) -> partial:
         func: Callable = self._import(str(config[ConfigTag.PARTIAL]))
         return partial(func, *self._get_args(config), **self._get_kwargs({
             key: value
@@ -120,7 +120,7 @@ class _ConfigParser:
             if key not in (ConfigTag.ARGS, ConfigTag.PARTIAL)
         }))
 
-    def _eval(self, config: Mapping[str, LgConfigLike]) -> Any:
+    def _eval(self, config: Mapping[str, ConfigLike]) -> Any:
         self._detect_multi_key(config, ConfigTag.EVAL)
         return simple_eval(
             config[ConfigTag.EVAL],
@@ -128,9 +128,9 @@ class _ConfigParser:
             names=self.kwargs,
         )
 
-    def _parse_config(self, config: LgConfigLike) -> Any:
+    def _parse_config(self, config: ConfigLike) -> Any:
         if not is_lg_config_like(config):
-            raise TypeError(f"'config' must be {LgConfigLike!r}")
+            raise TypeError(f"'config' must be {ConfigLike!r}")
         if isinstance(config, Sequence) and not isinstance(config, str):
             obj = [self._parse_config(element) for element in config]
         elif isinstance(config, Mapping):
@@ -165,11 +165,11 @@ class _ConfigParser:
 
 
 @overload
-def parse_config(config: LgConfigLike, **kwargs: Any) -> Any: ...
+def parse_config(config: ConfigLike, **kwargs: Any) -> Any: ...
 @overload
-def parse_config(config: LgConfigLike, expected_type: type[T], **kwargs: Any) -> T: ...
+def parse_config(config: ConfigLike, expected_type: type[T], **kwargs: Any) -> T: ...
 def parse_config(
-    config: LgConfigLike,
+    config: ConfigLike,
     expected_type: type[T] | UnsetType = UNSET,
     **kwargs: Any,
 ) -> Any:
