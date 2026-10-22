@@ -22,8 +22,8 @@ from ConfigSpace import ConfigurationSpace
 from networkx.classes import DiGraph
 from tpot.search_spaces import SearchSpace
 from tpot.graphsklearn import GraphPipeline
-from liger.typing import LgConfig
 import liger.config as cfg
+from liger.config.typing import Config
 from ._manager import TPOTManager
 from ._params import (
     Objective,
@@ -62,11 +62,11 @@ def register() -> None:
             | EndParams
             | RuntimeParams
     )
-    def _(obj) -> LgConfig:
+    def _(obj) -> Config:
         return cfg.instance_init_args_to_config(obj)
 
     @cfg.to_config.register(_Scorer)
-    def _(obj: _Scorer) -> LgConfig:
+    def _(obj: _Scorer) -> Config:
         return cfg.instance_to_config(
             type(obj),
             score_func=obj._score_func,
@@ -76,14 +76,14 @@ def register() -> None:
         )
 
     @cfg.to_config.register(ConfigurationSpace)
-    def _(obj: ConfigurationSpace) -> LgConfig:
+    def _(obj: ConfigurationSpace) -> Config:
         return cfg.instance_to_config(
             obj.from_serialized_dict,
             d=obj.to_serialized_dict(),
         )
 
     @cfg.to_config.register(DiGraph)
-    def _(obj: DiGraph) -> LgConfig:
+    def _(obj: DiGraph) -> Config:
         return cfg.instance_to_config(
             init_digraph,
             graph_attrs=obj.graph,

@@ -18,29 +18,29 @@
 from typing import Any, Mapping, Sequence, TypeGuard
 
 
-type LgConfig = (
+type Config = (
     bool
         | int
         | float
         | str
-        | list[LgConfig]
-        | dict[str, LgConfig]
+        | list[Config]
+        | dict[str, Config]
         | None
 )
 
 
-type LgConfigLike = (
+type ConfigLike = (
     bool
         | int
         | float
         | str
-        | Sequence[LgConfigLike]
-        | Mapping[str, LgConfigLike]
+        | Sequence[ConfigLike]
+        | Mapping[str, ConfigLike]
         | None
 )
 
 
-def is_lg_config(obj: Any) -> TypeGuard[LgConfig]:
+def is_lg_config(obj: Any) -> TypeGuard[Config]:
     if obj is None or isinstance(obj, bool | int | float | str):
         return True
     if isinstance(obj, list):
@@ -54,7 +54,7 @@ def is_lg_config(obj: Any) -> TypeGuard[LgConfig]:
     return False
 
 
-def is_lg_config_like(obj: Any) -> TypeGuard[LgConfigLike]:
+def is_lg_config_like(obj: Any) -> TypeGuard[ConfigLike]:
     if obj is None or isinstance(obj, bool | int | float | str):
         return True
     if isinstance(obj, Sequence):
