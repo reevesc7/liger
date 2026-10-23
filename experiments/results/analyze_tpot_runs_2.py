@@ -6,7 +6,7 @@ import matplotlib as mpl
 from matplotlib.axes import Axes
 from cycler import cycler
 from liger.results_processing.json_cache import JSONCache
-from liger.results_processing.pareto import pareto_knee
+from liger.pareto import pareto_knee
 from liger.results_processing.tpot.demographics import TPOTDemographics
 
 
