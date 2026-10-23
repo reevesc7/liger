@@ -82,7 +82,7 @@ class TPOTManager:
     POP_NAME: ClassVar[str] = "population.pkl"
     INDIVS_NAME: ClassVar[str] = "individuals.csv"
     INSTANCES_NAME: ClassVar[str] = "instances.json"
-    ID_INDEX_NAME: ClassVar[str] = "ID"
+    ID_INDEX_NAME: ClassVar[str] = "indiv_id"
 
     output_dir: str | Path
     output_dir_: Path = field(init=False)
