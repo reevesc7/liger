@@ -25,6 +25,10 @@ from liger.results_processing.json_cache import JSONCache
 
 class TPOTResults:
     def __init__(self, cache: JSONCache) -> None:
+        warnings.warn(
+            "Use 'tpot.data.GraphsBreakdown' instead",
+            DeprecationWarning,
+        )
         self._cache = cache
         self.runs = pd.DataFrame([run_data for _, run_data in self._cache]).set_index(
             "run_id"
@@ -46,7 +50,7 @@ class TPOTResults:
         formatted.index.name = "individual_id"
         formatted.index = formatted.index.astype(int)
         formatted["Generation"] = formatted["Generation"].astype(int)
-        formatted = formatted.reset_index().set_index(["Generation", "individual_id"])
+        formatted = formatted.set_index("Generation", append=True)
         return formatted
 
     @staticmethod
