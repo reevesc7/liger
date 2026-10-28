@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Callable, ClassVar, Iterable, Protocol
+from typing import Any, Callable, Iterable, Protocol, Self, TYPE_CHECKING
 from dataclasses import dataclass, field
 import warnings
 import logging
@@ -26,7 +26,7 @@ from numpy.typing import ArrayLike
 import pandas as pd
 from scipy.sparse import spmatrix
 from sklearn.utils.multiclass import type_of_target
-from tpot import TPOTEstimator, Population
+from tpot import Population
 from tpot.search_spaces.base import SearchSpace
 import liger.config as cfg
 from ._params import (
@@ -40,6 +40,18 @@ from ._params import (
 )
 from . import paths
 from . import data
+# /// --- Prevents TPOTEstimator from causing pyright lag --- \\\
+if TYPE_CHECKING:
+    class TPOTEstimator:
+        def __init__(self, *args: Any, **kwargs: Any) -> None: ...
+        def fit(self, _X: Any, _y: Any) -> Self: ...
+        @property
+        def evaluated_individuals(self) -> pd.DataFrame | Any: ...
+        @property
+        def fitted_pipeline_(self) -> Any: ...
+else:
+    from tpot import TPOTEstimator
+# \\\ ------------------------------------------------------- ///
 
 
 warnings.filterwarnings(
