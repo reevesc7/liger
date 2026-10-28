@@ -204,8 +204,9 @@ class TPOTManager:
         any of the last `early_stop` pairs of generations.
         I.e., scores must be the same for `early_stop + 1` generations.
         """
-        # TPOT checks that the budget is at max before evaluating early stop.
-        # Max budget is generally reached on the generation specified in end_budget,
+        # TPOT checks whether budget is greater than or equal to its end value
+        # (i.e., max budget was reached) before starting to track early stop.
+        # End budget is reached when generation equals generations_until_end_budget.
         # TPOT checks whether the maximum scores across all previously
         # evaluated individuals was increased by the scores of the last generation.
         # TPOT counts how many generations have failed to make an improvement.
@@ -214,10 +215,8 @@ class TPOTManager:
         complete_gens = data.last_gen(indivs) + 1
         if complete_gens <= self.end_params.early_stop:
             return False
-        if self.eval_params.budget_range is not None and complete_gens <= (
-            self.eval_params.generations_until_end_budget
-                + self.end_params.early_stop - 1
-        ):
+        min_end_gen = self.eval_params.gen_of_max_budget_ + self.end_params.early_stop
+        if complete_gens < min_end_gen:
             return False
         greater_is_better_scores = indivs.set_index(
             data.IndivCol.GEN
