@@ -45,39 +45,24 @@ def init_tpot_dir(
         config["output_dir"] = dirname
     tpot = cfg.parse_config(config, TPOTManager)
     tpot.output_dir_.mkdir(parents=True, exist_ok=True)
-    shutil.copy(config_path, tpot.output_dir_ / paths.CONFIG)
-    json.dump(
-        cfg.to_config(tpot),
-        (tpot.output_dir_ / paths.PARAMS).open("w"),
-        indent=4,
-    )
+    shutil.copy(config_path, paths.config_path(tpot.output_dir_))
+    data.dump_params(cfg.to_config(tpot), tpot.output_dir_)
     if slurm_profile_path is not None:
         slurm_profile_path = Path(slurm_profile_path)
-        shutil.copy(slurm_profile_path, tpot.output_dir_ / paths.SLURM_PROFILE)
+        shutil.copy(slurm_profile_path, paths.slurm_profile_path(tpot.output_dir_))
     print(f"Initialized TPOT run directory:\n{tpot.output_dir_}\n")
     return tpot.output_dir_
 
 
 def run_local_segment(checkpoint_dir: str | Path) -> bool:
-    checkpoint_dir = Path(checkpoint_dir)
-    params_path = checkpoint_dir / paths.PARAMS
-    config: dict[str, Config] = json.load((params_path).open())
-    if Path(str(config["output_dir"])).resolve() != checkpoint_dir:
-        config["output_dir"] = str(checkpoint_dir)
-        json.dump(config, params_path.open("w"), indent=4)
+    checkpoint_dir = Path(checkpoint_dir).resolve()
+    config = data.load_params(checkpoint_dir)
     tpot = cfg.parse_config(config, TPOTManager)
+    if tpot.output_dir_ != checkpoint_dir:
+        tpot.output_dir_ = checkpoint_dir
+        data.dump_params(cfg.to_config(tpot), checkpoint_dir)
     tpot.run_segment()
     return True if tpot.is_complete_ else False
-
-
-def _parse_slurm_options(filepath: Path) -> list[str]:
-    if not filepath.is_file():
-        return []
-    return [
-        line.split("#SBATCH ", 1)[-1].strip()
-        for line in filepath.read_text().split("\n")
-        if line.strip().startswith("#SBATCH ")
-    ]
 
 
 def _submit_slurm_segment(
