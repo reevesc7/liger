@@ -33,7 +33,7 @@ def parse_slurm_options(slurm_profile: str) -> list[str]:
 
 
 def _parse_int_pair(value) -> tuple[int, int] | None:
-    if value is None or pd.isna(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     if isinstance(value, tuple):
         v1, v2 = value
@@ -41,6 +41,19 @@ def _parse_int_pair(value) -> tuple[int, int] | None:
     if isinstance(value, str):
         return ast.literal_eval(value)
     raise ValueError(f"Unable to parse {value!r} as '(int, int) | None'")
+
+
+def _parse_str_seq(value) -> list[str] | None:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    if isinstance(value, list):
+        return [str(element) for element in value]
+    if isinstance(value, str):
+        try:
+            return ast.literal_eval(value)
+        except ValueError:
+            return [element.strip() for element in value.split(",")]
+    raise ValueError(f"Unable to parse {value!r} as 'list[str] | None'")
 
 
 def _is_instance_repr(value) -> bool:
@@ -57,7 +70,7 @@ def _is_instance_repr(value) -> bool:
 
 
 def _parse_instance(value) -> list[tuple[str, str]] | BaseEstimator | None:
-    if value is None or pd.isna(value):
+    if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     if isinstance(value, BaseEstimator):
         return value
@@ -80,6 +93,7 @@ def parse_pop(pop: Population) -> Population:
 def parse_indivs(indivs: pd.DataFrame) -> pd.DataFrame:
     parsed = indivs.copy().rename_axis(IndivCol.ID)
     parsed[IndivCol.PARENTS] = parsed[IndivCol.PARENTS].map(_parse_int_pair)
+    parsed[IndivCol.VAR_FUNC] = parsed[IndivCol.VAR_FUNC].map(_parse_str_seq)
     parsed[IndivCol.GEN] = parsed[IndivCol.GEN].astype("Int64")
     parsed[IndivCol.INSTANCE] = parsed[IndivCol.INSTANCE].map(_parse_instance)
     return parsed
