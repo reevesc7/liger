@@ -18,6 +18,7 @@
 from typing import Any, Iterable, Iterator
 from pathlib import Path
 import json
+import warnings
 
 
 class JSONCache:
@@ -26,6 +27,11 @@ class JSONCache:
         paths: Path | str | Iterable[Path | str],
         patterns: str | Iterable[str],
     ) -> None:
+        warnings.warn(
+            "JSONCache is deprecated; "
+                "use 'liger.tpot.data.load_indivs()', etc. instead",
+            DeprecationWarning,
+        )
         if isinstance(paths, (Path, str)):
             paths = paths,
         if isinstance(patterns, str):
@@ -56,8 +62,7 @@ class JSONCache:
             print(f"Loading {filepath}")
             if filepath not in self.filepaths:
                 self.filepaths.append(filepath)
-            with open(filepath, "r") as file:
-                self._cache[filepath] = json.load(file)
+            self._cache[filepath] = json.load(filepath.open())
         return self._cache[filepath]
 
     def __iter__(self) -> Iterator[tuple[Path, Any]]:
