@@ -18,6 +18,10 @@
 from enum import StrEnum
 
 
+class RunCol(StrEnum):
+    ID = "run_id"
+
+
 class IndivCol(StrEnum):
     ID = "indiv_id"
     PARENTS = "Parents"
@@ -29,3 +33,14 @@ class IndivCol(StrEnum):
     PARETO = "Pareto_Front"
     INSTANCE = "Instance"
     INDIV = "Individual"
+
+
+class NodeCol(StrEnum):
+    ID = "node_id"
+    INSTANCE = "instance"
+    SUCCESSORS = "successors"
+    TYPE = "node_type"
+
+
+class EdgeCol(StrEnum):
+    SOURCE_ID = "source_id"
