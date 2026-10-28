@@ -23,6 +23,38 @@ SLURM_PROFILE = "slurm_profile.sh"
 CONFIG = "config.json"
 PARAMS = "params.json"
 SLURM_OUT = "slurm-%j.out"
-POP = Path("population.pkl")
-INDIVS = Path("individuals.csv")
-INSTANCES = Path("instances.json")
+POP = "population.pkl"
+INDIVS = "individuals.csv"
+INSTANCES = "instances.json"
+
+
+def path(checkpoint_dir: str | Path, path: str | Path) -> Path:
+    return Path(checkpoint_dir) / path
+
+
+def slurm_profile_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, SLURM_PROFILE)
+
+
+def config_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, CONFIG)
+
+
+def params_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, PARAMS)
+
+
+def slurm_out_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, SLURM_OUT)
+
+
+def pop_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, POP)
+
+
+def indivs_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, INDIVS)
+
+
+def instances_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, INSTANCES)
