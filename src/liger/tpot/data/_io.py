@@ -21,42 +21,47 @@ import dill
 import pandas as pd
 from tpot import Population
 from liger import config as cfg
+from liger.config import typing
 from liger.tpot import paths
-from ._schema import Col
+from ._schema import IndivCol
 from . import _parse
 
 
-def _pop_path(dir: str | Path) -> Path:
-    return Path(dir) / paths.POP
+def load_params(checkpoint_dir: str | Path) -> typing.Config:
+    return json.load(paths.params_path(checkpoint_dir).open())
 
 
-def load_pop(dir: str | Path) -> Population:
-    pop_path = _pop_path(dir)
+def dump_params(params: typing.ConfigLike, checkpoint_dir: str | Path) -> None:
+    json.dump(params, paths.params_path(checkpoint_dir).open("w"), indent=4)
+
+
+def load_pop(checkpoint_dir: str | Path) -> Population:
+    pop_path = paths.pop_path(checkpoint_dir)
     pop = dill.load(pop_path.open("rb"))
     if not isinstance(pop, Population):
-        raise TypeError(f"{pop_path!r} does not contain a "
+        raise TypeError(f"{pop_path} does not contain a "
             f"{Population.__name__!r} object")
     return _parse.parse_pop(pop)
 
 
-def dump_pop(pop: Population, dir: str | Path) -> None:
-    dill.dump(pop, _pop_path(dir).open("wb"))
+def dump_pop(pop: Population, checkpoint_dir: str | Path) -> None:
+    dill.dump(_parse.parse_pop(pop), paths.pop_path(checkpoint_dir).open("wb"))
 
 
-def _indivs_paths(dir: str | Path) -> tuple[Path, Path]:
-    dir = Path(dir)
-    return dir / paths.INDIVS, dir / paths.INSTANCES
-
-
-def load_indivs(dir: str | Path) -> pd.DataFrame:
-    indivs_path, instances_path = _indivs_paths(dir)
-    indivs = pd.read_csv(indivs_path, index_col=Col.ID)
-    indivs[Col.INSTANCE] = cfg.parse_config(json.load(instances_path.open()), pd.Series)
+def load_indivs(checkpoint_dir: str | Path) -> pd.DataFrame:
+    indivs = pd.read_csv(paths.indivs_path(checkpoint_dir), index_col=IndivCol.ID)
+    indivs[IndivCol.INSTANCE] = cfg.parse_config(
+        json.load(paths.instances_path(checkpoint_dir).open()),
+        pd.Series,
+    )
     return _parse.parse_indivs(indivs)
 
 
-def dump_indivs(indivs: pd.DataFrame, dir: str | Path) -> None:
-    indivs_path, instances_path = _indivs_paths(dir)
-    indivs.drop(Col.INDIV, axis=1).rename_axis(Col.ID).to_csv(indivs_path)
-    instances = cfg.to_config(indivs[Col.INSTANCE])
-    json.dump(instances, instances_path.open("w"), indent=4)
+def dump_indivs(indivs: pd.DataFrame, checkpoint_dir: str | Path) -> None:
+    _parse.parse_indivs(indivs).drop(
+        IndivCol.INDIV,
+        axis=1,
+        errors="ignore",
+    ).to_csv(paths.indivs_path(checkpoint_dir))
+    instances = cfg.to_config(indivs[IndivCol.INSTANCE])
+    json.dump(instances, paths.instances_path(checkpoint_dir).open("w"), indent=4)
