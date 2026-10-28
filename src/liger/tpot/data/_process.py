@@ -47,3 +47,12 @@ def remove_incomplete_last_gen(
 def score_columns(indivs: pd.DataFrame) -> list[str]:
     non_score_cols = set(col.value for col in IndivCol)
     return [col for col in indivs.columns if col not in non_score_cols]
+
+
+def run_is_complete(dir: str | Path) -> bool:
+    manager = cfg.parse_config(_io.load_params(dir), tpot.TPOTManager)
+    try:
+        indivs = _io.load_indivs(dir)
+    except FileNotFoundError:
+        return False
+    return manager.indivs_is_complete(indivs)
