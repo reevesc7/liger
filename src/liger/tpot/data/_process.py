@@ -18,11 +18,11 @@
 from typing import Sequence
 import pandas as pd
 from tpot import Population
-from ._schema import Col
+from ._schema import IndivCol
 
 
 def last_gen(indivs: pd.DataFrame) -> int:
-    return int(indivs[Col.GEN].max())
+    return int(indivs[IndivCol.GEN].max())
 
 
 def remove_incomplete_last_gen(
@@ -35,7 +35,7 @@ def remove_incomplete_last_gen(
         pop_size = pop_sizes[-1]
     else:
         pop_size = pop_sizes[last_gen_]
-    last_gen_mask = indivs[Col.GEN] == last_gen_
+    last_gen_mask = indivs[IndivCol.GEN] == last_gen_
     if last_gen_mask.sum() >= pop_size:
         return pop
     indivs = indivs.loc[~last_gen_mask]
@@ -45,5 +45,5 @@ def remove_incomplete_last_gen(
 
 
 def score_columns(indivs: pd.DataFrame) -> list[str]:
-    non_score_cols = set(col.value for col in Col)
+    non_score_cols = set(col.value for col in IndivCol)
     return [col for col in indivs.columns if col not in non_score_cols]
