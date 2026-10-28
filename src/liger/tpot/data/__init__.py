@@ -18,7 +18,7 @@
 from ._io import load_params, dump_params, load_pop, dump_pop, load_indivs, dump_indivs
 from ._parse import parse_slurm_options, parse_pop, parse_indivs
 from ._process import last_gen, remove_incomplete_last_gen, score_columns
-from ._schema import IndivCol
+from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
 
 
 __all__ = [
@@ -34,5 +34,8 @@ __all__ = [
     "last_gen",
     "remove_incomplete_last_gen",
     "score_columns",
+    "RunCol",
     "IndivCol",
+    "NodeCol",
+    "EdgeCol",
 ]
