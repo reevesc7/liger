@@ -247,7 +247,7 @@ class TPOTManager:
         ), logging.DEBUG)
         return True
 
-    def _check_is_complete(self, indivs: pd.DataFrame) -> bool:
+    def indivs_is_complete(self, indivs: pd.DataFrame) -> bool:
         if self.end_params.run_is_endless_:
             self._log("No end condition set, run cannot be complete", logging.DEBUG)
             return False
@@ -268,7 +268,7 @@ class TPOTManager:
             self._log("Did not find population file", logging.DEBUG)
             last_pop = None
         if last_pop is not None:
-            self.is_complete_ = self._check_is_complete(last_pop.evaluated_individuals)
+            self.is_complete_ = self.indivs_is_complete(last_pop.evaluated_individuals)
             if self.is_complete_:
                 return
             self._log("Dumping population", logging.DEBUG)
@@ -281,7 +281,7 @@ class TPOTManager:
             self._log("Did not find individuals files", logging.DEBUG)
             self.is_complete_ = False
             return
-        self.is_complete_ = self._check_is_complete(last_indivs)
+        self.is_complete_ = self.indivs_is_complete(last_indivs)
         if not self.is_complete_:
             raise FileNotFoundError("Individuals files indicate run is incomplete, "
                 "but did not find a population file; cannot recover run state")
@@ -448,7 +448,7 @@ class TPOTManager:
                 f"{pd.DataFrame.__name__!r} but was type {type(indivs).__name__!r}")
         self._log("Dumping individuals", logging.DEBUG)
         data.dump_indivs(indivs, self.output_dir_)
-        self.is_complete_ = self._check_is_complete(indivs)
+        self.is_complete_ = self.indivs_is_complete(indivs)
         if not self.is_complete_:
             self._log("End of segment; Run incomplete\n")
             return
