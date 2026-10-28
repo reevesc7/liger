@@ -52,10 +52,7 @@ class EvolutionParams:
         else:
             self.random_state_ = self.random_state
         # /// --- Corrects for 'beta_interpolation()' edge case --- \\\
-        if self.generations_until_end_population <= 1:
-            self.gen_of_end_pop_size_ = 2
-        else:
-            self.gen_of_end_pop_size_ = self.generations_until_end_population
+        self.gen_of_end_pop_size_ = max(self.generations_until_end_population, 2)
         # \\\ ----------------------------------------------------- ///
         self.gens_pop_sizes_ = self._gens_pop_sizes()
 
@@ -64,13 +61,6 @@ class EvolutionParams:
         end_size = self.population_size
         if start_size is None or start_size == end_size:
             return [end_size]
-        gen_of_end_size = self.generations_until_end_population
-        # /// --- Corrects for 'beta_interpolation()' edge case --- \\\
-        if gen_of_end_size <= 1:
-            gen_of_end_size = 2
-        # \\\ ----------------------------------------------------- ///
-        # if gen >= gen_of_end_size:
-        #     return end_size
         per_gen_pop_size: list[np.float64] = beta_interpolation(
             start=start_size,
             end=end_size,

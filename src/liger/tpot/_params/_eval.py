@@ -36,9 +36,9 @@ class EvalParams:
     gen_of_max_budget_: int = field(init=False)
 
     def __post_init__(self) -> None:
-        self.gen_of_max_budget_ = self._gen_of_max_budget()
-
-    def _gen_of_max_budget(self) -> int:
         if self.budget_range is None or self.budget_range[1] <= self.budget_range[0]:
-            return 1
-        return self.generations_until_end_budget
+            self.gen_of_max_budget_ = 1
+        else:
+            # /// --- Corrects for 'tpot.utils.beta_interpolation()' edge case --- \\\
+            self.gen_of_max_budget_ = max(self.generations_until_end_budget, 2)
+            # \\\ ---------------------------------------------------------------- ///
