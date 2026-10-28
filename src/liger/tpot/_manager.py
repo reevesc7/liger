@@ -79,8 +79,6 @@ class _TruthyInt(int):
 
 @dataclass(slots=True)
 class TPOTManager:
-    ID_INDEX_NAME: ClassVar[str] = "indiv_id"
-
     output_dir: str | Path
     output_dir_: Path = field(init=False)
     x: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
@@ -185,9 +183,9 @@ class TPOTManager:
     def _is_end_time(self, indivs: pd.DataFrame) -> bool:
         if self.end_params.total_time is None:
             return False
-        generations = indivs.groupby(data.Col.GEN)
-        gens_starts = generations[data.Col.SUB_TIME].min()
-        gens_ends = generations[data.Col.COMP_TIME].max()
+        generations = indivs.groupby(data.IndivCol.GEN)
+        gens_starts = generations[data.IndivCol.SUB_TIME].min()
+        gens_ends = generations[data.IndivCol.COMP_TIME].max()
         gens_elapsed_times = gens_ends - gens_starts
         elapsed_time = gens_elapsed_times.sum()
         if elapsed_time < 60.0 * self.end_params.total_time:
@@ -221,9 +219,9 @@ class TPOTManager:
         ):
             return False
         greater_is_better_scores = indivs.set_index(
-            data.Col.GEN
+            data.IndivCol.GEN
         ).loc[:, data.score_columns(indivs)] * self._objectives.signs_
-        gens_best_scores = greater_is_better_scores.groupby(data.Col.GEN).max()
+        gens_best_scores = greater_is_better_scores.groupby(data.IndivCol.GEN).max()
         cum_gens_best_scores = np.maximum.accumulate(
             gens_best_scores
         )[-self.end_params.early_stop - 1:]

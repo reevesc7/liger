@@ -18,7 +18,7 @@
 from ._io import load_pop, dump_pop, load_indivs, dump_indivs
 from ._parse import parse_pop, parse_indivs
 from ._process import last_gen, remove_incomplete_last_gen, score_columns
-from ._schema import Col
+from ._schema import IndivCol
 
 
 __all__ = [
@@ -31,5 +31,5 @@ __all__ = [
     "last_gen",
     "remove_incomplete_last_gen",
     "score_columns",
-    "Col",
+    "IndivCol",
 ]

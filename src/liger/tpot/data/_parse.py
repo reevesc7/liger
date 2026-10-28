@@ -21,7 +21,7 @@ from sklearn.base import BaseEstimator
 from tpot import Population
 from liger import config as cfg
 from liger import typing
-from ._schema import Col
+from ._schema import IndivCol
 
 
 def _parse_int_pair(value) -> tuple[int, int] | None:
@@ -65,13 +65,13 @@ def _parse_instance(value) -> list[tuple[str, str]] | BaseEstimator | None:
 
 def parse_pop(pop: Population) -> Population:
     indivs = pop.evaluated_individuals
-    indivs[Col.GEN] = indivs[Col.GEN].astype("Int64")
+    indivs[IndivCol.GEN] = indivs[IndivCol.GEN].astype("Int64")
     return pop
 
 
 def parse_indivs(indivs: pd.DataFrame) -> pd.DataFrame:
-    parsed = indivs.copy()
-    parsed[Col.PARENTS] = parsed[Col.PARENTS].map(_parse_int_pair)
-    parsed[Col.GEN] = parsed[Col.GEN].astype("Int64")
-    parsed[Col.INSTANCE] = parsed[Col.INSTANCE].map(_parse_instance)
+    parsed = indivs.copy().rename_axis(IndivCol.ID)
+    parsed[IndivCol.PARENTS] = parsed[IndivCol.PARENTS].map(_parse_int_pair)
+    parsed[IndivCol.GEN] = parsed[IndivCol.GEN].astype("Int64")
+    parsed[IndivCol.INSTANCE] = parsed[IndivCol.INSTANCE].map(_parse_instance)
     return parsed

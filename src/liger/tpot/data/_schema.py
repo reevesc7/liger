@@ -18,8 +18,8 @@
 from enum import StrEnum
 
 
-class Col(StrEnum):
-    ID = "ID"
+class IndivCol(StrEnum):
+    ID = "indiv_id"
     PARENTS = "Parents"
     VAR_FUNC = "Variation_Function"
     GEN = "Generation"
