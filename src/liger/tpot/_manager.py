@@ -116,18 +116,6 @@ class TPOTManager:
         self._objectives = InverseObjectives(self.objectives)
         self._check_end_conditions()
 
-    @property
-    def pop_path_(self) -> Path:
-        return self.output_dir_ / paths.POP
-
-    @property
-    def indivs_path_(self) -> Path:
-        return self.output_dir_ / paths.INDIVS
-
-    @property
-    def instances_path_(self) -> Path:
-        return self.output_dir_ / paths.INSTANCES
-
     def _log(self, message: str, category: int | type[Warning] = logging.INFO) -> None:
         if isinstance(category, type):
             log_level = logging.WARNING
@@ -175,8 +163,9 @@ class TPOTManager:
         if last_gen != last_complete_gen:
             self._log("Found and erased incomplete last generation")
             if last_gen == 0:
-                self.pop_path_.unlink()
-                self.indivs_path_.unlink(missing_ok=True)
+                paths.pop_path(self.output_dir_).unlink()
+                paths.indivs_path(self.output_dir_).unlink(missing_ok=True)
+                paths.instances_path(self.output_dir_).unlink(missing_ok=True)
                 return None
         return pop
 
@@ -458,5 +447,5 @@ class TPOTManager:
         )
         self._log(f"Fitted pipeline:\n\n{pretty_fitted_pipeline}\n")
         if self.end_params.clear_population_file:
-            (self.pop_path_).unlink(missing_ok=True)
+            paths.pop_path(self.output_dir_).unlink(missing_ok=True)
         self._log("End of segment; Run complete\n")
