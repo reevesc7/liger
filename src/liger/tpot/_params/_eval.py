@@ -16,7 +16,7 @@
 
 
 from typing import Literal
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(slots=True)
@@ -33,3 +33,12 @@ class EvalParams:
     generations_until_end_budget: int = 1
     validation_strategy: Literal["auto", "reshuffled", "split", "none"] = "none"
     validation_fraction: float = 0.2
+    gen_of_max_budget_: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.gen_of_max_budget_ = self._gen_of_max_budget()
+
+    def _gen_of_max_budget(self) -> int:
+        if self.budget_range is None or self.budget_range[1] <= self.budget_range[0]:
+            return 1
+        return self.generations_until_end_budget
