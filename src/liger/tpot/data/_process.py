@@ -15,10 +15,48 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Sequence
+from typing import TypeVar
+from collections.abc import Hashable, Mapping, Sequence
+from functools import cached_property
+from pathlib import Path
 import pandas as pd
 from tpot import Population
-from ._schema import IndivCol
+from liger import config as cfg
+from liger import tpot
+from . import _io
+from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
+
+
+K = TypeVar("K", bound=Hashable)
+
+
+class GraphsBreakdown:
+    def __init__(self, runs_indivs: Mapping[K, pd.DataFrame]) -> None:
+        self.indivs = pd.concat(
+            runs_indivs.values(),
+            keys=runs_indivs.keys(),
+            names=[RunCol.ID, IndivCol.ID],
+        )
+        nodes = self.indivs[IndivCol.INSTANCE].apply(lambda i: [
+                {NodeCol.ID: key} | value
+                for key, value in i.graph.nodes.items()
+            ]).explode()
+        self.nodes = pd.DataFrame(
+            nodes.tolist(),
+            index=nodes.index,
+        ).set_index(NodeCol.ID, append=True)
+        self.nodes[NodeCol.TYPE] = self.nodes[NodeCol.INSTANCE].map(type)
+        self.edges = pd.DataFrame(
+                self.nodes[NodeCol.SUCCESSORS].explode().rename(EdgeCol.SOURCE_ID)
+        )
+
+    @cached_property
+    def roots(self) -> pd.DataFrame:
+        return self.nodes.groupby([RunCol.ID, IndivCol.ID]).first()
+
+    @cached_property
+    def leaves(self) -> pd.DataFrame:
+        return self.nodes[~self.nodes.index.isin(self.edges.dropna().index)]
 
 
 def last_gen(indivs: pd.DataFrame) -> int:
