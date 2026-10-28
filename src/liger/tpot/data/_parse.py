@@ -20,8 +20,16 @@ import pandas as pd
 from sklearn.base import BaseEstimator
 from tpot import Population
 from liger import config as cfg
-from liger import typing
+from liger.config import typing
 from ._schema import IndivCol
+
+
+def parse_slurm_options(slurm_profile: str) -> list[str]:
+    return [
+        line.split("#SBATCH ", 1)[-1].strip()
+        for line in slurm_profile.split("\n")
+        if line.strip().startswith("#SBATCH ")
+    ]
 
 
 def _parse_int_pair(value) -> tuple[int, int] | None:

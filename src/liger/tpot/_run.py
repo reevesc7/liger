@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 import liger.config as cfg
 from liger.config.typing import Config
 from ._manager import TPOTManager
-from . import paths
+from . import data, paths
 
 
 def init_tpot_dir(
@@ -85,15 +85,19 @@ def _submit_slurm_segment(
     recurse: bool,
     job_id: str | None = None,
 ) -> int:
-    slurm_profile_path = checkpoint_dir / paths.SLURM_PROFILE
-    slurm_options = _parse_slurm_options(slurm_profile_path) + [
+    slurm_profile_path = paths.slurm_profile_path(checkpoint_dir)
+    if slurm_profile_path.is_file():
+        slurm_options = data.parse_slurm_options(slurm_profile_path.read_text())
+    else:
+        slurm_options = []
+    slurm_options.extend([
         f"--job-name={checkpoint_dir.name}",
-        f"--output={checkpoint_dir / paths.SLURM_OUT}",
+        f"--output={paths.slurm_out_path(checkpoint_dir)}",
         "--parsable",
         f"--wrap=#!/usr/bin/env bash\n"
             f"source {slurm_profile_path}\n"
             f"liger tpot run slurm {checkpoint_dir}{' --recurse' if recurse else ''}\n",
-    ]
+    ])
     if job_id:
         slurm_options.append(f"--dependency=afterany:{job_id}")
     re = subprocess.run(
