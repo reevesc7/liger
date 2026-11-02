@@ -17,6 +17,7 @@
 
 from typing import TypeVar
 from collections.abc import Hashable, Mapping, Sequence
+from enum import StrEnum
 from functools import cached_property
 from pathlib import Path
 import pandas as pd
@@ -30,8 +31,19 @@ from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
 K = TypeVar("K", bound=Hashable)
 
 
+class ScoreValuation(StrEnum):
+    GREATER = "greater"
+    LESSER = "lesser"
+    ZERO = "zero"
+
+
 class GraphsBreakdown:
-    def __init__(self, runs_indivs: Mapping[K, pd.DataFrame]) -> None:
+    def __init__(
+        self,
+        runs_indivs: Mapping[K, pd.DataFrame],
+        score_valuation: ScoreValuation = ScoreValuation.ZERO,
+    ) -> None:
+        self.score_valuation = score_valuation
         self.indivs = pd.concat(
             runs_indivs.values(),
             keys=runs_indivs.keys(),
