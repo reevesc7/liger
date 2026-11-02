@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Iterable
+from collections.abc import Iterable, Sequence
 import warnings
 import numpy as np
 from numpy.typing import ArrayLike
@@ -32,6 +32,22 @@ def trendlines(
     x = np.asarray(x)
     y = np.asarray(y)
     return [np.poly1d(np.polyfit(x, y, order)) for order in trend_orders]
+
+
+def heat_map_axes(
+    ax: Axes,
+    xticklabels: Sequence[str],
+    yticklabels: Sequence[str],
+) -> Axes:
+    ax.set_xticks(
+        range(len(xticklabels)),
+        labels=xticklabels,
+        rotation=45,
+        ha="right",
+        rotation_mode="anchor",
+    )
+    ax.set_yticks(range(len(yticklabels)), labels=yticklabels)
+    return ax
 
 
 def show() -> None:
