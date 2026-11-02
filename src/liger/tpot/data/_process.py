@@ -48,7 +48,7 @@ class GraphsBreakdown:
             runs_indivs.values(),
             keys=runs_indivs.keys(),
             names=[RunCol.ID, IndivCol.ID],
-        )
+        ).sort_index()
         nodes = self.indivs[IndivCol.INSTANCE].apply(lambda i: [
                 {NodeCol.ID: key} | value
                 for key, value in i.graph.nodes.items()
