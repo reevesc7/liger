@@ -3,7 +3,7 @@ import numpy as np
 from numpy.testing import assert_array_equal
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from liger.results_processing import dataset as ds
+from liger.dataset import fit
 
 
 SAMPLE_DATA = [
@@ -33,7 +33,7 @@ def sample_data_frame() -> pd.DataFrame:
 
 
 def test_linear_fit_array(sample_data_array: np.ndarray) -> None:
-    alphas, deviations = ds.linear_fit_array(
+    alphas, deviations = fit.linear_fit_array(
         sample_data_array,
         sample_data_array[0][0],
         sample_data_array[0][1],
@@ -49,12 +49,12 @@ def test_linear_fit_array(sample_data_array: np.ndarray) -> None:
 
 
 def test_linear_fit(sample_data_frame: pd.DataFrame) -> None:
-    fit = ds.linear_fit(
+    linear_fit = fit.linear_fit(
         sample_data_frame,
         sample_data_frame.loc[0],
         sample_data_frame.loc[1],
     )
-    assert isinstance(fit, pd.DataFrame)
-    assert fit.shape == (5, 2)
+    assert isinstance(linear_fit, pd.DataFrame)
+    assert linear_fit.shape == (5, 2)
     expected = pd.DataFrame({"alpha": ALPHAS, "deviation": DEVIATIONS})
-    assert_frame_equal(fit, expected)
+    assert_frame_equal(linear_fit, expected)
