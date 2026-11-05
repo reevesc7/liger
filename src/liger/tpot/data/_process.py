@@ -15,10 +15,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import TypeVar
+from typing import Any, Callable, TypeVar
 from collections.abc import Hashable, Mapping, Sequence
 from enum import StrEnum
-from functools import cached_property
+from functools import cached_property, partial
 from pathlib import Path
 import pandas as pd
 from tpot import Population
@@ -35,6 +35,29 @@ class ScoreValuation(StrEnum):
     GREATER = "greater"
     LESSER = "lesser"
     ZERO = "zero"
+
+
+def _name_of_callable(obj: Callable) -> str:
+    while isinstance(obj, partial):
+        obj = obj.func
+    name = getattr(obj, "__qualname__", None)
+    if name is None:
+        name = getattr(obj, "__name__", None)
+    if name is None:
+        name = type(obj).__name__
+    return name
+
+
+def _node_type(node: Any) -> str:
+    type_ = type(node).__name__
+    if hasattr(node, "kernel"):
+        kernel = node.kernel
+        if not isinstance(kernel, str):
+            kernel = _name_of_callable(kernel)
+        type_ += "[{}]".format(kernel)
+    if hasattr(node, "estimator"):
+        type_ += "[{}]".format(_node_type(node.estimator))
+    return type_
 
 
 class GraphsBreakdown:
@@ -57,7 +80,7 @@ class GraphsBreakdown:
             nodes.tolist(),
             index=nodes.index,
         ).set_index(NodeCol.ID, append=True)
-        self.nodes[NodeCol.TYPE] = self.nodes[NodeCol.INSTANCE].map(type)
+        self.nodes[NodeCol.TYPE] = self.nodes[NodeCol.INSTANCE].map(_node_type)
         self.edges = pd.DataFrame(
                 self.nodes[NodeCol.SUCCESSORS].explode().rename(EdgeCol.SOURCE_ID)
         )

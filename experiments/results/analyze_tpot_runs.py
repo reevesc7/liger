@@ -81,7 +81,7 @@ def _plot_run_gen_mean_sem(ax: Axes, data: pd.Series) -> None:
         run_means = run_gen_means.loc[xs]
         run_sems = run_gen_95ci.loc[xs]
         gens = run_means.index.get_level_values(IndivCol.GEN)
-        ax.plot(gens, run_means, label=str(run_id))
+        ax.plot(gens, run_means, label=run_id)
         ax.fill_between(
             gens,
             run_means - run_sems,
@@ -287,7 +287,6 @@ def _plot_pareto_methods(
         level=0,
         fill_value=0,
     ) / n_indivs
-    p_methods.index = p_methods.index.map(lambda t: t.__name__)
     p_methods = p_methods.sort_index(axis=1)
     p_methods = p_methods.loc[p_methods.sum(axis=1).sort_values(ascending=False).index]
     x_ticks = [str(index) for index in range(p_methods.shape[1])]
@@ -317,6 +316,7 @@ def plot_pareto_leaf_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
 
 def make_figure(cfg: Config, graphs: GraphsBreakdown) -> Figure:
     fig, ax = plt.subplots(nrows=2, ncols=4, figsize=(40,20))
+    fig.suptitle(cfg.result_path.stem)
     plot_n_nodes(ax[0, 0], graphs)
     plot_n_branches(ax[0, 1], graphs)
     plot_eval_times(ax[0, 1], graphs)
