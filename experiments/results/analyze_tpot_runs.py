@@ -238,76 +238,76 @@ def plot_pareto_knee_scores(
     ax.axhspan(ymean - y95ci, ymean + y95ci, alpha=0.1)
 
 
-def _plot_methods_per_indiv(
+def _plot_types_per_indiv(
     ax: Axes,
     nodes: pd.DataFrame,
     indivs: pd.DataFrame,
 ) -> None:
     n_indivs = indivs.groupby(IndivCol.GEN).size()
-    p_methods = nodes.join(indivs[IndivCol.GEN]).groupby(
+    p_types = nodes.join(indivs[IndivCol.GEN]).groupby(
         [IndivCol.GEN, NodeCol.TYPE],
         sort=False,
     ).size().unstack(level=0, fill_value=0) / n_indivs
-    p_methods = p_methods.loc[p_methods.sum(axis=1).sort_values(ascending=False).index]
-    for method, p_method in p_methods.iterrows():
-        ax.plot(p_method, label=method.__name__)
+    p_types = p_types.loc[p_types.sum(axis=1).sort_values(ascending=False).index]
+    for type_, p_type in p_types.iterrows():
+        ax.plot(p_type, label=type_)
 
 
-def plot_node_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
-    ax.set_title("nodes of method per individual, by method")
+def plot_node_types(ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("nodes of type per individual, by type")
     ax.set_xlabel("generation")
     ax.set_ylabel("nodes per individual (mean)")
-    _plot_methods_per_indiv(ax, graphs.nodes, graphs.indivs)
+    _plot_types_per_indiv(ax, graphs.nodes, graphs.indivs)
     ax.legend(loc="upper left", framealpha=0)
 
 
-def plot_root_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
-    ax.set_title("roots of method per individual, by method")
+def plot_root_types(ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("roots of type per individual, by type")
     ax.set_xlabel("generation")
     ax.set_ylabel("roots per individual (mean)")
-    _plot_methods_per_indiv(ax, graphs.roots, graphs.indivs)
+    _plot_types_per_indiv(ax, graphs.roots, graphs.indivs)
     ax.legend(loc="upper left", framealpha=0)
 
 
-def plot_leaf_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
-    ax.set_title("leaves of method per individual, by method")
+def plot_leaf_types(ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("leaves of type per individual, by type")
     ax.set_xlabel("generation")
     ax.set_ylabel("leaves per individual (mean)")
-    _plot_methods_per_indiv(ax, graphs.leaves, graphs.indivs)
+    _plot_types_per_indiv(ax, graphs.leaves, graphs.indivs)
     ax.legend(loc="upper left", framealpha=0)
 
 
-def _plot_pareto_methods(
+def _plot_pareto_types(
     ax: Axes,
     nodes: pd.DataFrame | pd.Series,
     indivs: pd.DataFrame | pd.Series,
 ) -> None:
     n_indivs = indivs.groupby(RunCol.ID).size()
-    p_methods = nodes.groupby([RunCol.ID, NodeCol.TYPE], sort=False).size().unstack(
+    p_types = nodes.groupby([RunCol.ID, NodeCol.TYPE], sort=False).size().unstack(
         level=0,
         fill_value=0,
     ) / n_indivs
-    p_methods = p_methods.sort_index(axis=1)
-    p_methods = p_methods.loc[p_methods.sum(axis=1).sort_values(ascending=False).index]
-    x_ticks = [str(index) for index in range(p_methods.shape[1])]
-    ax = lgplot.heat_map_axes(ax, x_ticks, p_methods.index.to_list())
-    ax.imshow(p_methods)
+    p_types = p_types.sort_index(axis=1)
+    p_types = p_types.loc[p_types.sum(axis=1).sort_values(ascending=False).index]
+    x_ticks = [str(index) for index in range(p_types.shape[1])]
+    ax = lgplot.heat_map_axes(ax, x_ticks, p_types.index.to_list())
+    ax.imshow(p_types)
 
 
-def plot_pareto_root_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
-    ax.set_title("roots of method per Pareto individual, by method")
+def plot_pareto_root_types(ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("roots of type per Pareto individual, by type")
     ax.set_xlabel("run")
     ax.set_ylabel("roots per individual (mean)")
     pareto_mask = data.pareto_mask(graphs.indivs)
-    _plot_pareto_methods(ax, graphs.roots[pareto_mask], graphs.indivs[pareto_mask])
+    _plot_pareto_types(ax, graphs.roots[pareto_mask], graphs.indivs[pareto_mask])
 
 
-def plot_pareto_leaf_methods(ax: Axes, graphs: GraphsBreakdown) -> None:
-    ax.set_title("leaves of method per Pareto individual, by method")
+def plot_pareto_leaf_types(ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("leaves of type per Pareto individual, by type")
     ax.set_xlabel("run")
     ax.set_ylabel("leaves per individual (mean)")
     pareto_mask = data.pareto_mask(graphs.indivs)
-    _plot_pareto_methods(
+    _plot_pareto_types(
         ax,
         graphs.leaves[pareto_mask.reindex(graphs.leaves.index)],
         graphs.indivs[pareto_mask],
@@ -323,11 +323,11 @@ def make_figure(cfg: Config, graphs: GraphsBreakdown) -> Figure:
     plot_pareto_scores(cfg, ax[0, 2], graphs)
     # plot_pareto_nodes_branches(ax[0, 3], cfg.pareto_scale, graphs)
     plot_pareto_knee_scores(cfg, ax[0, 3], graphs)
-    # plot_node_methods(ax[1, 0], runs_graphs)
-    plot_root_methods(ax[1, 0], graphs)
-    plot_leaf_methods(ax[1, 1], graphs)
-    plot_pareto_root_methods(ax[1, 2], graphs)
-    plot_pareto_leaf_methods(ax[1, 3], graphs)
+    # plot_node_types(ax[1, 0], runs_graphs)
+    plot_root_types(ax[1, 0], graphs)
+    plot_leaf_types(ax[1, 1], graphs)
+    plot_pareto_root_types(ax[1, 2], graphs)
+    plot_pareto_leaf_types(ax[1, 3], graphs)
     fig.tight_layout()
     return fig
 
