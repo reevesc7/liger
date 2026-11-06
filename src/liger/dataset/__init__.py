@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from . import fit
+from . import _config, fit
 from ._load import (
     ColumnsFilter,
     transform_data,
@@ -33,3 +33,7 @@ __all__ = [
     "data_from_csv",
     "multi_data_from_csv",
 ]
+
+
+_config.register()
+del _config

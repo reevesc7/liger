@@ -22,7 +22,6 @@ from functools import partial, singledispatch
 from pathlib import Path
 import numpy as np
 import pandas as pd
-from liger.dataset import ColumnsFilter
 from ._constants import ConfigTag
 from .typing import Config, RawList, RawDict
 
@@ -148,8 +147,3 @@ def _(obj: pd.DataFrame) -> Config:
         index=obj.index,
         columns=obj.columns,
     )
-
-
-@to_config.register(ColumnsFilter)
-def _(obj: ColumnsFilter) -> Config:
-    return instance_init_args_to_config(obj)
