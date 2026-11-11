@@ -11,7 +11,7 @@ import matplotlib as mpl
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from cycler import cycler
-from liger.pareto import pareto_knee
+from liger import pareto
 from liger import plotting as lgplot
 from liger.tpot import data
 from liger.tpot.data import (
@@ -214,21 +214,26 @@ def plot_pareto_knee_scores(
     ax.set_xlabel(str(scores.columns[0]) + " +/- 95% CI")
     ax.set_ylabel(str(scores.columns[1]) + " +/- 95% CI")
     ax = _set_scores_scales(cfg, ax)
-    objectives_weights = _objectives_weights(graphs)
-    knees_list: list[pd.Series] = []
+    maximizing_scores = scores * _objectives_weights(graphs)
+    knees_indices = []
     for run_id, xs in _runs_xs(scores).items():
-        run_scores = scores.loc[xs]
-        knees_list.append(pareto_knee(run_scores, objectives_weights))
-    knees = pd.concat(knees_list, axis=1).T
-    ax.scatter(knees.iloc[:, 0], knees.iloc[:, 1], alpha=0.5)
-    xmin = knees.iloc[:, 0].min()
-    xmax = knees.iloc[:, 0].max()
-    xmean = knees.iloc[:, 0].mean()
-    x95ci = 1.96 * cast(float, knees.iloc[:, 0].sem())
-    ymin = knees.iloc[:, 1].min()
-    ymax = knees.iloc[:, 1].max()
-    ymean = knees.iloc[:, 1].mean()
-    y95ci = 1.96 * cast(float, knees.iloc[:, 1].sem())
+        run_scores = maximizing_scores.loc[xs]
+        knee = pareto.pareto_knee(run_scores)
+        if knee.status == pareto.KneeStatus.DEGENERATE:
+            raise ValueError(f"Found degenerate Pareto extremes in {run_id}")
+        print(f"{run_id}: [ n_knees: {knee.indices.size}, status: {knee.status} ]")
+        for index in knee.indices:
+            knees_indices.append(run_scores.index[index])
+    knees_scores = _negate_scores(cfg, scores.loc[knees_indices])
+    ax.scatter(knees_scores.iloc[:, 0], knees_scores.iloc[:, 1], alpha=0.5)
+    xmin = knees_scores.iloc[:, 0].min()
+    xmax = knees_scores.iloc[:, 0].max()
+    xmean = knees_scores.iloc[:, 0].mean()
+    x95ci = 1.96 * cast(float, knees_scores.iloc[:, 0].sem())
+    ymin = knees_scores.iloc[:, 1].min()
+    ymax = knees_scores.iloc[:, 1].max()
+    ymean = knees_scores.iloc[:, 1].mean()
+    y95ci = 1.96 * cast(float, knees_scores.iloc[:, 1].sem())
     ax.vlines(xmean, ymin, ymax)
     ax.axvspan(xmean - x95ci, xmean + x95ci, alpha=0.1)
     ax.hlines(ymean, xmin, xmax)
