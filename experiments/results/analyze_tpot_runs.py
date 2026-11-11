@@ -2,6 +2,7 @@ from typing import cast
 from collections.abc import Hashable
 import contextlib
 from dataclasses import dataclass
+import json
 from pathlib import Path
 import sys
 import tomllib
@@ -11,6 +12,7 @@ import matplotlib as mpl
 from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from cycler import cycler
+from liger import config
 from liger import pareto
 from liger import plotting as lgplot
 from liger.tpot import data
@@ -18,6 +20,7 @@ from liger.tpot.data import (
     RunCol,
     IndivCol,
     NodeCol,
+    EdgeCol,
     ScoreValuation,
     GraphsBreakdown,
 )
@@ -316,6 +319,45 @@ def plot_pareto_leaf_types(ax: Axes, graphs: GraphsBreakdown) -> None:
     )
 
 
+def plot_pareto_graphs(cfg: Config, ax: Axes, graphs: GraphsBreakdown) -> None:
+    ax.set_title("Pareto individual graph layout proportions, by run")
+    ax.set_xlabel("run")
+    ax.set_ylabel("graph layout proportion")
+    score_cols = data.score_columns(graphs.indivs)
+    scores = graphs.indivs.loc[graphs.indivs[IndivCol.PARETO] == 1, score_cols]
+    maximizing_scores = scores * _objectives_weights(graphs)
+    knees_indices = []
+    for run_id, xs in _runs_xs(scores).items():
+        run_scores = maximizing_scores.loc[xs]
+        knee = pareto.pareto_knee(run_scores)
+        if knee.status == pareto.KneeStatus.DEGENERATE:
+            raise ValueError(f"Found degenerate Pareto extremes in {run_id}")
+        for index in knee.indices:
+            knees_indices.append(run_scores.index[index])
+    knees = graphs.indivs.loc[knees_indices]
+    knees[NodeCol.TYPE] = knees[IndivCol.INSTANCE].map(str)
+    # TODO: Clean this up, move, refactor, etc.
+    knee_store = {}
+    for knee_index in knees_indices:
+        edges = graphs.edges.xs(knee_index, level=[RunCol.ID, IndivCol.ID])
+        edge_list = [
+            f"({node}, {source[EdgeCol.SOURCE_ID]})"
+            for node, source in edges.iterrows()
+        ]
+        nodes = graphs.nodes.xs(knee_index, level=[RunCol.ID, IndivCol.ID])
+        node_list = nodes[NodeCol.TYPE].to_list()
+        knee_store[str(knee_index)] = ({"nodes": node_list, "edges": edge_list})
+    json.dump(knee_store, (cfg.result_path.parent / "test.json").open("w"), indent=4)
+    return
+    _plot_pareto_types(
+        ax,
+        knees,
+        knees,
+        # pareto_indivs,
+        # pareto_indivs,
+    )
+
+
 def make_figure(cfg: Config, graphs: GraphsBreakdown) -> Figure:
     fig, ax = plt.subplots(nrows=2, ncols=4, figsize=(40,20))
     fig.suptitle(cfg.result_path.stem)
@@ -330,8 +372,23 @@ def make_figure(cfg: Config, graphs: GraphsBreakdown) -> Figure:
     plot_leaf_types(ax[1, 1], graphs)
     plot_pareto_root_types(ax[1, 2], graphs)
     plot_pareto_leaf_types(ax[1, 3], graphs)
+    plot_pareto_graphs(cfg, ax[1, 3], graphs)
     fig.tight_layout()
     return fig
+
+
+def report_total_knee(cfg: Config, graphs: GraphsBreakdown) -> None:
+    pareto_mask = graphs.indivs[IndivCol.PARETO] == 1
+    score_cols = data.score_columns(graphs.indivs)
+    scores = graphs.indivs.loc[pareto_mask, score_cols]
+    knee = pareto.pareto_knee(scores * _objectives_weights(graphs))
+    if knee.status == pareto.KneeStatus.DEGENERATE:
+        raise ValueError("Found degenerate Pareto extremes")
+    print(f"Found {knee.indices.size} potential knee(s); status: {knee.status}")
+    knee_indivs = graphs.indivs[pareto_mask].iloc[knee.indices]
+    cfg.result_path.with_suffix(".json").write_text(
+        json.dumps(config.to_config(knee_indivs), indent=4)
+    )
 
 
 def main():
@@ -341,6 +398,7 @@ def main():
         graphs = GraphsBreakdown(cfg.runs_indivs)
         fig = make_figure(cfg, graphs)
         fig.savefig(cfg.result_path)
+        report_total_knee(cfg, graphs)
 
 
 if __name__ == "__main__":
