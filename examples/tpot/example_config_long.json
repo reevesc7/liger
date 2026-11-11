@@ -303,7 +303,7 @@
         {
             "<INSTANCE>": "liger.tpot.Objective",
             "func": {
-                "<OBJECT>": "tpot.objectives.complexity_scorer"
+                "<OBJECT>": "liger.tpot.objectives.score_complexity"
             },
             "weight": -1.0
         }

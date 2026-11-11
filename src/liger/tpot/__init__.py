@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from . import _config, data, paths
+from . import _config, data, objectives, paths
 from ._manager import TPOTManager
 from ._params import (
     Objective,
@@ -31,6 +31,7 @@ from ._run import init_tpot_dir, run_local_segment, run_slurm_segment
 
 __all__ = [
     "data",
+    "objectives",
     "paths",
     "TPOTManager",
     "Objective",
