@@ -139,7 +139,7 @@ def plot_pareto_scores(cfg: Config, ax: Axes, graphs: GraphsBreakdown) -> None:
     if len(score_cols) > 2:
         print("Scores are greater than 2 dimensions; skipping Pareto front scores plot")
         return
-    pareto_mask = data.pareto_mask(graphs.indivs)
+    pareto_mask = graphs.indivs[IndivCol.PARETO] == 1
     scores = _negate_scores(cfg, graphs.indivs.loc[pareto_mask, score_cols])
     runs_xs = _runs_xs(scores)
     if scores.shape[1] == 1:
@@ -161,7 +161,7 @@ def plot_pareto_nodes_branches(ax: Axes, graphs: GraphsBreakdown) -> None:
     ax.set_title("Pareto front number of nodes and branches, by run")
     ax.set_xlabel("number of nodes")
     ax.set_ylabel("number of branches")
-    pareto_mask = data.pareto_mask(graphs.indivs)
+    pareto_mask = graphs.indivs[IndivCol.PARETO] == 1
     pareto_indivs = graphs.indivs[pareto_mask]
     pareto_nodes = graphs.nodes[pareto_mask.reindex(graphs.nodes.index)]
     pareto_edges = graphs.edges[pareto_mask.reindex(graphs.edges.index)]
@@ -209,10 +209,7 @@ def plot_pareto_knee_scores(
     if len(score_cols) == 1:
         plot_pareto_scores(cfg, ax, graphs)
         return
-    scores = _negate_scores(
-        cfg,
-        graphs.indivs.loc[data.pareto_mask(graphs.indivs), score_cols],
-    )
+    scores = graphs.indivs.loc[graphs.indivs[IndivCol.PARETO] == 1, score_cols]
     ax.set_title("Pareto knee scores (1 per run)")
     ax.set_xlabel(str(scores.columns[0]) + " +/- 95% CI")
     ax.set_ylabel(str(scores.columns[1]) + " +/- 95% CI")
@@ -298,7 +295,7 @@ def plot_pareto_root_types(ax: Axes, graphs: GraphsBreakdown) -> None:
     ax.set_title("roots of type per Pareto individual, by type")
     ax.set_xlabel("run")
     ax.set_ylabel("roots per individual (mean)")
-    pareto_mask = data.pareto_mask(graphs.indivs)
+    pareto_mask = graphs.indivs[IndivCol.PARETO] == 1
     _plot_pareto_types(ax, graphs.roots[pareto_mask], graphs.indivs[pareto_mask])
 
 
@@ -306,7 +303,7 @@ def plot_pareto_leaf_types(ax: Axes, graphs: GraphsBreakdown) -> None:
     ax.set_title("leaves of type per Pareto individual, by type")
     ax.set_xlabel("run")
     ax.set_ylabel("leaves per individual (mean)")
-    pareto_mask = data.pareto_mask(graphs.indivs)
+    pareto_mask = graphs.indivs[IndivCol.PARETO] == 1
     _plot_pareto_types(
         ax,
         graphs.leaves[pareto_mask.reindex(graphs.leaves.index)],

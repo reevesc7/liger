@@ -23,7 +23,6 @@ from ._process import (
     last_gen,
     remove_incomplete_last_gen,
     score_columns,
-    pareto_mask,
     run_is_complete,
 )
 from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
@@ -44,7 +43,6 @@ __all__ = [
     "last_gen",
     "remove_incomplete_last_gen",
     "score_columns",
-    "pareto_mask",
     "run_is_complete",
     "RunCol",
     "IndivCol",

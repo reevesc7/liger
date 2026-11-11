@@ -122,10 +122,6 @@ def score_columns(indivs: pd.DataFrame) -> list[str]:
     return [col for col in indivs.columns if col not in non_score_cols]
 
 
-def pareto_mask(indivs: pd.DataFrame) -> pd.Series:
-    return indivs[IndivCol.PARETO] == 1
-
-
 def run_is_complete(dir: str | Path) -> bool:
     manager = cfg.parse_config(_io.load_params(dir), tpot.TPOTManager)
     try:
