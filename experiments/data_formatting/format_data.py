@@ -5,8 +5,8 @@ import json
 import pandas as pd
 from liger import smallville
 from liger.surveying.openai import OpenAISurveyor
-from liger.embedding.openai import OpenAIEmbedder
-from liger.embedding.sentencetrans import STEmbedder
+from liger.embedders.openai import OpenAIEmbedder
+from liger.embedders.sentencetrans import STEmbedder
 from liger import transforms as tfs
 
 

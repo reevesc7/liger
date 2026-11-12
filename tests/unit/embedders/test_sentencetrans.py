@@ -1,5 +1,5 @@
 import pandas as pd
-from liger.embedding.sentencetrans import STEmbedder
+from liger.embedders.sentencetrans import STEmbedder
 
 
 def test_st_embedder_embed() -> None:

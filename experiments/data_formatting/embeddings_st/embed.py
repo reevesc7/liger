@@ -5,7 +5,7 @@ from pathlib import Path
 import tomllib
 import pandas as pd
 from liger import dataset as ds
-from liger.embedding.sentencetrans import STEmbedder
+from liger.embedders.sentencetrans import STEmbedder
 
 
 @dataclass(slots=True)

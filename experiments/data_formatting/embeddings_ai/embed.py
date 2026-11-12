@@ -5,7 +5,7 @@ from pathlib import Path
 import tomllib
 import pandas as pd
 from liger import dataset as ds
-from liger.embedding.openai import OpenAIEmbedder
+from liger.embedders.openai import OpenAIEmbedder
 
 
 @dataclass(slots=True)
