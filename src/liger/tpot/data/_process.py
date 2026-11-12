@@ -124,8 +124,4 @@ def score_columns(indivs: pd.DataFrame) -> list[str]:
 
 def run_is_complete(dir: str | Path) -> bool:
     manager = cfg.parse_config(_io.load_params(dir), tpot.TPOTManager)
-    try:
-        indivs = _io.load_indivs(dir)
-    except FileNotFoundError:
-        return False
-    return manager.indivs_is_complete(indivs)
+    return manager.is_complete()

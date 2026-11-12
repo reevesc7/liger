@@ -18,7 +18,6 @@
 from pathlib import Path
 
 
-DATETIME_FMT = "%Y-%m-%d_%H-%M-%S.%f"
 SLURM_PROFILE = "slurm_profile.sh"
 CONFIG = "config.json"
 PARAMS = "params.json"

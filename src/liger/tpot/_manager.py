@@ -22,7 +22,7 @@ import logging
 from pathlib import Path
 import json
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 import pandas as pd
 from scipy.sparse import spmatrix
 from sklearn.utils.multiclass import type_of_target
@@ -94,9 +94,9 @@ class TPOTManager:
     output_dir: str | Path
     output_dir_: Path = field(init=False)
     x: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
-    _x: np.ndarray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
+    _x: NDArray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
     y: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
-    _y: np.ndarray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
+    _y: NDArray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
     search_space: str | SearchSpace | SearchSpaceInitializer
     _search_space: str | SearchSpace | None = field(default=None, init=False)
     classification: bool
@@ -108,11 +108,11 @@ class TPOTManager:
     end_params: EndParams = field(default_factory=EndParams)
     runtime_params: RuntimeParams = field(default_factory=RuntimeParams)
     verbose: int = 0
-    is_complete_: bool | None = field(default=None, init=False)
+    _is_complete: bool = field(default=False, init=False)
     _tpot: TPOTEstimator | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
-        self.output_dir = self.output_dir_ = Path(self.output_dir).resolve()
+        self.set_output_dir(self.output_dir)
         self._objectives = InverseObjectives(self.objectives)
         self._check_end_conditions()
 
@@ -132,6 +132,11 @@ class TPOTManager:
             )
             return
         print(f"{logging.getLevelName(log_level)}: {message}")
+
+    def set_output_dir(self, dir: str | Path) -> None:
+        dir = Path(dir).resolve()
+        self.output_dir = self.output_dir_ = dir
+        self._log(f"Output directory set to: {dir}", logging.DEBUG)
 
     def _check_end_conditions(self) -> None:
         endless_segment = self.end_params.segment_is_endless_
@@ -256,8 +261,8 @@ class TPOTManager:
             self._log("Did not find population file", logging.DEBUG)
             last_pop = None
         if last_pop is not None:
-            self.is_complete_ = self.indivs_is_complete(last_pop.evaluated_individuals)
-            if self.is_complete_:
+            self._is_complete = self.indivs_is_complete(last_pop.evaluated_individuals)
+            if self._is_complete:
                 return
             self._log("Dumping population", logging.DEBUG)
             data.dump_pop(last_pop, self.output_dir_)
@@ -267,14 +272,14 @@ class TPOTManager:
             last_indivs = data.load_indivs(self.output_dir_)
         except FileNotFoundError:
             self._log("Did not find individuals files", logging.DEBUG)
-            self.is_complete_ = False
+            self._is_complete = False
             return
-        self.is_complete_ = self.indivs_is_complete(last_indivs)
-        if not self.is_complete_:
+        self._is_complete = self.indivs_is_complete(last_indivs)
+        if not self._is_complete:
             raise FileNotFoundError("Individuals files indicate run is incomplete, "
                 "but did not find a population file; cannot recover run state")
 
-    def _init_x(self) -> np.ndarray | pd.DataFrame | spmatrix:
+    def _init_x(self) -> NDArray | pd.DataFrame | spmatrix:
         if self._x is not None:
             x = self._x
         elif isinstance(self.x, Callable):
@@ -285,7 +290,7 @@ class TPOTManager:
             return x
         return np.asarray(x)
 
-    def _init_y(self) -> np.ndarray | pd.DataFrame | spmatrix:
+    def _init_y(self) -> NDArray | pd.DataFrame | spmatrix:
         if self._y is not None:
             y = self._y
         elif isinstance(self.y, Callable):
@@ -296,7 +301,7 @@ class TPOTManager:
             return y
         return np.asarray(y)
 
-    def _y_class_counts(self) -> tuple[np.ndarray, np.ndarray]:
+    def _y_class_counts(self) -> tuple[NDArray, NDArray]:
         if self._y is None:
             self._y = self._init_y()
         y = self._y
@@ -419,7 +424,7 @@ class TPOTManager:
 
     def run_segment(self) -> None:
         self._init_state()
-        if self.is_complete_:
+        if self._is_complete:
             self._log("Run end conditions already met; aborting")
             return
         self._log(f"Run output directory: {self.output_dir_}")
@@ -436,8 +441,8 @@ class TPOTManager:
                 f"{pd.DataFrame.__name__!r} but was type {type(indivs).__name__!r}")
         self._log("Dumping individuals", logging.DEBUG)
         data.dump_indivs(indivs, self.output_dir_)
-        self.is_complete_ = self.indivs_is_complete(indivs)
-        if not self.is_complete_:
+        self._is_complete = self.indivs_is_complete(indivs)
+        if not self._is_complete:
             self._log("End of segment; Run incomplete\n")
             return
         pretty_fitted_pipeline = json.dumps(
@@ -448,3 +453,16 @@ class TPOTManager:
         if self.end_params.clear_population_file:
             paths.pop_path(self.output_dir_).unlink(missing_ok=True)
         self._log("End of segment; Run complete\n")
+
+    def is_complete(self) -> bool:
+        if self._is_complete:
+            return True
+        try:
+            indivs = data.load_indivs(self.output_dir_)
+        except FileNotFoundError:
+            self._log("Did not find individuals files", logging.DEBUG)
+            return False
+        if self.indivs_is_complete(indivs):
+            self._is_complete = True
+            return True
+        return False

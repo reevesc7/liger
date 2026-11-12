@@ -20,7 +20,6 @@ import shutil
 from pathlib import Path
 import subprocess
 import json
-from datetime import datetime, timezone
 import liger.config as cfg
 from liger.config.typing import Config
 from ._manager import TPOTManager
@@ -35,15 +34,9 @@ def init_tpot_dir(
 ) -> Path:
     config_path = Path(config_path)
     config: dict[str, Config] = json.load(config_path.open())
-    dirname = "liger_tpot_" + datetime.now(timezone.utc).strftime(paths.DATETIME_FMT)
-    if output_dir is not None:
-        output_dir = Path(output_dir)
-        config["output_dir"] = str(output_dir / dirname)
-    elif "output_dir" in config:
-        config["output_dir"] = str(Path(str(config["output_dir"])) / dirname)
-    else:
-        config["output_dir"] = dirname
     tpot = cfg.parse_config(config, TPOTManager)
+    if output_dir is not None:
+        tpot.set_output_dir(output_dir)
     tpot.output_dir_.mkdir(parents=True, exist_ok=True)
     shutil.copy(config_path, paths.config_path(tpot.output_dir_))
     data.dump_params(cfg.to_config(tpot), tpot.output_dir_)
@@ -62,7 +55,7 @@ def run_local_segment(checkpoint_dir: str | Path) -> bool:
         tpot.output_dir_ = checkpoint_dir
         data.dump_params(cfg.to_config(tpot), checkpoint_dir)
     tpot.run_segment()
-    return True if tpot.is_complete_ else False
+    return tpot.is_complete()
 
 
 def _submit_slurm_segment(

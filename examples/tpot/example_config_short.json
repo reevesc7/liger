@@ -1,6 +1,10 @@
 {
     "<INSTANCE>": "liger.tpot.TPOTManager",
-    "output_dir": "example_outputs",
+    "output_dir": {
+        "<INSTANCE>": "liger.pathers.datetime_subpath",
+        "dir": "example_outputs",
+        "name": "liger_tpot_{}"
+    },
     "x": {
         "<PARTIAL>": "liger.loaders.data_from_csv",
         "file_path": {
