@@ -15,11 +15,50 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Sequence
 import numpy as np
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 import pandas as pd
 from scipy import special
+
+
+def linear_projection(
+    data: ArrayLike,
+    point1: ArrayLike,
+    point2: ArrayLike,
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+    """Project the data onto a line defined by two points
+    and report the distance of each point along the line as
+    a proportion of position from the first point to the second (alpha)
+    and the distance of each point from the line (deviation).
+
+    Parameters
+    ----------
+    data : ArrayLike
+        ND array of 1D points.
+    point1 : ArrayLike
+        1D array representing the 0.0 coordinate of the line.
+    point2 : ArrayLike
+        1D array representing the 1.0 coordinate of the line.
+
+    Returns
+    -------
+    alphas, deviations : tuple[NDArray[float64], NDArray[float64]]
+        2 (N - 1)D arrays. Alphas represent the proportional position of
+        each point along the line, from point1 to point2. E.g., a point whose
+        closest point on the line was point1 would have alpha == 1.0.
+        Alphas may be outside of the range [0.0, 1.0].
+        Deviations represent how far each point originally was from the line.
+    """
+    data = np.asarray(data, dtype=np.float64)
+    point1 = np.asarray(point1, dtype=np.float64)
+    target = np.asarray(point2, dtype=np.float64) - point1
+    if (target == 0.0).all():
+        raise ValueError("point1 and point2 must be different points")
+    vectors = data - point1
+    alphas = (vectors @ target) / (target @ target)
+    residuals = vectors - alphas[..., None] * target
+    deviations = np.linalg.norm(residuals, axis=-1)
+    return alphas, deviations
 
 
 def passthrough(x_vals: ArrayLike) -> np.ndarray:
@@ -29,29 +68,29 @@ def passthrough(x_vals: ArrayLike) -> np.ndarray:
 def softmax(
     logprobs: ArrayLike,
     temperature: float = 1.0,
-) -> np.ndarray:
-    logprobs = np.asarray(logprobs)
+) -> NDArray[np.float64]:
+    logprobs = np.asarray(logprobs, dtype=np.float64)
     temperature = max(temperature, 0.0)
     if temperature == 0.0:
         return (logprobs == logprobs.max(axis=-1, keepdims=True)).astype(float)
     return special.softmax(logprobs / temperature, axis=-1)
 
 
-def pmf_mode(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+def pmf_mode(x_vals: ArrayLike, masses: ArrayLike) -> NDArray:
     x_vals = np.asarray(x_vals)
     masses = np.asarray(masses)
     mode_indices = np.argmax(masses, axis=-1, keepdims=True)
     return np.take_along_axis(x_vals, mode_indices, axis=-1)[..., 0]
 
 
-def pmf_mean(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
-    x_vals = np.asarray(x_vals)
+def pmf_mean(x_vals: ArrayLike, masses: ArrayLike) -> NDArray[np.float64]:
+    x_vals = np.asarray(x_vals, dtype=np.float64)
     masses = np.asarray(masses)
     return np.average(x_vals, axis=-1, weights=masses)
 
 
-def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
-    x_vals = np.asarray(x_vals)
+def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> NDArray[np.float64]:
+    x_vals = np.asarray(x_vals, dtype=np.float64)
     masses = np.asarray(masses)
     return np.average(
         (x_vals.T - pmf_mean(x_vals, masses)).T ** 2,
@@ -60,11 +99,15 @@ def pmf_variance(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
     )
 
 
-def pmf_std_dev(x_vals: ArrayLike, masses: ArrayLike) -> np.ndarray:
+def pmf_std_dev(x_vals: ArrayLike, masses: ArrayLike) -> NDArray[np.float64]:
     return np.sqrt(pmf_variance(x_vals, masses))
 
-def mean_center(x: ArrayLike, axis: int | Sequence[int] | None = None) -> np.ndarray:
-    x = np.asarray(x)
+
+def mean_center(
+    x: ArrayLike,
+    axis: int | tuple[int, ...] | None = None,
+) -> NDArray[np.float64]:
+    x = np.asarray(x, dtype=np.float64)
     return x - np.mean(x, axis, keepdims=True)
 
 
@@ -147,6 +190,6 @@ def apply_logprobs_std_dev(
 
 def apply_mean_center(
     x: pd.DataFrame,
-    axis: int | Sequence[int] | None = None,
+    axis: int | tuple[int, ...] | None = None,
 ) -> pd.DataFrame:
     return pd.DataFrame(mean_center(x, axis), index=x.index, columns=x.columns)

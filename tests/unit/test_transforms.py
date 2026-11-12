@@ -1,9 +1,10 @@
 import pytest
 import numpy as np
 from numpy.testing import assert_array_equal
+from numpy.typing import NDArray
 import pandas as pd
 from pandas.testing import assert_frame_equal
-from liger.dataset import fit
+from liger import transforms
 
 
 SAMPLE_DATA = [
@@ -23,8 +24,8 @@ DEVIATIONS = [0.0, 0.0, 0.0, 0.0, np.linalg.norm((
 
 
 @pytest.fixture
-def sample_data_array() -> np.ndarray:
-    return np.array((SAMPLE_DATA, SAMPLE_DATA))
+def sample_data_array() -> NDArray[np.float64]:
+    return np.array((SAMPLE_DATA, SAMPLE_DATA), dtype=np.float64)
 
 
 @pytest.fixture
@@ -32,8 +33,8 @@ def sample_data_frame() -> pd.DataFrame:
     return pd.DataFrame(SAMPLE_DATA)
 
 
-def test_linear_fit_array(sample_data_array: np.ndarray) -> None:
-    alphas, deviations = fit.linear_fit_array(
+def test_linear_projection_array(sample_data_array: NDArray[np.float64]) -> None:
+    alphas, deviations = transforms.linear_projection(
         sample_data_array,
         sample_data_array[0][0],
         sample_data_array[0][1],
@@ -48,12 +49,12 @@ def test_linear_fit_array(sample_data_array: np.ndarray) -> None:
     assert_array_equal(deviations, expected_deviations)
 
 
-def test_linear_fit(sample_data_frame: pd.DataFrame) -> None:
-    linear_fit = fit.linear_fit(
+def test_linear_projection_frame(sample_data_frame: pd.DataFrame) -> None:
+    linear_fit = pd.DataFrame(transforms.linear_projection(
         sample_data_frame,
         sample_data_frame.loc[0],
         sample_data_frame.loc[1],
-    )
+    ), index=["alpha", "deviation"], columns=sample_data_frame.index).T
     assert isinstance(linear_fit, pd.DataFrame)
     assert linear_fit.shape == (5, 2)
     expected = pd.DataFrame({"alpha": ALPHAS, "deviation": DEVIATIONS})

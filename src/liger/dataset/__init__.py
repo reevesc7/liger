@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from . import _config, fit
+from . import _config
 from ._load import (
     ColumnsFilter,
     transform_data,
@@ -26,7 +26,6 @@ from ._load import (
 
 
 __all__ = [
-    "fit",
     "ColumnsFilter",
     "transform_data",
     "extract_columns",
