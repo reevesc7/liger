@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from liger.dataset import _load
+from liger import loaders
 
 
 def _apply_zero(
@@ -11,24 +11,24 @@ def _apply_zero(
 
 
 def test_data_from_csv(example_data_file: Path) -> None:
-    data = _load.data_from_csv(file_path=example_data_file)
+    data = loaders.data_from_csv(file_path=example_data_file)
     assert isinstance(data, pd.DataFrame)
     assert data.shape == (91, 1)
     assert data.columns[0] == "prompt"
-    data = _load.data_from_csv(
+    data = loaders.data_from_csv(
         file_path=example_data_file,
         columns=r"^all-mpnet-base-v2_\d*$",
         transformer=_apply_zero,
     )
     assert isinstance(data, pd.DataFrame)
     assert data.shape == (91, 1)
-    data = _load.data_from_csv(
+    data = loaders.data_from_csv(
         file_path=example_data_file,
         columns=("mean", "prompt"),
     )
     assert data.shape == (91, 2)
     assert data.columns[0] == "prompt"
-    data = _load.data_from_csv(
+    data = loaders.data_from_csv(
         file_path=example_data_file,
         columns=[55, 0, 1],
     )

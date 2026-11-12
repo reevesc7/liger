@@ -21,12 +21,9 @@ from typing import (
     Hashable,
     Iterable,
     Protocol,
-    Sequence,
     TypedDict,
     runtime_checkable,
 )
-import warnings
-from dataclasses import dataclass
 from pathlib import Path
 import re
 import pandas as pd
@@ -46,39 +43,8 @@ Transformer = Callable[..., Any] | UnfittedTransformer | FittedTransformer
 
 
 class DataFromCSVArgs(TypedDict):
-    columns: str | Sequence[Hashable] | None
+    columns: str | Iterable[Hashable] | None
     transformer: Transformer | None
-
-
-@dataclass(slots=True)
-class ColumnsFilter:
-    columns: str
-    transformer: (
-        Callable[[pd.DataFrame], pd.Series | pd.DataFrame] | Transformer | None
-    ) = None
-
-
-def _old_data_from_csv(
-    file_path: str | Path,
-    *,
-    col_filters: Sequence[ColumnsFilter],
-) -> pd.DataFrame:
-    file_path = Path(file_path)
-    frames = []
-    for col_filter in col_filters:
-        frame = pd.read_csv(
-            file_path,
-            usecols=lambda col: re.search(col_filter.columns, str(col)) is not None,
-        )
-        if isinstance(col_filter.transformer, UnfittedTransformer):
-            frames.append(col_filter.transformer.transform(frame))
-        elif isinstance(col_filter.transformer, FittedTransformer):
-            frames.append(col_filter.transformer.fit_transform(frame))
-        elif isinstance(col_filter.transformer, Callable):
-            frames.append(col_filter.transformer(frame))
-        else:
-            frames.append(frame)
-    return pd.concat(frames, axis=1)
 
 
 def transform_data(
@@ -96,7 +62,7 @@ def transform_data(
 
 def extract_columns(
     data: pd.DataFrame,
-    columns: str | Sequence[Hashable] | None = None,
+    columns: str | Iterable[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     if columns is None:
@@ -110,10 +76,10 @@ def extract_columns(
     return transform_data(filtered, transformer)
 
 
-def _new_data_from_csv(
+def data_from_csv(
     file_path: str | Path,
     *,
-    columns: str | Sequence[Hashable] | None = None,
+    columns: str | Iterable[Hashable] | None = None,
     transformer: Transformer | None = None,
 ) -> pd.DataFrame:
     file_path = Path(file_path)
@@ -129,27 +95,6 @@ def _new_data_from_csv(
     if transformer is None:
         return data
     return transform_data(data, transformer)
-
-
-def data_from_csv(
-    file_path: str | Path,
-    *,
-    col_filters: Sequence[ColumnsFilter] | None = None,
-    columns: str | Sequence[Hashable] | None = None,
-    transformer: Transformer | None = None,
-) -> pd.DataFrame:
-    if col_filters is None:
-        return _new_data_from_csv(file_path, columns=columns, transformer=transformer)
-    if columns is not None or transformer is not None:
-        raise ValueError("Received old-typical and new-typical arguments; "
-            "Prefer supplying only arguments 'columns' and/or 'transformer'.")
-    warnings.warn(
-        "Passing 'col_filters' to "
-            f"'{data_from_csv.__module__}.{data_from_csv.__name__}' is deprecated; "
-            "use arguments 'columns' and/or 'transformer'",
-        DeprecationWarning,
-    )
-    return _old_data_from_csv(file_path, col_filters=col_filters)
 
 
 def multi_data_from_csv(

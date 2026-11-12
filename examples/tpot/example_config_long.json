@@ -2,7 +2,7 @@
     "<INSTANCE>": "liger.tpot.TPOTManager",
     "output_dir": "example_outputs",
     "x": {
-        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "<PARTIAL>": "liger.loaders.data_from_csv",
         "file_path": {
             "<INSTANCE>": "pathlib.Path",
             "<ARGS>": [
@@ -12,7 +12,7 @@
         "columns": "^all-mpnet-base-v2"
     },
     "y": {
-        "<PARTIAL>": "liger.dataset.data_from_csv",
+        "<PARTIAL>": "liger.loaders.data_from_csv",
         "file_path": {
             "<INSTANCE>": "pathlib.Path",
             "<ARGS>": [
