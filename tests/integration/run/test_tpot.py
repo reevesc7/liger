@@ -5,17 +5,15 @@ pytest.importorskip("tpot", reason="tpot not installed")
 
 from pytest import MonkeyPatch
 from enum import IntEnum, auto
+from pathlib import Path
 import subprocess
 import time
-from pathlib import Path
 from liger import tpot
 
 
 TPOT_DIR = "tpot"
-EG_CONFIG_NAME = "example_config_short.json"
+EG_CONFIG_NAME = "example_config_short.py"
 EG_SLURM_PROFILE_NAME = "example_slurm_profile.sh"
-POPULATION_NAME = "population.pkl"
-RUN_OUTPUT_NAMES = ["individuals.csv", "instances.json"]
 SLURM_RUN_STATES = {"PENDING", "RUNNING"}
 SLURM_FAIL_STATES = {"FAILED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL"}
 
@@ -33,16 +31,16 @@ def test_local(monkeypatch: MonkeyPatch, tmp_path: Path, examples_dir: Path) -> 
         config_path=examples_dir / TPOT_DIR / EG_CONFIG_NAME,
         output_dir=tmp_path,
     )
-    assert (output_dir / tpot.paths.CONFIG).is_file()
-    assert (output_dir / tpot.paths.PARAMS).is_file()
+    assert tpot.paths.config_path(output_dir).is_file()
+    assert tpot.paths.context_path(output_dir).is_file()
     complete = tpot.run_local_segment(output_dir)
-    assert (output_dir / tpot.paths.INDIVS).is_file()
-    assert (output_dir / tpot.paths.INSTANCES).is_file()
+    assert tpot.paths.indivs_path(output_dir).is_file()
+    assert tpot.paths.instances_path(output_dir).is_file()
     while not complete:
-        assert (output_dir / tpot.paths.POP).is_file()
+        assert tpot.paths.pop_path(output_dir).is_file()
         complete = tpot.run_local_segment(output_dir)
-        assert (output_dir / tpot.paths.INDIVS).is_file()
-        assert (output_dir / tpot.paths.INSTANCES).is_file()
+        assert tpot.paths.indivs_path(output_dir).is_file()
+        assert tpot.paths.instances_path(output_dir).is_file()
 
 
 def _slurm_chain_state(dir: Path) -> SlurmChainState:
@@ -78,9 +76,9 @@ def test_slurm(monkeypatch: MonkeyPatch, tmp_path: Path, examples_dir: Path) -> 
         slurm_profile_path=examples_dir / TPOT_DIR / EG_SLURM_PROFILE_NAME,
         output_dir=tmp_path,
     )
-    assert (output_dir / tpot.paths.CONFIG).is_file()
-    assert (output_dir / tpot.paths.PARAMS).is_file()
-    assert (output_dir / tpot.paths.SLURM_PROFILE).is_file()
+    assert tpot.paths.config_path(output_dir).is_file()
+    assert tpot.paths.context_path(output_dir).is_file()
+    assert tpot.paths.slurm_profile_path(output_dir).is_file()
     job_id = tpot.run_slurm_segment(output_dir, recurse=True)
     assert job_id is not None
     while True:
@@ -89,5 +87,5 @@ def test_slurm(monkeypatch: MonkeyPatch, tmp_path: Path, examples_dir: Path) -> 
         if state is SlurmChainState.COMPLETE:
             break
         assert state is not SlurmChainState.FAILED
-    assert (output_dir / tpot.paths.INDIVS).is_file()
-    assert (output_dir / tpot.paths.INSTANCES).is_file()
+    assert tpot.paths.indivs_path(output_dir).is_file()
+    assert tpot.paths.instances_path(output_dir).is_file()
