@@ -21,6 +21,7 @@ from ._evolution import EvolutionParams
 from ._eval import EvalParams
 from ._end import EndParams
 from ._runtime import RuntimeParams
+from ._search_space import SearchSpaceFactory, SearchSpaceParams
 
 
 __all__ = [
@@ -31,4 +32,6 @@ __all__ = [
     "EvalParams",
     "EndParams",
     "RuntimeParams",
+    "SearchSpaceFactory",
+    "SearchSpaceParams",
 ]
