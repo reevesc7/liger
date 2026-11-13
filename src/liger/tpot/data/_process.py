@@ -23,6 +23,7 @@ from pathlib import Path
 import pandas as pd
 from tpot import Population
 from liger import config as cfg
+from liger.context import Context
 from liger import tpot
 from . import _io
 from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
@@ -123,5 +124,6 @@ def score_columns(indivs: pd.DataFrame) -> list[str]:
 
 
 def run_is_complete(dir: str | Path) -> bool:
-    manager = cfg.parse_config(_io.load_params(dir), tpot.TPOTManager)
+    context = Context.from_frozen(tpot.paths.context_path(dir))
+    manager: tpot.TPOTManager = _io.load_build(tpot.paths.config_path(dir))(context)
     return manager.is_complete()

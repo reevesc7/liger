@@ -15,24 +15,36 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
+import hashlib
+import importlib.util
+import inspect
 from pathlib import Path
 import json
+import sys
+from typing import Callable
 import dill
 import pandas as pd
 from tpot import Population
 from liger import config as cfg
-from liger.config import typing
 from liger.tpot import paths
 from ._schema import IndivCol
 from . import _parse
 
 
-def load_params(checkpoint_dir: str | Path) -> typing.Config:
-    return json.load(paths.params_path(checkpoint_dir).open())
-
-
-def dump_params(params: typing.ConfigLike, checkpoint_dir: str | Path) -> None:
-    json.dump(params, paths.params_path(checkpoint_dir).open("w"), indent=4)
+def load_build(config_path: Path) -> Callable:
+    name = "_liger_tpot_config_" + hashlib.sha1(
+        str(config_path).encode()
+    ).hexdigest()[:10]
+    spec = importlib.util.spec_from_file_location(name, config_path)
+    if spec is None or spec.loader is None:
+        raise ValueError(f"Could not parse proper spec from {config_path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    build = getattr(module, "build", None)
+    if not (callable(build) and len(inspect.signature(build).parameters.keys()) == 1):
+        raise TypeError(f"{config_path}: expected a callable 'build(context)'")
+    return build
 
 
 def load_pop(checkpoint_dir: str | Path) -> Population:

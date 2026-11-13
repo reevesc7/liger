@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from ._io import load_params, dump_params, load_pop, dump_pop, load_indivs, dump_indivs
+from ._io import load_build, load_pop, dump_pop, load_indivs, dump_indivs
 from ._parse import parse_slurm_options, parse_pop, parse_indivs
 from ._process import (
     ScoreValuation,
@@ -29,8 +29,7 @@ from ._schema import RunCol, IndivCol, NodeCol, EdgeCol
 
 
 __all__ = [
-    "load_params",
-    "dump_params",
+    "load_build",
     "load_pop",
     "dump_pop",
     "load_indivs",
