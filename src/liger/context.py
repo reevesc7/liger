@@ -15,7 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Callable, TypeVar
+from pathlib import Path
+import json
+from typing import Any, Callable, Self, TypeVar
 from liger.config.typing import ConfigLike
 
 
@@ -29,9 +31,13 @@ class Context:
         self._store = store
         self._used: set[str] = set()
 
-    def export(self) -> dict[str, Any]:
-        """Retieve a shallow copy of stored values."""
-        return self._store.copy()
+    @classmethod
+    def from_frozen(cls, filepath: str | Path) -> Self:
+        return cls(json.load(Path(filepath).open()))
+
+    def freeze(self, filepath: str | Path) -> None:
+        """Export stored values to a file path."""
+        json.dump(self._store, Path(filepath).open("w"), indent=4)
 
     def once(self, key: str, factory: Callable[[], T]) -> T:
         """Compute a value once, retrieving the stored value on subsequent calls."""
