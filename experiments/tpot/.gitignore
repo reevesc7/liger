@@ -16,3 +16,4 @@
 # Personal scripts and configs
 /local_*
 /configs/local_*.json
+/configs/local_*.py

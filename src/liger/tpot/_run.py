@@ -48,12 +48,17 @@ def init_tpot_dir(
 
 
 def run_local_segment(checkpoint_dir: str | Path) -> bool:
-    checkpoint_dir = Path(checkpoint_dir).resolve()
-    config = data.load_params(checkpoint_dir)
-    tpot = cfg.parse_config(config, TPOTManager)
-    if tpot.output_dir_ != checkpoint_dir:
-        tpot.output_dir_ = checkpoint_dir
-        data.dump_params(cfg.to_config(tpot), checkpoint_dir)
+    import runpy
+    from liger.context import Context
+    checkpoint_dir = Path(checkpoint_dir)
+    context = Context(json.load((checkpoint_dir / "params.json").open()))
+    tpot: TPOTManager = runpy.run_path(str(checkpoint_dir / "config.py"))["build"](context)
+    context.check_used()
+    # config = data.load_params(checkpoint_dir)
+    # tpot = cfg.parse_config(config, TPOTManager)
+    # if tpot.output_dir_ != checkpoint_dir:
+    #     tpot.set_output_dir(checkpoint_dir)
+    #     data.dump_params(cfg.to_config(tpot), checkpoint_dir)
     tpot.run_segment()
     return tpot.is_complete()
 
