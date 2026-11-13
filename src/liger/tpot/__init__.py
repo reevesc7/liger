@@ -25,6 +25,8 @@ from ._params import (
     EvalParams,
     EndParams,
     RuntimeParams,
+    SearchSpaceFactory,
+    SearchSpaceParams,
 )
 from ._run import init_tpot_dir, run_local_segment, run_slurm_segment
 
@@ -41,6 +43,8 @@ __all__ = [
     "EvalParams",
     "EndParams",
     "RuntimeParams",
+    "SearchSpaceFactory",
+    "SearchSpaceParams",
     "init_tpot_dir",
     "run_local_segment",
     "run_slurm_segment",

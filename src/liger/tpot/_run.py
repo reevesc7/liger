@@ -19,9 +19,7 @@ import os
 import shutil
 from pathlib import Path
 import subprocess
-import json
-import liger.config as cfg
-from liger.config.typing import Config
+from liger.context import Context
 from ._manager import TPOTManager
 from . import data, paths
 
@@ -33,13 +31,13 @@ def init_tpot_dir(
     output_dir: str | Path | None = None,
 ) -> Path:
     config_path = Path(config_path)
-    config: dict[str, Config] = json.load(config_path.open())
-    tpot = cfg.parse_config(config, TPOTManager)
+    context = Context()
+    tpot: TPOTManager = data.load_build(config_path)(context)
     if output_dir is not None:
         tpot.set_output_dir(output_dir)
     tpot.output_dir_.mkdir(parents=True, exist_ok=True)
     shutil.copy(config_path, paths.config_path(tpot.output_dir_))
-    data.dump_params(cfg.to_config(tpot), tpot.output_dir_)
+    context.freeze(paths.context_path(tpot.output_dir_))
     if slurm_profile_path is not None:
         slurm_profile_path = Path(slurm_profile_path)
         shutil.copy(slurm_profile_path, paths.slurm_profile_path(tpot.output_dir_))
@@ -48,12 +46,12 @@ def init_tpot_dir(
 
 
 def run_local_segment(checkpoint_dir: str | Path) -> bool:
-    checkpoint_dir = Path(checkpoint_dir).resolve()
-    config = data.load_params(checkpoint_dir)
-    tpot = cfg.parse_config(config, TPOTManager)
-    if tpot.output_dir_ != checkpoint_dir:
-        tpot.output_dir_ = checkpoint_dir
-        data.dump_params(cfg.to_config(tpot), checkpoint_dir)
+    checkpoint_dir = Path(checkpoint_dir)
+    context = Context.from_frozen(paths.context_path(checkpoint_dir))
+    tpot: TPOTManager = data.load_build(paths.config_path(checkpoint_dir))(context)
+    context.check_used()
+    if not tpot.output_dir_.is_dir() or not tpot.output_dir_.samefile(checkpoint_dir):
+        tpot.set_output_dir(checkpoint_dir)
     tpot.run_segment()
     return tpot.is_complete()
 

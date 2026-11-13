@@ -15,7 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Callable, Iterable, Protocol, Self, TYPE_CHECKING
+from typing import Any, Callable, Iterable, Self, TYPE_CHECKING
 from dataclasses import dataclass, field
 import warnings
 import logging
@@ -29,17 +29,7 @@ from sklearn.utils.multiclass import type_of_target
 from tpot import Population
 from tpot.search_spaces.base import SearchSpace
 import liger.config as cfg
-from ._params import (
-    Objective,
-    InverseObjectives,
-    DatasetParams,
-    EvolutionParams,
-    EvalParams,
-    EndParams,
-    RuntimeParams,
-)
-from . import paths
-from . import data
+from . import _params as _p, data, paths
 # /// --- Prevents TPOTEstimator from causing pyright lag --- \\\
 if TYPE_CHECKING:
     class TPOTEstimator:
@@ -67,18 +57,6 @@ warnings.filterwarnings(
 )
 
 
-class SearchSpaceInitializer(Protocol):
-    def __call__(
-        self,
-        *,
-        n_classes: int,
-        n_samples: int,
-        n_features: int,
-        random_state: int | None,
-        n_jobs: int,
-    ) -> SearchSpace: ...
-
-
 class _TruthyInt(int):
     """Part of a fix for an off-by-one error in TPOT's early stop logic.
     Always returning true allows TPOT's early stop check to occur when
@@ -97,23 +75,23 @@ class TPOTManager:
     _x: NDArray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
     y: ArrayLike | spmatrix | Callable[[], ArrayLike | spmatrix]
     _y: NDArray | pd.DataFrame | spmatrix | None = field(default=None, init=False)
-    search_space: str | SearchSpace | SearchSpaceInitializer
+    search_space: str | SearchSpace | _p.SearchSpaceFactory
     _search_space: str | SearchSpace | None = field(default=None, init=False)
     classification: bool
-    objectives: Iterable[Objective]
-    _objectives: InverseObjectives = field(init=False)
-    dataset_params: DatasetParams = field(default_factory=DatasetParams)
-    evolution_params: EvolutionParams = field(default_factory=EvolutionParams)
-    eval_params: EvalParams = field(default_factory=EvalParams)
-    end_params: EndParams = field(default_factory=EndParams)
-    runtime_params: RuntimeParams = field(default_factory=RuntimeParams)
+    objectives: Iterable[_p.Objective]
+    _objectives: _p.InverseObjectives = field(init=False)
+    dataset_params: _p.DatasetParams = field(default_factory=_p.DatasetParams)
+    evolution_params: _p.EvolutionParams = field(default_factory=_p.EvolutionParams)
+    eval_params: _p.EvalParams = field(default_factory=_p.EvalParams)
+    end_params: _p.EndParams = field(default_factory=_p.EndParams)
+    runtime_params: _p.RuntimeParams = field(default_factory=_p.RuntimeParams)
     verbose: int = 0
     _is_complete: bool = field(default=False, init=False)
     _tpot: TPOTEstimator | None = field(default=None, init=False)
 
     def __post_init__(self) -> None:
         self.set_output_dir(self.output_dir)
-        self._objectives = InverseObjectives(self.objectives)
+        self._objectives = _p.InverseObjectives(self.objectives)
         self._check_end_conditions()
 
     def _log(self, message: str, category: int | type[Warning] = logging.INFO) -> None:
@@ -341,13 +319,13 @@ class TPOTManager:
             return self.search_space
         if self._x is None:
             self._x = self._init_x()
-        return self.search_space(
+        return self.search_space(_p.SearchSpaceParams(
             n_classes=self._y_class_counts()[0].shape[0],
             n_samples=self._x.shape[0] // self._safe_cv(),
             n_features=self._x.shape[1],
             random_state=self.evolution_params.random_state_,
             n_jobs=self.runtime_params.n_jobs,
-        )
+        ))
 
     def _init_tpot(self) -> TPOTEstimator:
         if self._search_space is None:

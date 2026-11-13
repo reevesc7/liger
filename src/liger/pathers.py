@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 
 def datetime_subpath(
@@ -38,8 +39,14 @@ def datetime_subpath(
     dir = Path(dir)
     if "{}" not in name:
         name += "{}"
-    time = datetime.now(time_zone).strftime(datetime_fmt)
-    subpath = (dir / name.format(time))
+    for _ in range(100):
+        now = datetime.now(time_zone).strftime(datetime_fmt)
+        subpath = (dir / name.format(now))
+        if not subpath.exists():
+            break
+        time.sleep(0.01)
+    else:
+        raise RuntimeError(f"Could not resolve a non-existing path like {dir / name}")
     if absolute:
         return subpath.resolve()
     return subpath

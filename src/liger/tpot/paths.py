@@ -19,8 +19,8 @@ from pathlib import Path
 
 
 SLURM_PROFILE = "slurm_profile.sh"
-CONFIG = "config.json"
-PARAMS = "params.json"
+CONFIG = "config.py"
+CONTEXT = "context.json"
 SLURM_OUT = "slurm-%j.out"
 POP = "population.pkl"
 INDIVS = "individuals.csv"
@@ -39,8 +39,8 @@ def config_path(checkpoint_dir: str | Path) -> Path:
     return path(checkpoint_dir, CONFIG)
 
 
-def params_path(checkpoint_dir: str | Path) -> Path:
-    return path(checkpoint_dir, PARAMS)
+def context_path(checkpoint_dir: str | Path) -> Path:
+    return path(checkpoint_dir, CONTEXT)
 
 
 def slurm_out_path(checkpoint_dir: str | Path) -> Path:
