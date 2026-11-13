@@ -28,36 +28,39 @@ from tpot import GraphPipeline
 from tpot.objectives import complexity
 
 
+LINEAR = (
+    cross_decomposition.PLSRegression,
+    linear_model.BayesianRidge,
+)
+WRAPPER = (
+    ensemble.AdaBoostRegressor,
+    ensemble.AdaBoostClassifier,
+    ensemble.BaggingRegressor,
+    ensemble.BaggingClassifier,
+    multioutput.MultiOutputRegressor,
+    multioutput.MultiOutputClassifier,
+)
+
+
 def score_complexity(est: Any, _X: Any = None, _y: Any = None) -> int:
-    match est:
-        case (
-            cross_decomposition.PLSRegression()
-            | linear_model.BayesianRidge()
-        ):
-            n_params = int(complexity._count_nonzero_coefficients_and_intercept(est))
-        case (
-            ensemble.AdaBoostRegressor()
-            | ensemble.AdaBoostClassifier()
-            | ensemble.BaggingRegressor()
-            | ensemble.BaggingClassifier()
-            | multioutput.MultiOutputRegressor()
-            | multioutput.MultiOutputClassifier()
-        ):
-            n_params = sum(score_complexity(estimator) for estimator in est.estimators_)
-        case kernel_ridge.KernelRidge():
-            n_params = est.dual_coef_.size
-        case pipeline.FeatureUnion():
-            n_params = sum(
-                score_complexity(estimator)
-                for _, estimator in est.transformer_list
-            )
-        case pipeline.Pipeline():
-            return sum(score_complexity(estimator) for _, estimator in est.steps)
-        case GraphPipeline():
-            n_params = sum(
-                score_complexity(node["instance"])
-                for node in est.graph.nodes.values()
-            )
-        case _:
-            n_params = int(complexity.calculate_model_complexity(est))
+    if isinstance(est, LINEAR):
+        n_params = int(complexity._count_nonzero_coefficients_and_intercept(est))
+    elif isinstance(est, WRAPPER):
+        n_params = sum(score_complexity(estimator) for estimator in est.estimators_)
+    elif isinstance(est, kernel_ridge.KernelRidge):
+        n_params = est.dual_coef_.size
+    elif isinstance(est, pipeline.FeatureUnion):
+        n_params = sum(
+            score_complexity(estimator)
+            for _, estimator in est.transformer_list
+        )
+    elif isinstance(est, pipeline.Pipeline):
+        n_params = sum(score_complexity(estimator) for _, estimator in est.steps)
+    elif isinstance(est, GraphPipeline):
+        n_params = sum(
+            score_complexity(node["instance"])
+            for node in est.graph.nodes.values()
+        )
+    else:
+        n_params = int(complexity.calculate_model_complexity(est))
     return n_params
