@@ -44,8 +44,6 @@ SIMPLE_INNERS = (
     "StandardScaler",
 )
 
-BAD_NODE = ValueError("Received invalid node name")
-
 
 def _get_non_null_search_space(
     name: str,
