@@ -218,11 +218,11 @@ class TPOTManager:
         ):
             self._log("Last recorded generation is incomplete", logging.DEBUG)
             return False
-        return any((
-            self._is_end_gen(indivs),
-            self._is_end_time(indivs),
-            self._is_end_early_stop(indivs),
-        ))
+        return (
+            self._is_end_gen(indivs)
+            or self._is_end_time(indivs)
+            or self._is_end_early_stop(indivs)
+        )
 
     def _init_state(self) -> None:
         self._log("Loading population", logging.DEBUG)
