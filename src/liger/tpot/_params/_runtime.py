@@ -15,14 +15,14 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Literal
 from dataclasses import dataclass
 from pathlib import Path
-from distributed import Client
 from joblib import Memory
+from typing import Any, Literal
+from distributed import Client
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class RuntimeParams:
     n_jobs: int = 1
     memory_limit: Literal["auto"] | str | float | None = "auto"
@@ -36,3 +36,13 @@ class RuntimeParams:
         if self.cache_evaluations:
             return Memory(output_dir, verbose=0)
         return None
+
+    def tpot_kwargs(self, output_dir: str | Path) -> dict[str, Any]:
+        return {
+            "memory": self.make_eval_cache(output_dir),
+            "n_jobs": self.n_jobs,
+            "memory_limit": self.memory_limit,
+            "client": self.client,
+            "processes": self.processes,
+            "scatter": self.scatter,
+        }

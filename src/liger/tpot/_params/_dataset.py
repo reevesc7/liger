@@ -15,13 +15,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Sequence, SupportsIndex
 from dataclasses import dataclass
+from typing import Any, Sequence, SupportsIndex
 from sklearn.base import BaseEstimator
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class DatasetParams:
     disable_label_encoder: bool = False
     preprocessing: bool | BaseEstimator = False
     categorical_features: Sequence[str] | Sequence[SupportsIndex] | None = None
+
+    def tpot_kwargs(self) -> dict[str, Any]:
+        return {
+            "categorical_features": self.categorical_features,
+            "preprocessing": self.preprocessing,
+            "disable_label_encoder": self.disable_label_encoder,
+        }

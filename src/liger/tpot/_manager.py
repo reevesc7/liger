@@ -15,12 +15,12 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Callable, Iterable, Self, TYPE_CHECKING
 from dataclasses import dataclass, field
-import warnings
+import json
 import logging
 from pathlib import Path
-import json
+from typing import Any, Callable, Iterable, Self, TYPE_CHECKING
+import warnings
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 import pandas as pd
@@ -57,16 +57,6 @@ warnings.filterwarnings(
 )
 
 
-class _TruthyInt(int):
-    """Part of a fix for an off-by-one error in TPOT's early stop logic.
-    Always returning true allows TPOT's early stop check to occur when
-    `TPOTEstimator.early_stop = 0`, allowing for early stopping in the
-    case of 2 generations in a row with the same historical top scores.
-    """
-    def __bool__(self) -> bool:
-        return True
-
-
 @dataclass(slots=True)
 class TPOTManager:
     output_dir: str | Path
@@ -85,6 +75,7 @@ class TPOTManager:
     eval_params: _p.EvalParams = field(default_factory=_p.EvalParams)
     end_params: _p.EndParams = field(default_factory=_p.EndParams)
     runtime_params: _p.RuntimeParams = field(default_factory=_p.RuntimeParams)
+    random_state: int | None = None
     verbose: int = 0
     _is_complete: bool = field(default=False, init=False)
     _tpot: TPOTEstimator | None = field(default=None, init=False)
@@ -113,12 +104,12 @@ class TPOTManager:
 
     def set_output_dir(self, dir: str | Path) -> None:
         dir = Path(dir).resolve()
-        self.output_dir = self.output_dir_ = dir
+        self.output_dir_ = dir
         self._log(f"Output directory set to: {dir}", logging.DEBUG)
 
     def _check_end_conditions(self) -> None:
-        endless_segment = self.end_params.segment_is_endless_
-        endless_run = self.end_params.run_is_endless_
+        endless_segment = self.end_params.segment_is_endless
+        endless_run = self.end_params.run_is_endless
         if endless_segment and not endless_run:
             self._log((
                 "No segment end condition is set; "
@@ -140,7 +131,7 @@ class TPOTManager:
         last_gen = data.last_gen(pop.evaluated_individuals)
         pop = data.remove_incomplete_last_gen(
             pop,
-            self.evolution_params.gens_pop_sizes_,
+            self.evolution_params.gens_pop_sizes,
         )
         last_complete_gen = data.last_gen(pop.evaluated_individuals)
         if last_gen != last_complete_gen:
@@ -153,14 +144,14 @@ class TPOTManager:
         return pop
 
     def _is_end_gen(self, indivs: pd.DataFrame) -> bool:
-        if self.end_params.total_generations is None:
+        if self.end_params.total_gens is None:
             return False
         complete_gens = data.last_gen(indivs) + 1
-        if complete_gens < self.end_params.total_generations:
+        if complete_gens < self.end_params.total_gens:
             return False
         self._log((
             f"Complete generations, {complete_gens}, meets or exceeds "
-                f"total generations, {self.end_params.total_generations}"
+                f"total generations, {self.end_params.total_gens}"
         ), logging.DEBUG)
         return True
 
@@ -195,11 +186,9 @@ class TPOTManager:
         # TPOT counts how many generations have failed to make an improvement.
         if self.end_params.early_stop is None:
             return False
-        complete_gens = data.last_gen(indivs) + 1
-        if complete_gens <= self.end_params.early_stop:
-            return False
-        min_end_gen = self.eval_params.gen_of_max_budget_ + self.end_params.early_stop
-        if complete_gens < min_end_gen:
+        last_gen = data.last_gen(indivs)
+        min_end_gen = self.eval_params.gen_of_max_budget + self.end_params.early_stop
+        if last_gen < min_end_gen:
             return False
         greater_is_better_scores = indivs.set_index(
             data.IndivCol.GEN
@@ -219,7 +208,7 @@ class TPOTManager:
         return True
 
     def indivs_is_complete(self, indivs: pd.DataFrame) -> bool:
-        if self.end_params.run_is_endless_:
+        if self.end_params.run_is_endless:
             self._log("No end condition set, run cannot be complete", logging.DEBUG)
             return False
         if indivs is None or indivs.shape[0] == 0:
@@ -323,81 +312,31 @@ class TPOTManager:
             n_classes=self._y_class_counts()[0].shape[0],
             n_samples=self._x.shape[0] // self._safe_cv(),
             n_features=self._x.shape[1],
-            random_state=self.evolution_params.random_state_,
+            random_state=self.random_state,
             n_jobs=self.runtime_params.n_jobs,
         ))
 
     def _init_tpot(self) -> TPOTEstimator:
         if self._search_space is None:
             self._search_space = self._init_search_space()
-        # /// --- Corrects off-by-one error in TPOT's early_stop logic --- \\\
-        if isinstance(self.end_params.early_stop, int):
-            early_stop = _TruthyInt(self.end_params.early_stop - 1)
-        else:
-            early_stop = self.end_params.early_stop
-        # \\\ ------------------------------------------------------------ ///
         return TPOTEstimator(
             search_space=self._search_space,
-            scorers=self._objectives.scorers_,
-            scorers_weights=self._objectives.scorers_weights_,
             classification=self.classification,
             cv=self._safe_cv(),
-            other_objective_functions=self._objectives.others_,
-            other_objective_functions_weights=self._objectives.others_weights_,
+            periodic_checkpoint_folder=self.output_dir_,
+            verbose=self.verbose,
+            random_state=self.random_state,
+            **self._objectives.tpot_kwargs(),
+            **self.dataset_params.tpot_kwargs(),
+            **self.evolution_params.tpot_kwargs(),
+            **self.eval_params.tpot_kwargs(),
+            **self.end_params.tpot_kwargs(),
+            **self.runtime_params.tpot_kwargs(self.output_dir_),
             objective_function_names=None,
             bigger_is_better=True,
             export_graphpipeline=False,
-            memory=self.runtime_params.make_eval_cache(self.output_dir_),
-            categorical_features=self.dataset_params.categorical_features,
-            preprocessing=self.dataset_params.preprocessing, # type: ignore
-            population_size=self.evolution_params.population_size,
-            initial_population_size=self.evolution_params.initial_population_size,
-            population_scaling=self.evolution_params.population_scaling,
-            generations_until_end_population=(
-                self.evolution_params.generations_until_end_population
-            ),
-            generations=self.end_params.segment_generations,
-            max_time_mins=self.end_params.segment_time, # type: ignore
-            max_eval_time_mins=self.eval_params.eval_time, # type: ignore
-            validation_strategy=self.eval_params.validation_strategy,
-            validation_fraction=self.eval_params.validation_fraction,
-            disable_label_encoder=self.dataset_params.disable_label_encoder,
-            early_stop=early_stop,
-            scorers_early_stop_tol=(
-                    self._objectives.scorers_early_stop_tols_
-            ), # type: ignore
-            other_objectives_early_stop_tol=self._objectives.others_early_stop_tols_,
-            threshold_evaluation_pruning=self.eval_params.threshold_evaluation_pruning,
-            threshold_evaluation_scaling=self.eval_params.threshold_evaluation_scaling,
-            selection_evaluation_pruning=self.eval_params.selection_evaluation_pruning,
-            selection_evaluation_scaling=self.eval_params.selection_evaluation_scaling,
-            min_history_threshold=self.eval_params.min_history_threshold,
-            survival_percentage=(
-                self.evolution_params.survival_percentage
-            ), # type: ignore
-            crossover_probability=self.evolution_params.crossover_probability,
-            mutate_probability=self.evolution_params.mutate_probability,
-            mutate_then_crossover_probability=(
-                self.evolution_params.mutate_then_crossover_probability
-            ),
-            crossover_then_mutate_probability=(
-                self.evolution_params.crossover_then_mutate_probability
-            ),
-            survival_selector=self.evolution_params.survival_selector,
-            parent_selector=self.evolution_params.parent_selector,
-            budget_range=self.eval_params.budget_range,
-            budget_scaling=self.eval_params.budget_scaling,
-            generations_until_end_budget=self.eval_params.generations_until_end_budget,
-            stepwise_steps=None, # type: ignore
-            n_jobs=self.runtime_params.n_jobs,
-            memory_limit=self.runtime_params.memory_limit,
-            client=self.runtime_params.client,
-            processes=self.runtime_params.processes,
+            stepwise_steps=None,
             warm_start=True,
-            periodic_checkpoint_folder=self.output_dir_,
-            verbose=self.verbose,
-            scatter=self.runtime_params.scatter,
-            random_state=self.evolution_params.random_state_,
         )
 
     def run_segment(self) -> None:

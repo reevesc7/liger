@@ -15,11 +15,11 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Literal
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any, Literal
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class EvalParams:
     cv: int = 10
     eval_time: float | None = 10.0
@@ -33,12 +33,30 @@ class EvalParams:
     generations_until_end_budget: int = 1
     validation_strategy: Literal["auto", "reshuffled", "split", "none"] = "none"
     validation_fraction: float = 0.2
-    gen_of_max_budget_: int = field(init=False)
 
     def __post_init__(self) -> None:
+        if self.generations_until_end_budget < 1:
+            raise ValueError("'generations_until_end_budget' must be at least 1")
+
+    @property
+    def gen_of_max_budget(self) -> int:
         if self.budget_range is None or self.budget_range[1] <= self.budget_range[0]:
-            self.gen_of_max_budget_ = 1
-        else:
-            # /// --- Corrects for 'tpot.utils.beta_interpolation()' edge case --- \\\
-            self.gen_of_max_budget_ = max(self.generations_until_end_budget, 2)
-            # \\\ ---------------------------------------------------------------- ///
+            return 0
+        # /// --- Corrects for 'tpot.utils.beta_interpolation()' edge case --- \\\
+        return max(self.generations_until_end_budget - 1, 1)
+        # \\\ ---------------------------------------------------------------- ///
+
+    def tpot_kwargs(self) -> dict[str, Any]:
+        return {
+            "max_eval_time_mins": self.eval_time,
+            "validation_strategy": self.validation_strategy,
+            "validation_fraction": self.validation_fraction,
+            "threshold_evaluation_pruning": self.threshold_evaluation_pruning,
+            "threshold_evaluation_scaling": self.threshold_evaluation_scaling,
+            "selection_evaluation_pruning": self.selection_evaluation_pruning,
+            "selection_evaluation_scaling": self.selection_evaluation_scaling,
+            "min_history_threshold": self.min_history_threshold,
+            "budget_range": self.budget_range,
+            "budget_scaling": self.budget_scaling,
+            "generations_until_end_budget": self.generations_until_end_budget,
+        }

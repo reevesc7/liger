@@ -147,16 +147,16 @@ def build(context: Context) -> lgtpot.TPOTManager:
         objectives=_init_objectives(),
         evolution_params=lgtpot.EvolutionParams(
             population_size=POP_SIZE,
-            random_state=RANDOM_STATE,
         ),
         eval_params=lgtpot.EvalParams(
             cv=CV,
             eval_time=EVAL_TIME,
         ),
         end_params=lgtpot.EndParams(
-            segment_generations=SEGMENT_GENS,
-            total_generations=TOTAL_GENS,
+            segment_gens=SEGMENT_GENS,
+            total_gens=TOTAL_GENS,
             early_stop=EARLY_STOP,
         ),
+        random_state=RANDOM_STATE,
         verbose=4,
     )

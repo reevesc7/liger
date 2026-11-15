@@ -15,40 +15,62 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
 
-@dataclass(slots=True)
+class _TruthyInt(int):
+    """Part of a fix for an off-by-one error in TPOT's early stop logic.
+    Always returning true allows TPOT's early stop check to occur when
+    `TPOTEstimator.early_stop = 0`, allowing for early stopping in the
+    case of 2 generations in a row with the same historical top scores.
+    """
+    def __bool__(self) -> bool:
+        return True
+
+
+@dataclass(slots=True, frozen=True)
 class EndParams:
-    segment_generations: int | None = None
-    total_generations: int | None = None
+    segment_gens: int | None = None
+    total_gens: int | None = None
     segment_time: float | None = 60.0
     total_time: float | None = 600.0
     early_stop: int | None = None
     clear_population_file: bool = True
-    segment_is_endless_: bool = field(init=False)
-    run_is_endless_: bool = field(init=False)
 
-    def __post_init__(self) -> None:
-        if self.segment_generations is None:
-            self.segment_generations = self.total_generations
-        if self.segment_time is None:
-            self.segment_time = self.total_time
-        self.segment_is_endless_ = self._is_segment_endless()
-        self.run_is_endless_ = self._is_run_endless()
+    @property
+    def effective_segment_gens(self) -> int | None:
+        return self.total_gens if self.segment_gens is None else self.segment_gens
 
-    def _is_segment_endless(self) -> bool:
+    @property
+    def effective_segment_time(self) -> float | None:
+        return self.total_time if self.segment_time is None else self.segment_time
+
+    @property
+    def segment_is_endless(self) -> bool:
+        segment_time = self.effective_segment_time
         return (
-            self.segment_generations is None
-            and
-            (self.segment_time is None or self.segment_time == float("inf"))
+            self.effective_segment_gens is None
+            and (segment_time is None or segment_time == float("inf"))
         )
 
-    def _is_run_endless(self) -> bool:
+    @property
+    def run_is_endless(self) -> bool:
         return (
-            self.total_generations is None
-            and
-            (self.total_time is None or self.total_time == float("inf"))
-            and
-            self.early_stop is None
+            self.total_gens is None
+            and (self.total_time is None or self.total_time == float("inf"))
+            and self.early_stop is None
         )
+
+    @property
+    def tpot_early_stop(self) -> _TruthyInt | None:
+        # /// --- Corrects off-by-one error in TPOT's early_stop logic --- \\\
+        return None if self.early_stop is None else _TruthyInt(self.early_stop - 1)
+        # \\\ ------------------------------------------------------------ ///
+
+    def tpot_kwargs(self) -> dict[str, Any]:
+        return {
+            "generations": self.effective_segment_gens,
+            "max_time_mins": self.effective_segment_time,
+            "early_stop": self.tpot_early_stop,
+        }

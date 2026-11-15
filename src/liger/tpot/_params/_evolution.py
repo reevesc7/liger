@@ -15,16 +15,15 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Callable, Literal
-from dataclasses import dataclass, field
-from random import randint
+from dataclasses import dataclass
+from typing import Any, Callable
 import numpy as np
 from numpy.typing import ArrayLike
 from tpot.selectors import survival_select_NSGA2, tournament_selection_dominated
 from tpot.utils import beta_interpolation
 
 
-@dataclass(slots=True)
+@dataclass(slots=True, frozen=True)
 class EvolutionParams:
     population_size: int = 50
     initial_population_size: int | None = None
@@ -41,22 +40,19 @@ class EvolutionParams:
     mutate_probability: float = 0.7
     mutate_then_crossover_probability: float = 0.05
     crossover_then_mutate_probability: float = 0.05
-    random_state: Literal["auto"] | int | None = "auto"
-    random_state_: int | None = field(init=False)
-    gen_of_end_pop_size_: int = field(init=False)
-    gens_pop_sizes_: list[int] = field(init=False)
 
     def __post_init__(self) -> None:
-        if self.random_state == "auto":
-            self.random_state = self.random_state_ = randint(0, 2 ** 32 - 1)
-        else:
-            self.random_state_ = self.random_state
-        # /// --- Corrects for 'beta_interpolation()' edge case --- \\\
-        self.gen_of_end_pop_size_ = max(self.generations_until_end_population, 2)
-        # \\\ ----------------------------------------------------- ///
-        self.gens_pop_sizes_ = self._gens_pop_sizes()
+        if self.generations_until_end_population < 1:
+            raise ValueError("'generations_until_end_population' must be at least 1")
 
-    def _gens_pop_sizes(self) -> list[int]:
+    @property
+    def gen_of_end_pop_size(self) -> int:
+        # /// --- Corrects for 'beta_interpolation()' edge case --- \\\
+        return max(self.generations_until_end_population - 1, 1)
+        # \\\ ----------------------------------------------------- ///
+
+    @property
+    def gens_pop_sizes(self) -> list[int]:
         start_size = self.initial_population_size
         end_size = self.population_size
         if start_size is None or start_size == end_size:
@@ -64,12 +60,25 @@ class EvolutionParams:
         per_gen_pop_size: list[np.float64] = beta_interpolation(
             start=start_size,
             end=end_size,
-            scale=self.evolution_params.population_scaling, # type: ignore
-            n=self.gen_of_end_pop_size_,
+            scale=self.population_scaling, # type: ignore
+            n=self.gen_of_end_pop_size + 1,
         )
         return np.round(per_gen_pop_size).astype(int).tolist()
 
     def gen_pop_size(self, gen: int) -> int:
-        if gen > self.gen_of_end_pop_size_:
-            gen = self.gen_of_end_pop_size_
-        return self.gens_pop_sizes_[gen]
+        return self.gens_pop_sizes[min(gen, self.gen_of_end_pop_size)]
+
+    def tpot_kwargs(self) -> dict[str, Any]:
+        return {
+            "population_size": self.population_size,
+            "initial_population_size": self.initial_population_size,
+            "population_scaling": self.population_scaling,
+            "generations_until_end_population": self.generations_until_end_population,
+            "survival_percentage": self.survival_percentage,
+            "crossover_probability": self.crossover_probability,
+            "mutate_probability": self.mutate_probability,
+            "mutate_then_crossover_probability": self.mutate_then_crossover_probability,
+            "crossover_then_mutate_probability": self.crossover_then_mutate_probability,
+            "survival_selector": self.survival_selector,
+            "parent_selector": self.parent_selector,
+        }

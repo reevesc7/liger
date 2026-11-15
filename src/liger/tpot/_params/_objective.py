@@ -15,9 +15,9 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 
-from typing import Any, Iterable, Protocol
 from dataclasses import dataclass, field
 import inspect
+from typing import Any, Iterable, Protocol
 import numpy as np
 from sklearn.base import BaseEstimator
 
@@ -33,36 +33,35 @@ class OtherCallable(Protocol):
 ObjectiveCallable = ScorerCallable | OtherCallable
 
 
-@dataclass(slots=True)
+def _func_is_scorer(func: ScorerCallable | OtherCallable) -> bool:
+    signature = inspect.signature(func)
+    params = signature.parameters.values()
+    positional_capable_args = [
+        param for param in params
+        if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD)
+    ]
+    if len(positional_capable_args) >= 3:
+        return True
+    if len(positional_capable_args) == 1:
+        return False
+    raise ValueError(
+        f"Unable to infer objective type from signature {signature}; "
+            "set 'force_scorer=True' at construction"
+    )
+
+
+@dataclass(slots=True, frozen=True)
 class Objective:
     func: str | ObjectiveCallable
     weight: float
     early_stop_tol: float | None = 0.001
     force_scorer: bool = False
-    is_scorer_: bool = field(init=False)
 
-    def __post_init__(self) -> None:
+    @property
+    def is_scorer(self) -> bool:
         if self.force_scorer or isinstance(self.func, str):
-            self.is_scorer_ = True
-        else:
-            self.is_scorer_ = self._func_is_scorer(self.func)
-
-    @staticmethod
-    def _func_is_scorer(func: ScorerCallable | OtherCallable) -> bool:
-        signature = inspect.signature(func)
-        params = signature.parameters.values()
-        positional_capable_args = [
-            param for param in params
-            if param.kind in (param.POSITIONAL_ONLY, param.POSITIONAL_OR_KEYWORD)
-        ]
-        if len(positional_capable_args) >= 3:
             return True
-        if len(positional_capable_args) == 1:
-            return False
-        raise ValueError(
-            f"Unable to infer objective type from signature {signature}; "
-                "pass a value to 'is_scorer' at construction"
-        )
+        return _func_is_scorer(self.func)
 
 
 @dataclass(slots=True)
@@ -78,11 +77,16 @@ class InverseObjectives:
     early_stop_tols_: np.ndarray = field(init=False)
 
     def __post_init__(self) -> None:
-        scorers = [objctv for objctv in self.objectives if objctv.is_scorer_]
+        scorers: list[Objective] = []
+        others: list[Objective] = []
+        for objective in self.objectives:
+            if objective.is_scorer:
+                scorers.append(objective)
+            else:
+                others.append(objective)
         self.scorers_ = [scorer.func for scorer in scorers]
         self.scorers_weights_ = [scorer.weight for scorer in scorers]
         self.scorers_early_stop_tols_ = [scorer.early_stop_tol for scorer in scorers]
-        others = [objctv for objctv in self.objectives if not objctv.is_scorer_]
         self.others_ = [other.func for other in others]
         self.others_weights_ = [other.weight for other in others]
         self.others_early_stop_tols_ = [other.early_stop_tol for other in others]
@@ -90,3 +94,13 @@ class InverseObjectives:
         self.early_stop_tols_ = np.array(
             self.scorers_early_stop_tols_ + self.others_early_stop_tols_
         )
+
+    def tpot_kwargs(self) -> dict[str, Any]:
+        return {
+            "scorers": self.scorers_,
+            "scorers_weights": self.scorers_weights_,
+            "other_objective_functions": self.others_,
+            "other_objective_functions_weights": self.others_weights_,
+            "scorers_early_stop_tol": self.scorers_early_stop_tols_,
+            "other_objectives_early_stop_tol": self.others_early_stop_tols_,
+        }
