@@ -99,21 +99,25 @@ def last_gen(indivs: pd.DataFrame) -> int:
     return int(indivs[IndivCol.GEN].max())
 
 
-def remove_incomplete_last_gen(
-    pop: Population,
-    pop_sizes: Sequence[int],
-) -> Population:
-    indivs = pop.evaluated_individuals
-    last_gen_ = last_gen(indivs)
-    if last_gen_ > len(pop_sizes) - 1:
+def gen_is_complete(indivs: pd.DataFrame, gen: int, pop_sizes: Sequence[int]) -> bool:
+    if gen > len(pop_sizes) - 1:
         pop_size = pop_sizes[-1]
     else:
-        pop_size = pop_sizes[last_gen_]
-    last_gen_mask = indivs[IndivCol.GEN] == last_gen_
-    if last_gen_mask.sum() >= pop_size:
-        return pop
-    indivs = indivs.loc[~last_gen_mask]
-    pop.population = pop.population[:indivs.shape[0]]
+        pop_size = pop_sizes[gen]
+    last_gen_mask = indivs[IndivCol.GEN] == gen
+    finished_mask = indivs[IndivCol.COMP_TIME].notna()
+    return (last_gen_mask & finished_mask).sum() >= pop_size
+
+
+def remove_gen(pop: Population, gen: int) -> Population:
+    indivs = pop.evaluated_individuals
+    indivs = indivs.loc[indivs[IndivCol.GEN] != gen]
+    whitelist = set(indivs.index)
+    pop.population = [
+        indiv
+        for indiv in pop.population
+        if indiv.unique_id() in whitelist
+    ]
     pop.evaluated_individuals = indivs
     return pop
 

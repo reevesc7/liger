@@ -128,20 +128,18 @@ class TPOTManager:
             ), logging.WARNING)
 
     def _fix_pop(self, pop: Population) -> Population | None:
-        last_gen = data.last_gen(pop.evaluated_individuals)
-        pop = data.remove_incomplete_last_gen(
-            pop,
+        indivs = pop.evaluated_individuals
+        last_gen = data.last_gen(indivs)
+        if data.gen_is_complete(
+            indivs,
+            last_gen,
             self.evolution_params.gens_pop_sizes,
-        )
-        last_complete_gen = data.last_gen(pop.evaluated_individuals)
-        if last_gen != last_complete_gen:
-            self._log("Found and erased incomplete last generation")
-            if last_gen == 0:
-                paths.pop_path(self.output_dir_).unlink()
-                paths.indivs_path(self.output_dir_).unlink(missing_ok=True)
-                paths.instances_path(self.output_dir_).unlink(missing_ok=True)
-                return None
-        return pop
+        ):
+            return pop
+        self._log("Found incomplete last generation - removing")
+        if last_gen == 0:
+            return None
+        return data.remove_gen(pop, last_gen)
 
     def _is_end_gen(self, indivs: pd.DataFrame) -> bool:
         if self.end_params.total_gens is None:
@@ -234,6 +232,7 @@ class TPOTManager:
             self._log("Dumping population", logging.DEBUG)
             data.dump_pop(last_pop, self.output_dir_)
             return
+        paths.pop_path(self.output_dir_).unlink(missing_ok=True)
         self._log("Loading individuals", logging.DEBUG)
         try:
             last_indivs = data.load_indivs(self.output_dir_)
