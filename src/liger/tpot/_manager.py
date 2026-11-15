@@ -211,6 +211,13 @@ class TPOTManager:
             return False
         if indivs is None or indivs.shape[0] == 0:
             return False
+        if not data.gen_is_complete(
+            indivs,
+            data.last_gen(indivs),
+            self.evolution_params.gens_pop_sizes,
+        ):
+            self._log("Last recorded generation is incomplete", logging.DEBUG)
+            return False
         return any((
             self._is_end_gen(indivs),
             self._is_end_time(indivs),
